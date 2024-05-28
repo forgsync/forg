@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {},
+  "references": [
+    {
+      "path": "../forg/tsconfig.json"
+    }
+  ]
+}

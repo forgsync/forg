@@ -1,0 +1,14 @@
+{
+  "name": "forg-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "author": "David Nissimoff",
+  "license": "MPL-2.0",
+  "scripts": {
+  },
+  "devDependencies": {
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
