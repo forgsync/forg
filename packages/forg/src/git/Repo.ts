@@ -1,9 +1,8 @@
-import * as pako from 'pako';
+import * as fflate from 'fflate';
+import { FileStorage } from "@flystorage/file-storage";
 
 import { Hash } from './model';
 import { decode, encode } from './utils';
-import { ISimpleFS } from "./ISimpleFS";
-
 
 export interface IRepo {
   listRefs(): Promise<string[]>;
@@ -17,10 +16,13 @@ export interface IRepo {
 }
 
 export class Repo implements IRepo {
-  private readonly _fs: ISimpleFS;
+  private readonly _fs: FileStorage;
 
-  constructor(fs: ISimpleFS) {
+  constructor(fs: FileStorage) {
     this._fs = fs;
+  }
+
+  async init() {
   }
 
   async listRefs(): Promise<string[]> {
@@ -28,36 +30,39 @@ export class Repo implements IRepo {
   }
 
   async getRef(ref: string): Promise<string | undefined> {
-    const rawContent = await this._fs.read(ref);
-    if (rawContent) {
+    try {
+      const rawContent = await this._fs.readToUint8Array(ref);
       const content = decode(rawContent);
       return content.trim();
     }
+    catch (error) {
 
-    return undefined;
+      return undefined;
+    }
   }
 
   async setRef(ref: string, hash: string | undefined): Promise<void> {
+    // TODO: write to log as well
     if (hash !== undefined) {
       const rawContent = `${hash}\n`;
       const content = encode(rawContent);
       await this._fs.write(ref, content);
     }
     else {
-      await this._fs.delete(ref);
+      await this._fs.deleteFile(ref);
     }
   }
 
   async saveRawObject(hash: string, raw: Uint8Array): Promise<void> {
-    const compressed = pako.deflate(raw);
+    const compressed = fflate.deflateSync(raw);
     const path = Repo._ObjectPath(hash);
     await this._fs.write(path, compressed);
   }
 
   async loadRawObject(hash: string): Promise<Uint8Array | undefined> {
     const path = Repo._ObjectPath(hash);
-    const compressed = await this._fs.read(path);
-    return compressed ? pako.inflate(compressed) : undefined;
+    const compressed = await this._fs.readToUint8Array(path);
+    return compressed ? fflate.inflateSync(compressed) : undefined;
   }
 
   async hasObject(hash: string): Promise<boolean> {
@@ -70,12 +75,12 @@ export class Repo implements IRepo {
       await this._fs.write(name, value);
     }
     else {
-      await this._fs.delete(name);
+      await this._fs.deleteFile(name);
     }
   }
 
   async loadMetadata(name: string): Promise<Uint8Array | undefined> {
-    const content = await this._fs.read(name);
+    const content = await this._fs.readToUint8Array(name);
     return content;
   }
 
