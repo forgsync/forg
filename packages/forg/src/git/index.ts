@@ -19,5 +19,3 @@ export type {
 
 export { walkCommits, walkTree, listFiles } from "./walkers";
 export type { HashAndCommitBody, HashModePath } from "./walkers";
-
-export { InMemoryFS } from "./InMemoryFS";
