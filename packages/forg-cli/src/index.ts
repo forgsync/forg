@@ -23,8 +23,8 @@ const parser = yargs(hideBin(process.argv))
       });
     },
     async (argv) => {
-      myFunc();
-      console.log(`Ran command abc with ${argv.aaa}`);
+      console.log(`Running command abc with ${argv.aaa}`);
+      await myFunc();
     },
   );
 

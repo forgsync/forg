@@ -2,34 +2,37 @@ import { Hash, Mode, ModeHash, Person, Type } from "./model";
 import { saveObject } from "./objects";
 import { IRepo } from "./Repo";
 
-export type Folder = {
+/**
+ * Describes a folder that isn't known to alread exist in git.
+ * A new folder is described by the set of files and folders in it,
+ * as opposed to being just a hash pointing at an existing tree in git.
+ */
+export type NewFolder = {
   readonly files?: {
     readonly [key: string]: File;
   }
   readonly folders?: {
-    readonly [key: string]: Folder | ExistingFolder;
+    readonly [key: string]: Folder;
   }
 }
-
+/**
+ * Describes an existing tree in git, indicated by its hash.
+ */
 export type ExistingFolder = Hash;
+export type Folder = NewFolder | ExistingFolder;
 
 export type BinaryFile = {
   readonly isExecutable?: boolean
   readonly body: Uint8Array
 }
-
 export type ExistingFile = {
   readonly isExecutable?: boolean
   readonly hash: Hash
 }
-
 export type File = BinaryFile | ExistingFile;
-
 
 export async function commit(repo: IRepo, ref: string, tree: Folder, message: string, author: Person, committer: Person = author): Promise<Hash> {
   const originalHash = await repo.getRef(ref);
-  if (!originalHash) throw new Error(`Unknown ref ${ref}`);
-
   const treeHash = await saveTree(repo, tree);
 
   const hash = await saveObject(
@@ -40,16 +43,27 @@ export async function commit(repo: IRepo, ref: string, tree: Folder, message: st
         author,
         committer,
         message,
-        parents: [originalHash],
+        parents: originalHash ? [originalHash] : [],
         tree: treeHash
       }
     });
 
   await repo.setRef(ref, hash);
+
+  const reflog = await repo.getReflog(ref);
+  const commitDescription = message.split('\n', 1)[0];
+  reflog.push({
+    previousCommit: originalHash ?? "0".repeat(40),
+    newCommit: hash,
+    person: committer,
+    description: originalHash ? `commit: ${commitDescription}` : `commmit (initial): ${commitDescription}`,
+  });
+  await repo.setReflog(ref, reflog);
+
   return hash;
 }
 
-export async function saveTree(repo: IRepo, folder: Folder | Hash): Promise<Hash> {
+export async function saveTree(repo: IRepo, folder: NewFolder | Hash): Promise<Hash> {
   if (typeof (folder) === 'string') return folder;
 
   const body: { [key: string]: ModeHash } = {};

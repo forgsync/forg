@@ -9,12 +9,10 @@ export type {
   TreeBody, CommitBody, TagBody,
 } from "./objects";
 
-export { init } from "./init";
-
 export { commit, saveTree } from "./commits";
 export type {
   File, BinaryFile, ExistingFile,
-  Folder, ExistingFolder,
+  Folder, NewFolder, ExistingFolder,
 } from "./commits";
 
 export { walkCommits, walkTree, listFiles } from "./walkers";

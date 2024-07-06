@@ -32,3 +32,10 @@ export type ModeHash = {
   readonly mode: Mode;
   readonly hash: string;
 }
+
+export interface ReflogEntry {
+  previousCommit: Hash;
+  newCommit: Hash;
+  person: Person;
+  description: string;
+}

@@ -78,3 +78,7 @@ export function unpackHash(binary: Uint8Array, start = 0, end = binary.length) {
 export function toHexChar(val: number) {
   return val < 10 ? val + 0x30 : val + 0x57;
 }
+
+export function sanitizeString(string: string) {
+  return string.replace(/(?:^[\.,:;<>"']+|[\0\n<>]+|[\.,:;<>"']+$)/gm, "");
+}

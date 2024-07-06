@@ -1,5 +1,6 @@
 
-import { Person, Type } from './model';
+import { decodePerson } from './person';
+import { Hash, Person, Type } from '../model';
 import {
   GitObject,
   BlobObject,
@@ -9,8 +10,8 @@ import {
   TreeBody,
   CommitBody,
   TagBody,
-} from './objects';
-import { decode, fromDec, fromOct, unpackHash } from './utils';
+} from '../objects';
+import { decode, fromDec, fromOct, unpackHash } from './util';
 
 export default function decodeObject(buffer: Uint8Array): GitObject {
   const space = buffer.indexOf(0x20);
@@ -33,10 +34,6 @@ export default function decodeObject(buffer: Uint8Array): GitObject {
     default:
       throw new Error("Unknown type");
   }
-}
-
-export function blobToText(blob: Uint8Array) {
-  return decode(blob);
 }
 
 function decodeBlob(body: Uint8Array): BlobObject {
@@ -75,7 +72,7 @@ type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 function decodeCommit(body: Uint8Array): CommitObject {
   let i = 0;
-  const parents: string[] = [];
+  const parents: Hash[] = [];
   const commit: Writeable<CommitBody> = {
     tree: "",
     parents: parents,
@@ -140,19 +137,6 @@ function decodeTag(body: Uint8Array): TagObject {
   return {
     type: Type.tag,
     body: tag,
-  };
-}
-
-function decodePerson(string: string): Person {
-  const match = string.match(/^([^<]*) <([^>]*)> ([^ ]*) (.*)$/);
-  if (!match) throw new Error("Improperly formatted person string");
-  return {
-    name: match[1],
-    email: match[2],
-    date: {
-      seconds: parseInt(match[3], 10),
-      offset: parseInt(match[4], 10) / 100 * -60
-    }
   };
 }
 

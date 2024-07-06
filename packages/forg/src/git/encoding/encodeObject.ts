@@ -1,9 +1,10 @@
-import { Mode, Person, SecondsWithOffset, Type } from './model';
+import { encodePerson } from './person';
+import { Mode, Type } from '../model';
 import {
   CommitBody, GitObject,
   TagBody, TreeBody
-} from './objects';
-import { NEWLINE, concat, encode, flatten, packHash } from './utils';
+} from '../objects';
+import { NEWLINE, concat, encode, flatten, packHash } from './util';
 
 
 export default function encodeObject(object: GitObject): Uint8Array {
@@ -56,7 +57,7 @@ export function encodeTag(body: TagBody) {
     `object ${body.object}`,
     `type ${body.type}`,
     `tag ${body.tag}`,
-    `tagger ${formatPerson(body.tagger)}`,
+    `tagger ${encodePerson(body.tagger)}`,
     '',
     body.message);
 }
@@ -65,46 +66,10 @@ export function encodeCommit(body: CommitBody) {
   return joinWithNewline(
     `tree ${body.tree}`,
     ...body.parents.map(p => `parent ${p}`),
-    `author ${formatPerson(body.author)}`,
-    `committer ${formatPerson(body.committer)}`,
+    `author ${encodePerson(body.author)}`,
+    `committer ${encodePerson(body.committer)}`,
     '',
     body.message);
-}
-
-function formatPerson(person: Person) {
-  return safe(person.name) +
-    " <" + safe(person.email) + "> " +
-    formatDate(person.date);
-}
-
-function safe(string: string) {
-  return string.replace(/(?:^[\.,:;<>"']+|[\0\n<>]+|[\.,:;<>"']+$)/gm, "");
-}
-
-function two(num: number) {
-  return (num < 10 ? "0" : "") + num;
-}
-
-function formatDate(date: Date | SecondsWithOffset) {
-  let seconds, offset;
-  if (isSecondsWithOffset(date)) {
-    seconds = date.seconds;
-    offset = date.offset;
-  }
-  // Also accept Date instances
-  else {
-    seconds = Math.floor(date.getTime() / 1000);
-    offset = date.getTimezoneOffset();
-  }
-  let neg = "+";
-  if (offset <= 0) offset = -offset;
-  else neg = "-";
-  offset = neg + two(Math.floor(offset / 60)) + two(offset % 60);
-  return seconds + " " + offset;
-}
-
-function isSecondsWithOffset(value: Date | SecondsWithOffset): value is SecondsWithOffset {
-  return "seconds" in value;
 }
 
 function joinWithNewline(...values: (string | Uint8Array)[]) {
