@@ -3,6 +3,8 @@ import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
+import terser from '@rollup/plugin-terser';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   input: 'src/index.ts',
@@ -11,5 +13,15 @@ export default defineConfig({
     format: 'cjs',
     inlineDynamicImports: true,
   },
-  plugins: [nodeResolve(), commonjs(), json(), typescript()],
+  plugins: [
+    nodeResolve(),
+    commonjs(),
+    json(),
+    typescript(),
+    terser(),
+    visualizer({
+      emitFile: true,
+      gzipSize: true,
+    }),
+  ],
 });

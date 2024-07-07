@@ -19,7 +19,8 @@ export async function myFunc(): Promise<void> {
     date: {
       seconds: 1234,
       offset: 0,
-    },};
+    },
+  };
   const hash = await createCommit(
     repo,
     {
