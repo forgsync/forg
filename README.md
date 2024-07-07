@@ -1,29 +1,34 @@
-# Forks as Remotes on Git (Forg)
+<img src="./docs/forgsync-logo-512.png" alt="ForgSync logo" width="256"/>
 
-Forg is a privacy-first multi-device data sync standard where users keep their data. No more feeding your data to sketchy or dubious company servers.
+# Decentralized data sync - forg
 
-In a mobile-first world where apps must store and sync data across user devices, Forg ensures user data stays with (and belongs to) the user -- **as it should!**
+Forg (pronounced "forge") is a privacy-first multi-device data sync standard where users keep their data. No more feeding your data to sketchy servers.
 
-Apps built with Forg store user data in user-owned data providers (such as OneDrive, iCloud, DropBox, etc.) instead of proprietary app-owned servers.
+In a mobile-first world where apps must store and sync data across user devices, forg ensures user data stays with (and belongs to) the user -- **as it should!**
+
+Apps powered by forg will store user data in user-controlled data providers
+(such as OneDrive, iCloud, DropBox, etc.) instead of proprietary servers
+owned by the app developer.
 Forg enables bidirectional data sync and a seamless offline-first experience that Just Works.
+When an app utilizes forg as its data sync mechanism, the app is described as supporting ForgSync.
 
 
-## What is Forg?
+## What is forg?
 
-Forg is a git-compatible(-ish) object-store database, inheriting many of the same concepts as git -- commits, trees, objects, branches, precisely like git.
+Forg is a git-compatible(-ish) object-store database, inheriting many of the same concepts as git -- commits, trees, objects, branches.
 
-A Forg repo is just a git repo, but with a few constraints
-that enable persistance on cloud storage providers (such as OneDrive, iCloud, DropBox, etc.)
-and ensure data consistency even during concurrent read/write access from multiple devices.
+A forg repo is a git repo, but with a few constraints
+that enable persistance on cloud storage providers (such as OneDrive, iCloud, DropBox, etc.).
+Forg achieves eventual data consistency despite uncoordinated concurrent read/write access from multiple devices, without locks.
 
 Bidirectional sync across devices (with automatic conflict resolution) is made possible without proprietary server components,
 making Forg the perfect and most cost-effective solution for app developers:
-users fully own their data, and app developers do not need to pay for expensive servers.
+users fully own their data, and app developers need not own any server infrastructure.
 
-Forg stands for **Fo**rks as **R**emotes on **G**it (because of its inner workings) and is also a play on the word **fork**.
+**Forg, pronounced "forge"** stands for **Fo**rks as **R**emotes on **G**it (because of its inner workings). It is also a play on the words **fork** and **merge**. The official logo depicts a frog made of git commits.
 
 
-## Why Forg?
+## Why forg?
 
 * For app developers: save on server costs and deliver seamless offline capabilities
 * For app users: own your data, protect your privacy, and access your data across apps in perpetuity at your own terms
@@ -31,9 +36,9 @@ Forg stands for **Fo**rks as **R**emotes on **G**it (because of its inner workin
 
 ## How does it work?
 
-See the [official specifications](./docs/specs.md) in this repo for the inner workings of Forg.
+See the [official specifications](./docs/specs.md) in this repo for the inner workings of forg.
 
-See also the [Basic Operation](./docs/basic-operation.md) of a Forg repo.
+See also the [Basic Operation](./docs/basic-operation.md) of a forg repo.
 
 
 ## Getting Started
@@ -52,5 +57,3 @@ Forg takes inspiration from several other projects. This list is not comprehensi
 
 - [git](https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain):
   a Forg repo is read-compatible with git (i.e. git tooling can read and use a Forg Repository, but the converse is not necessarily true)
-- [OCI Images](https://github.com/opencontainers/image-spec/blob/main/layer.md):
-  Within a Snapshot, changes made to collections are stored as layered changesets that take inspiration from how layers are defined in an OCI container Image
