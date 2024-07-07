@@ -35,7 +35,7 @@ export class Repo implements IRepo {
       return;
     }
     else if (!hasHeadFile && !hasObjectsDir && !hasRefsDir) {
-      await this._fs.write("HEAD", "ref: refs/heads/main");
+      await this._fs.write("HEAD", "ref: refs/heads/main"); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
       await this._fs.createDirectory("objects");
       await this._fs.createDirectory("refs");
       if (!await this._fs.fileExists("config")) {

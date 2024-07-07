@@ -31,39 +31,39 @@ export type ExistingFile = {
 }
 export type File = BinaryFile | ExistingFile;
 
-export async function commit(repo: IRepo, ref: string, tree: Folder, message: string, author: Person, committer: Person = author): Promise<Hash> {
-  const originalHash = await repo.getRef(ref);
+export async function createCommit(repo: IRepo, tree: Folder, parents: Hash[], message: string, author: Person, committer: Person = author): Promise<Hash> {
   const treeHash = await saveTree(repo, tree);
-
   const hash = await saveObject(
     repo,
     {
       type: Type.commit,
       body: {
+        tree: treeHash,
+        parents,
         author,
         committer,
         message,
-        parents: originalHash ? [originalHash] : [],
-        tree: treeHash
       }
     });
-
-  await repo.setRef(ref, hash);
-
-  const reflog = await repo.getReflog(ref);
-  const commitDescription = message.split('\n', 1)[0];
-  reflog.push({
-    previousCommit: originalHash ?? "0".repeat(40),
-    newCommit: hash,
-    person: committer,
-    description: originalHash ? `commit: ${commitDescription}` : `commmit (initial): ${commitDescription}`,
-  });
-  await repo.setReflog(ref, reflog);
-
   return hash;
 }
 
-export async function saveTree(repo: IRepo, folder: NewFolder | Hash): Promise<Hash> {
+export async function updateRef(repo: IRepo, ref: string, commitId: Hash, person: Person, reflogMessage: string): Promise<void> {
+  // TODO: This method should be atomic (updating the ref and the reflog)
+  const originalHash = await repo.getRef(ref);
+  await repo.setRef(ref, commitId);
+
+  const reflog = await repo.getReflog(ref);
+  reflog.push({
+    previousCommit: originalHash ?? '0'.repeat(40),
+    newCommit: commitId,
+    person: person,
+    description: reflogMessage,
+  });
+  await repo.setReflog(ref, reflog);
+}
+
+async function saveTree(repo: IRepo, folder: NewFolder | Hash): Promise<Hash> {
   if (typeof (folder) === 'string') return folder;
 
   const body: { [key: string]: ModeHash } = {};

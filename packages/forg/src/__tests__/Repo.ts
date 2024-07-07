@@ -1,7 +1,7 @@
 import { FileStorage } from '@flystorage/file-storage'
 import { InMemoryStorageAdapter } from '@flystorage/in-memory'
 
-import { commit, CommitBody, loadObject, Repo, TreeBody } from "../git"
+import { createCommit, updateRef, CommitBody, loadObject, Repo, TreeBody } from "../git"
 import { Mode, Person, ReflogEntry } from '../git/model';
 
 const encoder = new TextEncoder();
@@ -18,14 +18,15 @@ describe("Repo basics", () => {
   test('just init', () => { });
 
   test('trivial commit', async () => {
-    const hash = await commit(
+    const hash = await createCommit(
       repo,
-      "refs/main",
       {},
+      [],
       "Initial commit",
       dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
+    await updateRef(repo, "refs/main", hash, dummyPerson(), "commit (initial): Initial commit");
     expect(await repo.getRef("refs/main")).toBe(hash);
 
     const reflog = await repo.getReflog("refs/main");
@@ -33,7 +34,7 @@ describe("Repo basics", () => {
       previousCommit: '0000000000000000000000000000000000000000',
       newCommit: hash,
       person: dummyPerson(),
-      description: 'commmit (initial): Initial commit',
+      description: 'commit (initial): Initial commit',
     }]);
 
     const commitObject = await loadObject(repo, hash);
@@ -50,9 +51,8 @@ describe("Repo basics", () => {
   });
 
   test('commit with non-empty tree', async () => {
-    const hash = await commit(
+    const hash = await createCommit(
       repo,
-      "refs/main",
       {
         files: {
           "a.txt": {
@@ -71,6 +71,7 @@ describe("Repo basics", () => {
           }
         },
       },
+      [],
       "Initial commit",
       dummyPerson());
     expect(hash).toBe('2f5877487a12348f8de42fc64e9c46bd5d22a651');
@@ -122,17 +123,16 @@ describe("Repo basics", () => {
   });
 
   test('two commits', async () => {
-    const hash = await commit(
+    const hash1 = await createCommit(
       repo,
-      "refs/main",
       {},
+      [],
       "Initial commit",
       dummyPerson());
-    expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
+    expect(hash1).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
-    const hash2 = await commit(
+    const hash2 = await createCommit(
       repo,
-      "refs/main",
       {
         files: {
           "a.txt": {
@@ -141,6 +141,7 @@ describe("Repo basics", () => {
           },
         },
       },
+      [hash1],
       "Added a.txt",
       dummyPerson());
     expect(hash2).toBe('9254379c365d23429f0fff266834bdc853c35fe1');
@@ -151,7 +152,7 @@ describe("Repo basics", () => {
     }
     expect(commitObject.body).toEqual<CommitBody>({
       tree: '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f',
-      parents: [hash],
+      parents: [hash1],
       author: dummyPerson(),
       committer: dummyPerson(),
       message: 'Added a.txt',

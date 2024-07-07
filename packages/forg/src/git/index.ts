@@ -9,7 +9,7 @@ export type {
   TreeBody, CommitBody, TagBody,
 } from "./objects";
 
-export { commit, saveTree } from "./commits";
+export { createCommit, updateRef } from "./commits";
 export type {
   File, BinaryFile, ExistingFile,
   Folder, NewFolder, ExistingFolder,

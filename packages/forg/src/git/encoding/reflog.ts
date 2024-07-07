@@ -1,13 +1,15 @@
 import { ReflogEntry } from "../model";
 import { decodePerson, encodePerson } from "./person";
-import { decode, sanitizeString } from "./util";
+import { decode } from "./util";
 
 export function encodeReflog(reflog: ReflogEntry[]) {
-  return reflog.map(entry => encodeReflogEntry(entry)).join();
+  return reflog.map(entry => encodeReflogEntry(entry)).join('');
 }
 
 function encodeReflogEntry(entry: ReflogEntry) {
-  return `${entry.previousCommit} ${entry.newCommit} ${encodePerson(entry.person)}\t${sanitizeString(entry.description)}\n`;
+  const descriptionLineBreak = entry.description.indexOf('\n');
+  const firstLine = descriptionLineBreak >= 0 ? entry.description.substring(0, descriptionLineBreak) : entry.description;
+  return `${entry.previousCommit} ${entry.newCommit} ${encodePerson(entry.person)}\t${firstLine}\n`;
 }
 
 export function decodeReflog(binary: Uint8Array): ReflogEntry[] {

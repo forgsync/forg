@@ -1,6 +1,6 @@
 import { FileStorage } from '@flystorage/file-storage';
 import { InMemoryStorageAdapter } from '@flystorage/in-memory';
-import { commit, loadObject, Repo, walkTree } from '@forg/forg/dist/git';
+import { createCommit, loadObject, Person, Repo, updateRef, walkTree } from '@forg/forg/dist/git';
 import { encode } from '@forg/forg/dist/git/encoding/util';
 import { isFile } from '@forg/forg/dist/git/util';
 
@@ -12,9 +12,16 @@ export async function myFunc(): Promise<void> {
   console.log('Initing...');
   await repo.init();
   console.log('Commiting...');
-  const hash = await commit(
+
+  const person: Person = {
+    name: 'test',
+    email: '',
+    date: {
+      seconds: 1234,
+      offset: 0,
+    },};
+  const hash = await createCommit(
     repo,
-    'refs/main',
     {
       files: {
         'a.txt': {
@@ -33,16 +40,11 @@ export async function myFunc(): Promise<void> {
         },
       },
     },
+    [],
     'Initial commit',
-    {
-      name: 'test',
-      email: '',
-      date: {
-        seconds: 1234,
-        offset: 0,
-      },
-    },
+    person,
   );
+  await updateRef(repo, 'refs/main', hash, person, 'commit (initial): Initial commit');
 
   console.log('Reading reflog...');
   const reflog = await repo.getReflog('refs/main');

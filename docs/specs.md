@@ -86,6 +86,9 @@ Indicates the default branch. Always contains the content `ref: refs/heads/main\
 
 ### Rule 1:
 
+No rewriting of history by any client.
+
+
 ### Rule 2:
 
 ### Rule 3:
