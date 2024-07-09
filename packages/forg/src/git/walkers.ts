@@ -1,5 +1,6 @@
-import { Hash, Mode, Type } from "./model";
-import { CommitBody, loadObject } from "./objects";
+import { MissingObjectError } from "./errors";
+import { Hash, Mode } from "./model";
+import { CommitBody, loadCommitObject, loadTreeObject } from "./objects";
 import { IRepo } from "./Repo";
 import { isFile } from "./util";
 
@@ -19,14 +20,21 @@ export async function* walkCommits(repo: IRepo, ...hash: Hash[]): AsyncGenerator
   const visited = new Set<Hash>(queue);
   while (queue.length > 0) {
     const hash = queue.shift();
-    if (!hash) return;
-    const commit = await loadObject(repo, hash);
-    if (!commit) throw new Error(`Could not find object ${hash}`);
-    if (commit.type !== Type.commit) throw new Error(`Object is not a commit ${hash}`);
+    if (!hash) {
+      return;
+    }
+    const commit = await loadCommitObject(repo, hash);
+    if (!commit) {
+      throw new MissingObjectError(hash);
+    }
     const visitParents = yield { hash, commit: commit.body };
-    if (visitParents === false) continue;
+    if (visitParents === false) {
+      continue;
+    }
     for (const parent of commit.body.parents) {
-      if (visited.has(parent)) continue;
+      if (visited.has(parent)) {
+        continue;
+      }
       visited.add(parent);
       queue.push(parent);
     }
@@ -34,14 +42,13 @@ export async function* walkCommits(repo: IRepo, ...hash: Hash[]): AsyncGenerator
 }
 
 export async function* walkTree(repo: IRepo, hash: Hash, parentPath: string[] = []): AsyncGenerator<HashModePath> {
-  const object = await loadObject(repo, hash);
-  if (!object) throw new Error(`Could not find object ${hash}`);
-  if (object.type !== Type.tree) {
-    throw new Error(`Object is not a tree ${hash}`);
+  const tree = await loadTreeObject(repo, hash);
+  if (!tree) {
+    throw new MissingObjectError(hash);
   }
 
-  for (const name of Object.keys(object.body)) {
-    const { mode, hash } = object.body[name];
+  for (const name of Object.keys(tree.body)) {
+    const { mode, hash } = tree.body[name];
     const path = [...parentPath, name];
     if (isFile(mode)) {
       yield { mode, hash, path };

@@ -3,7 +3,10 @@ export type { Hash, Mode, Type, ModeHash, Person, SecondsWithOffset } from "./mo
 export { Repo } from "./Repo";
 export type { IRepo } from "./Repo";
 
-export { loadObject, saveObject } from "./objects";
+export {
+  loadObject, loadCommitObject, loadTreeObject, loadBlobObject, loadTagObject,
+  saveObject,
+} from "./objects";
 export type {
   GitObject, BlobObject, TreeObject, CommitObject, TagObject,
   TreeBody, CommitBody, TagBody,
@@ -17,3 +20,8 @@ export type {
 
 export { walkCommits, walkTree, listFiles } from "./walkers";
 export type { HashAndCommitBody, HashModePath } from "./walkers";
+
+export {
+  MissingObjectError,
+  ObjectTypeMismatchError,
+} from './errors';
