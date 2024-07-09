@@ -1,4 +1,4 @@
-<img src="./docs/forgsync-logo-512.png" alt="ForgSync logo" width="256"/>
+<img src="./docs/forgsync-logo2-512.png" alt="ForgSync logo" width="256"/>
 
 # Decentralized data sync - forg
 
