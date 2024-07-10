@@ -29,5 +29,5 @@
     "sourceRoot": "${configDir}/src",
   },
   "include": ["${configDir}/src/**/*.ts"],
-  "exclude": ["**/*.test.ts", "**/__tests__/*"]
+  "exclude": ["**/*.test.ts", "**/__tests__/*", "**/__testHelpers__/*"]
 }

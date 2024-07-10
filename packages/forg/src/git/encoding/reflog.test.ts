@@ -1,5 +1,6 @@
-import { Person, ReflogEntry } from "../model";
+import { ReflogEntry } from "../model";
 import { decodeReflog, encodeReflog } from "./reflog";
+import { dummyPerson } from "../../__testHelpers__/dummyPerson";
 
 const encoder = new TextEncoder();
 
@@ -80,15 +81,3 @@ describe("Decode", () => {
     ]);
   });
 });
-
-
-function dummyPerson(): Person {
-  return {
-    name: "Test Name",
-    email: "test@example.com",
-    date: {
-      seconds: 2272247100,
-      offset: 180,
-    },
-  }
-};

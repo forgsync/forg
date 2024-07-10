@@ -3,8 +3,9 @@ import { InMemoryStorageAdapter } from '@flystorage/in-memory'
 
 import { createCommit, updateRef } from "./commits";
 import { Repo } from "./Repo";
-import { Mode, Person, ReflogEntry } from "./model";
+import { Mode, ReflogEntry } from "./model";
 import { CommitBody, loadObject, TreeBody } from "./objects";
+import { dummyPerson } from "../__testHelpers__/dummyPerson";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -136,13 +137,4 @@ describe("updateRef", () => {
   });
 });
 
-function dummyPerson(): Person {
-  return {
-    name: "Test Name",
-    email: "test@example.com",
-    date: {
-      seconds: 2272247100,
-      offset: 180,
-    },
-  }
-};
+;

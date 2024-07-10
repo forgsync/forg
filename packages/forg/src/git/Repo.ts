@@ -44,10 +44,19 @@ export class Repo implements IRepo {
     }
   }
 
-  async listRefs(what: "refs/heads" | "refs/remotes"): Promise<string[]> {
+  async listRefs(): Promise<string[]> {
     const refs: string[] = [];
-    // TODO: Handle baseBath does not exist and return empty set, don't throw...
-    await this.listRefsCore(what, refs);
+
+    // TODO: This is not going to work anywhere other than Windows with an in-memory filesystem. Looks like a bad bug in the upstream.
+    // TODO: _fs.list always returns empty array when basePath provided is `refs`. Looks like a bug related to Windows path slashes. What is going on??
+    for await (const node of this._fs.list('', { deep: true })) {
+      const path = node.path.replace(/\\/g, '/');
+      if (path.startsWith('refs/') && node.isFile) {
+        refs.push(path);
+      }
+    }
+
+    //console.log(`Found refs: ${JSON.stringify(refs)}`);
     return refs;
   }
 
@@ -98,7 +107,11 @@ export class Repo implements IRepo {
   async loadRawObject(hash: string): Promise<Uint8Array | undefined> {
     const path = Repo._ObjectPath(hash);
 
-    // TODO: Handle not found as a special case. See: https://github.com/duna-oss/flystorage/issues/50
+    // TODO: Handle not found properly and avoid the extra call that still allows for race conditions. See: https://github.com/duna-oss/flystorage/issues/50
+    if (!await this._fs.fileExists(path)) {
+      return undefined;
+    }
+
     const compressed = await this._fs.readToUint8Array(path);
     return compressed ? fflate.inflateSync(compressed) : undefined;
   }
@@ -117,25 +130,13 @@ export class Repo implements IRepo {
   }
 
   async loadMetadata(name: string): Promise<Uint8Array | undefined> {
-    // TODO: Handle not found as a special case. See: https://github.com/duna-oss/flystorage/issues/50
+    // TODO: Handle not found properly and avoid the extra call that still allows for race conditions. See: https://github.com/duna-oss/flystorage/issues/50
+    if (!await this._fs.fileExists(name)) {
+      return undefined;
+    }
+
     const content = await this._fs.readToUint8Array(name);
     return content;
-  }
-
-  private async listRefsCore(basePath: string, refs: string[]): Promise<void> {
-    const folders: string[] = [];
-    for await (const ref of this._fs.list(basePath)) {
-      if (ref.isFile) {
-        refs.push(ref.path);
-      }
-      else {
-        folders.push(ref.path);
-      }
-    }
-
-    for (const folder of folders) {
-      await this.listRefsCore(folder, refs);
-    }
   }
 
   private static _ObjectPath(hash: Hash) {

@@ -34,7 +34,7 @@
   "homepage": "https://github.com/davidnx/forg",
   "devDependencies": {
     "@flystorage/file-storage": "0.1.4",
-    "@flystorage/in-memory": "0.1.3",
+    "@flystorage/in-memory": "0.1.4",
     "@rollup/plugin-commonjs": "26.0.1",
     "@rollup/plugin-json": "6.1.0",
     "@rollup/plugin-node-resolve": "15.2.3",

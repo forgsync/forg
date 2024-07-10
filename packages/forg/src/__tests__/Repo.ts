@@ -158,6 +158,12 @@ describe("Repo basics", () => {
       message: 'Added a.txt',
     });
   });
+
+  test('listRefs', async () => {
+    await repo.setRef('refs/heads/main', '0000000000000000000000000000000000000001');
+    const refs = await repo.listRefs();
+    expect(refs).toEqual(['refs/heads/main']);
+  });
 });
 
 function dummyPerson(): Person {
