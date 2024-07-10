@@ -103,7 +103,7 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         files: {
-          a: { isExecutable: false, body: encoder.encode('a') }, // Not viable, this hash doesn't exist in the repo
+          a: { isExecutable: false, body: encoder.encode('a') },
         },
       },
       [commit1],
