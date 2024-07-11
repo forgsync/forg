@@ -1,9 +1,10 @@
 import { createCommit, Folder, Hash, IRepo, loadCommitObject, loadTreeObject, Person, TreeBody, updateRef } from "../git";
+import { isTreeFullyReachable } from "./isTreeFullyReachable";
 import { ForgClientHead, listForgHeads } from "./listForgHeads";
 import { mergeBase } from "./mergeBase";
 import { ForgClientInfo } from "./model";
 
-type MergeFunc = (a: TreeBody, b: TreeBody, base?: TreeBody) => Promise<Folder>;
+type MergeFunc = (a: TreeBody, b: TreeBody, base: TreeBody | undefined) => Promise<Folder>;
 export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchName: string, merge: MergeFunc): Promise<Hash> {
   const heads = await listForgHeads(repo, branchName);
   const myHead = heads.find(h => h.clientUuid === forgClient.uuid);
@@ -44,7 +45,27 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
     const treeB = await getTreeBody(repo, commitIdB);
 
     // TODO: Figure out base
-    const baseTree: TreeBody | undefined = undefined;
+    const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
+    let baseTree: TreeBody | undefined = undefined;
+    if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
+      const baseCommitId = mergeBaseResult.bestAncestorCommitIds[0];
+      const baseCommit = await loadCommitObject(repo, baseCommitId);
+      if (baseCommit === undefined) {
+        throw new Error();
+      }
+      if (await isTreeFullyReachable(repo, baseCommit.body.tree)) {
+        // TODO: Avoid reloading the same objects so many times.
+        const tree = await loadTreeObject(repo, baseCommit.body.tree);
+        if (tree === undefined) {
+          throw new Error();
+        }
+
+        baseTree = tree.body;
+      }
+      else {
+        // Try to keep going, if merge func can work without a base, let it try its thing...
+      }
+    }
 
     const newTree = await merge(treeA, treeB, baseTree);
     prev = await createCommit(repo, newTree, [commitIdA, commitIdB], `Reconcile forg clients ${leafHeads.slice(0, i + 1).map(h => h.clientUuid).join(', ')}`, createCommitterInfo(forgClient));

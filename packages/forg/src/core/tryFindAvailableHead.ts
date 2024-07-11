@@ -1,4 +1,5 @@
-import { IRepo, Hash, loadCommitObject, walkTree, MissingObjectError, CommitObject } from "../git";
+import { IRepo, Hash, loadCommitObject, CommitObject } from "../git";
+import { isTreeFullyReachable } from "./isTreeFullyReachable";
 
 export interface HeadInfo {
   hash: string;
@@ -37,7 +38,7 @@ async function tryFindAvailableCommitFromHead(repo: IRepo, commitId: Hash): Prom
       return undefined;
     }
 
-    if (await isCommitViable(repo, commitObject)) {
+    if (await isTreeFullyReachable(repo, commitObject.body.tree)) {
       return { hash: nextCommitIdToTry, commit: commitObject };
     }
 
@@ -55,29 +56,10 @@ async function tryFindAvailableCommitFromReflog(repo: IRepo, ref: string): Promi
   for (let i = reflog.length - 1; i >= 0; i--) {
     const entry = reflog[i];
     const commit = await loadCommitObject(repo, entry.newCommit);
-    if (commit !== undefined && await isCommitViable(repo, commit)) {
+    if (commit !== undefined && await isTreeFullyReachable(repo, commit.body.tree)) {
       return { hash: entry.newCommit, commit };
     }
   }
 
   return undefined;
-}
-
-async function isCommitViable(repo: IRepo, commitObject: CommitObject): Promise<boolean> {
-  try {
-    for await (const leaf of walkTree(repo, commitObject.body.tree)) {
-      if (!await repo.hasObject(leaf.hash)) {
-        return false;
-      }
-    }
-  }
-  catch (error) {
-    if (error instanceof MissingObjectError) {
-      return false;
-    }
-
-    throw error;
-  }
-
-  return true;
 }

@@ -25,7 +25,7 @@ export interface MergeBaseResult {
 /**
  * Computes the latest common ancestor(s) (if any) among the provided commit id's,
  * as well as the distinct leaves that are relevant in case all the provided commit's are to be merged.
- * The computation of the latest common ancestor is approximately (perhaps the same?) as git's `merge-base --octopus` command.
+ * The computation of the latest common ancestor is approximately (perhaps the same?) as git's `merge-base --octopus --all` command.
  * See also:
  * - https://git-scm.com/docs/git-merge-base
  * - https://github.blog/2022-08-30-gits-database-internals-ii-commit-history-queries/
