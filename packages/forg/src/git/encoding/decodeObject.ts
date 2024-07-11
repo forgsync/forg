@@ -141,5 +141,5 @@ function decodeTag(body: Uint8Array): TagObject {
 }
 
 function nullPerson(): Person {
-  return { name: "", email: "", date: new Date(0) };
+  return { name: "", email: "", date: { seconds: 0, offset: 0 } };
 }

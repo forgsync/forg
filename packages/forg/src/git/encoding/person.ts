@@ -24,24 +24,15 @@ function two(num: number) {
   return (num < 10 ? "0" : "") + num;
 }
 
-function formatDate(date: Date | SecondsWithOffset) {
-  let seconds, offset;
-  if (isSecondsWithOffset(date)) {
-    seconds = date.seconds;
-    offset = date.offset;
-  }
-  // Also accept Date instances
-  else {
-    seconds = Math.floor(date.getTime() / 1000);
-    offset = date.getTimezoneOffset();
-  }
+function formatDate(date: SecondsWithOffset) {
+  let offset = date.offset;
   let neg = "+";
-  if (offset <= 0) offset = -offset;
-  else neg = "-";
-  offset = neg + two(Math.floor(offset / 60)) + two(offset % 60);
-  return seconds + " " + offset;
-}
-
-function isSecondsWithOffset(value: Date | SecondsWithOffset): value is SecondsWithOffset {
-  return "seconds" in value;
+  if (offset <= 0) {
+    offset = -offset;
+  }
+  else {
+    neg = "-";
+  }
+  const offsetStr = neg + two(Math.floor(offset / 60)) + two(offset % 60);
+  return date.seconds + " " + offsetStr;
 }

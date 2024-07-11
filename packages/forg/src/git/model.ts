@@ -25,7 +25,7 @@ export type SecondsWithOffset = {
 export type Person = {
   readonly name: string;
   readonly email: string;
-  readonly date: Date | SecondsWithOffset;
+  readonly date: SecondsWithOffset;
 }
 
 export type ModeHash = {
