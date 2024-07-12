@@ -1,8 +1,15 @@
 import { FileStorage } from '@flystorage/file-storage';
 import { InMemoryStorageAdapter } from '@flystorage/in-memory';
-import { createCommit, loadObject, Person, Repo, updateRef, walkTree } from '@forg/forg/dist/git';
-import { encode } from '@forg/forg/dist/git/encoding/util';
-import { isFile } from '@forg/forg/dist/git/util';
+import {
+  createCommit,
+  loadObject,
+  Person,
+  Repo,
+  updateRef,
+  walkTree,
+} from '@forgsync/forg/dist/git';
+import { encode } from '@forgsync/forg/dist/git/encoding/util';
+import { isFile } from '@forgsync/forg/dist/git/util';
 
 export async function myFunc(): Promise<void> {
   const adapter = new InMemoryStorageAdapter();

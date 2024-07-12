@@ -1,5 +1,5 @@
 {
-  "name": "@forg/forg-cli",
+  "name": "@forgsync/forg-cli",
   "version": "0.0.1",
   "description": "FORG command line tool",
   "author": "David Nissimoff",
