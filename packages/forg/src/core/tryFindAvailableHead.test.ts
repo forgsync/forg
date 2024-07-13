@@ -1,19 +1,17 @@
-import { FileStorage } from "@flystorage/file-storage";
-import { InMemoryStorageAdapter } from '@flystorage/in-memory'
-
 import {
   Repo,
   createCommit, updateRef,
 } from "../git";
 import { dummyPerson } from "../__testHelpers__/dummyPerson";
 import { tryFindAvailableHead } from './tryFindAvailableHead';
+import { InMemoryFS } from "@forgsync/simplefs";
 
 const encoder = new TextEncoder();
 
 describe('tryFindAvailableHead', () => {
   let repo: Repo;
   beforeEach(async () => {
-    const fs = new FileStorage(new InMemoryStorageAdapter());
+    const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
   });

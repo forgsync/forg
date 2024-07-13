@@ -1,11 +1,9 @@
-import { FileStorage } from "@flystorage/file-storage";
-import { InMemoryStorageAdapter } from '@flystorage/in-memory'
-
 import { createCommit, updateRef } from "./commits";
 import { Repo } from "./Repo";
 import { Mode, ReflogEntry } from "./model";
 import { CommitBody, loadObject, TreeBody } from "./objects";
 import { dummyPerson } from "../__testHelpers__/dummyPerson";
+import { InMemoryFS } from "@forgsync/simplefs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -13,7 +11,7 @@ const decoder = new TextDecoder();
 describe("createCommit", () => {
   let repo: Repo;
   beforeEach(async () => {
-    const fs = new FileStorage(new InMemoryStorageAdapter());
+    const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
   });
@@ -93,7 +91,7 @@ describe("createCommit", () => {
 describe("updateRef", () => {
   let repo: Repo;
   beforeEach(async () => {
-    const fs = new FileStorage(new InMemoryStorageAdapter());
+    const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
   });

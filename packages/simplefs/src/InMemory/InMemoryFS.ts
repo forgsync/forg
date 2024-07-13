@@ -1,5 +1,5 @@
 import { Errno, FSError } from "../model/FSError";
-import { ISimpleFS, ListEntry } from "../model/ISimpleFS";
+import { ISimpleFS, ListEntry, ListOptions } from "../model/ISimpleFS";
 import { Path } from "../model/Path";
 
 interface FileEntry {
@@ -40,20 +40,7 @@ export class InMemoryFS implements ISimpleFS {
 
   async write(path: Path, data: Uint8Array): Promise<void> {
     // Ensure parent folder exists...
-    const segments = path.segments;
-    for (let i = 0; i < segments.length - 1; i++) {
-      const segmentPath = segments.slice(0, i + 1).join('/');
-      const entry = this._store.get(segmentPath);
-      if (entry === undefined) {
-        this._store.set(segmentPath, {
-          kind: 'dir',
-          path: new Path(segmentPath),
-        });
-      }
-      else if (entry.kind !== 'dir') {
-        throw new FSError(Errno.ENOTDIR, segmentPath);
-      }
-    }
+    this.ensureParentExists(path);
 
     this._store.set(path.value, {
       kind: 'file',
@@ -61,6 +48,7 @@ export class InMemoryFS implements ISimpleFS {
       content: data,
     })
   }
+
   async deleteFile(path: Path): Promise<void> {
     const entry = this._store.get(path.value);
     if (entry === undefined) {
@@ -96,7 +84,20 @@ export class InMemoryFS implements ISimpleFS {
     }
   }
 
-  async list(path: Path, options?: { recursive?: boolean; }): Promise<ListEntry[]> {
+  async createDirectory(path: Path): Promise<void> {
+    const entry = this._store.get(path.value);
+    if (entry !== undefined) {
+      throw new FSError(Errno.EEXIST, path.value);
+    }
+
+    this.ensureParentExists(path);
+    this._store.set(path.value, {
+      kind: 'dir',
+      path: path,
+    });
+  }
+
+  async list(path: Path, options?: ListOptions): Promise<ListEntry[]> {
     const results: ListEntry[] = [];
     const recursive = options?.recursive;
 
@@ -128,5 +129,22 @@ export class InMemoryFS implements ISimpleFS {
 
     results.sort((a, b) => a.path.value.localeCompare(b.path.value));
     return results;
+  }
+
+  private ensureParentExists(path: Path) {
+    const segments = path.segments;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segmentPath = segments.slice(0, i + 1).join('/');
+      const entry = this._store.get(segmentPath);
+      if (entry === undefined) {
+        this._store.set(segmentPath, {
+          kind: 'dir',
+          path: new Path(segmentPath),
+        });
+      }
+      else if (entry.kind !== 'dir') {
+        throw new FSError(Errno.ENOTDIR, segmentPath);
+      }
+    }
   }
 }

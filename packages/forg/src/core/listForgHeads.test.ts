@@ -1,5 +1,4 @@
-import { FileStorage } from "@flystorage/file-storage";
-import { InMemoryStorageAdapter } from '@flystorage/in-memory'
+import { InMemoryFS } from '@forgsync/simplefs';
 
 import {
   Repo,
@@ -13,7 +12,7 @@ const encoder = new TextEncoder();
 describe('listForgHeads', () => {
   let repo: Repo;
   beforeEach(async () => {
-    const fs = new FileStorage(new InMemoryStorageAdapter());
+    const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
   });

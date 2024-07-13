@@ -1,6 +1,4 @@
-import { FileStorage } from '@flystorage/file-storage'
-import { InMemoryStorageAdapter } from '@flystorage/in-memory'
-
+import { InMemoryFS } from "@forgsync/simplefs";
 import { createCommit, updateRef, CommitBody, loadObject, Repo, TreeBody } from "../git"
 import { Mode, Person, ReflogEntry } from '../git/model';
 
@@ -10,7 +8,7 @@ const decoder = new TextDecoder();
 describe("Repo basics", () => {
   let repo: Repo;
   beforeEach(async () => {
-    const fs = new FileStorage(new InMemoryStorageAdapter());
+    const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
   });

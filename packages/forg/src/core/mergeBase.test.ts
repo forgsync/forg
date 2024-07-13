@@ -1,6 +1,3 @@
-import { FileStorage } from "@flystorage/file-storage";
-import { InMemoryStorageAdapter } from '@flystorage/in-memory'
-
 import {
   Hash, IRepo, Repo,
   createCommit,
@@ -8,6 +5,7 @@ import {
 } from "../git";
 import { dummyPerson } from "../__testHelpers__/dummyPerson";
 import { mergeBase, MergeBaseResult } from './mergeBase';
+import { InMemoryFS } from "@forgsync/simplefs";
 
 describe('mergeBase', () => {
   let repo: Repo;
@@ -24,7 +22,7 @@ describe('mergeBase', () => {
   let commitK: Hash;
   let commitZ: Hash;
   beforeEach(async () => {
-    const fs = new FileStorage(new InMemoryStorageAdapter());
+    const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
 
