@@ -1,150 +1,133 @@
-import { Hash, IRepo, Repo, createCommit, loadCommitObject } from '../git';
+import { Hash, Repo, createCommit } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
-import { mergeBase, MergeBaseResult } from './mergeBase';
+import { mergeBase } from './mergeBase';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 describe('mergeBase', () => {
   let repo: Repo;
-  let commitA: Hash;
-  let commitB: Hash;
-  let commitC: Hash;
-  let commitD: Hash;
-  let commitE: Hash;
-  let commitF: Hash;
-  let commitG: Hash;
-  let commitH: Hash;
-  let commitI: Hash;
-  let commitJ: Hash;
-  let commitK: Hash;
-  let commitZ: Hash;
+  let commits: { [key: string]: Hash };
+  let commitsReverseMap: Map<Hash, string>;
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
+
+    async function trackCommit(name: string, parents: Hash[]) {
+      const hash = await createCommit(repo, {}, parents, name, dummyPerson());
+      commits[name] = hash;
+      commitsReverseMap.set(hash, name);
+    }
+    commits = {};
+    commitsReverseMap = new Map<Hash, string>();
 
     // A -- B -- C -- G
     //  \           /
     //   D -- E -- F -- H
     //    \         \
     //     I ------- J -- K
+    //
     // Z
-    commitA = await createCommit(repo, {}, [], 'A', dummyPerson());
-    commitB = await createCommit(repo, {}, [commitA], 'B', dummyPerson());
-    commitC = await createCommit(repo, {}, [commitB], 'C', dummyPerson());
-    commitD = await createCommit(repo, {}, [commitA], 'D', dummyPerson());
-    commitE = await createCommit(repo, {}, [commitD], 'E', dummyPerson());
-    commitF = await createCommit(repo, {}, [commitE], 'F', dummyPerson());
-    commitG = await createCommit(repo, {}, [commitC, commitF], 'G', dummyPerson());
-    commitH = await createCommit(repo, {}, [commitF], 'H', dummyPerson());
-    commitI = await createCommit(repo, {}, [commitD], 'I', dummyPerson());
-    commitJ = await createCommit(repo, {}, [commitF, commitI], 'J', dummyPerson());
-    commitK = await createCommit(repo, {}, [commitJ], 'K', dummyPerson());
-    commitZ = await createCommit(repo, {}, [], 'Z', dummyPerson());
-
-    // console.log({
-    //   commitA,
-    //   commitB,
-    //   commitC,
-    //   commitD,
-    //   commitE,
-    //   commitF,
-    //   commitG,
-    //   commitH,
-    //   commitI,
-    //   commitJ,
-    //   commitK,
-    //   commitZ,
-    // });
+    //
+    await trackCommit('A', []);
+    await trackCommit('B', [commits.A]);
+    await trackCommit('C', [commits.B]);
+    await trackCommit('D', [commits.A]);
+    await trackCommit('E', [commits.D]);
+    await trackCommit('F', [commits.E]);
+    await trackCommit('G', [commits.C, commits.F]);
+    await trackCommit('H', [commits.F]);
+    await trackCommit('I', [commits.D]);
+    await trackCommit('J', [commits.F, commits.I]);
+    await trackCommit('K', [commits.J]);
+    await trackCommit('Z', []);
   });
+
+  function toCommitNames(hashes: Hash[]): string[] {
+    return hashes.map(h => {
+      const name = commitsReverseMap.get(h);
+      if (name === undefined) {
+        throw new Error(`Unknown commit hash ${h}`);
+      }
+
+      return name;
+    });
+  }
 
   test('empty', async () => {
     const result = await mergeBase(repo, []);
-    expect(result.leafCommitIds).toEqual([]);
-    expect(result.bestAncestorCommitIds).toHaveLength(0);
+    expect(toCommitNames(result.leafCommitIds)).toEqual([]);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual([]);
   });
 
   test('A..B', async () => {
-    const result = await mergeBase(repo, [commitA, commitB]);
-    expect(result.leafCommitIds).toEqual([commitB]);
-    await assertCommit(repo, result, [commitA]);
+    const result = await mergeBase(repo, [commits.A, commits.B]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['B']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['A']);
   });
 
   test('B..A', async () => {
-    const result = await mergeBase(repo, [commitB, commitA]);
-    expect(result.leafCommitIds).toEqual([commitB]);
-    await assertCommit(repo, result, [commitA]);
+    const result = await mergeBase(repo, [commits.B, commits.A]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['B']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['A']);
   });
 
   test('A..G', async () => {
-    const result = await mergeBase(repo, [commitA, commitG]);
-    expect(result.leafCommitIds).toEqual([commitG]);
-    await assertCommit(repo, result, [commitA]);
+    const result = await mergeBase(repo, [commits.A, commits.G]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['G']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['A']);
   });
 
   test('D..K', async () => {
-    const result = await mergeBase(repo, [commitD, commitK]);
-    expect(result.leafCommitIds).toEqual([commitK]);
-    await assertCommit(repo, result, [commitD]);
+    const result = await mergeBase(repo, [commits.D, commits.K]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['K']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['D']);
   });
 
   test('G..H', async () => {
-    const result = await mergeBase(repo, [commitG, commitH]);
-    expect(result.leafCommitIds).toEqual([commitG, commitH]);
-    await assertCommit(repo, result, [commitF]);
+    const result = await mergeBase(repo, [commits.G, commits.H]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['G', 'H']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['F']);
   });
 
   test('G..G', async () => {
-    const result = await mergeBase(repo, [commitG, commitG]);
-    expect(result.leafCommitIds).toEqual([commitG]);
-    await assertCommit(repo, result, [commitG]);
+    const result = await mergeBase(repo, [commits.G, commits.G]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['G']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['G']);
   });
 
   test('G..K', async () => {
-    const result = await mergeBase(repo, [commitG, commitK]);
-    expect(result.leafCommitIds).toEqual([commitG, commitK]);
-    await assertCommit(repo, result, [commitF]);
+    const result = await mergeBase(repo, [commits.G, commits.K]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['G', 'K']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['F']);
   });
 
   test('F..I', async () => {
-    const result = await mergeBase(repo, [commitF, commitI]);
-    expect(result.leafCommitIds).toEqual([commitF, commitI]);
-    await assertCommit(repo, result, [commitD]);
+    const result = await mergeBase(repo, [commits.F, commits.I]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['F', 'I']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['D']);
   });
 
   test('G..I', async () => {
-    const result = await mergeBase(repo, [commitG, commitI]);
-    expect(result.leafCommitIds).toEqual([commitG, commitI]);
-    await assertCommit(repo, result, [commitA, commitD]);
+    const result = await mergeBase(repo, [commits.G, commits.I]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['G', 'I']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['A', 'D']);
   });
 
   test('G..H..K', async () => {
-    const result = await mergeBase(repo, [commitG, commitH, commitK]);
-    expect(result.leafCommitIds).toEqual([commitG, commitH, commitK]);
-    await assertCommit(repo, result, [commitF]);
+    const result = await mergeBase(repo, [commits.G, commits.H, commits.K]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['G', 'H', 'K']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['F']);
   });
 
   test('G..H..J..K', async () => {
-    const result = await mergeBase(repo, [commitG, commitH, commitJ, commitK]);
-    expect(result.leafCommitIds).toEqual([commitG, commitH, commitK]);
-    await assertCommit(repo, result, [commitF]);
+    const result = await mergeBase(repo, [commits.G, commits.H, commits.J, commits.K]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['G', 'H', 'K']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual(['F']);
   });
 
   test('K..Z', async () => {
-    const result = await mergeBase(repo, [commitK, commitZ]);
-    expect(result.leafCommitIds).toEqual([commitK, commitZ]);
-    await assertCommit(repo, result, []);
+    const result = await mergeBase(repo, [commits.K, commits.Z]);
+    expect(toCommitNames(result.leafCommitIds)).toEqual(['K', 'Z']);
+    expect(toCommitNames(result.bestAncestorCommitIds)).toEqual([]);
   });
 });
-
-async function assertCommit(repo: IRepo, actual: MergeBaseResult, expected: Hash[]) {
-  expect(actual.bestAncestorCommitIds).toHaveLength(expected.length);
-  for (let i = 0; i < expected.length; i++) {
-    const actualMessage = (await loadCommitObject(repo, actual.bestAncestorCommitIds[i]))?.body
-      .message;
-    const expectedMessage = (await loadCommitObject(repo, expected[i]))?.body.message;
-
-    if (expectedMessage !== actualMessage) {
-      expect(actualMessage).toEqual(expectedMessage);
-    }
-  }
-}
