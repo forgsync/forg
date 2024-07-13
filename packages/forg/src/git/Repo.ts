@@ -1,5 +1,5 @@
 import * as fflate from 'fflate';
-import { ISimpleFS, Path } from '@forgsync/simplefs';
+import { Errno, FSError, ISimpleFS, Path } from '@forgsync/simplefs';
 
 import { Hash, ReflogEntry } from './model';
 import { decode, encode } from './encoding/util';
@@ -57,19 +57,27 @@ export class Repo implements IRepo {
   }
 
   async getRef(ref: string): Promise<string | undefined> {
-    const path = new Path(ref);
-    if (!(await this._fs.fileExists(path))) {
-      return undefined;
+    const path = getRefPath(ref);
+
+    let rawContent: Uint8Array;
+    try {
+      rawContent = await this._fs.read(path);
+    } catch (error) {
+      if (error instanceof FSError) {
+        if (error.errno === Errno.ENOENT) {
+          return undefined;
+        }
+      }
+
+      throw error;
     }
 
-    // TODO: Handle not found as a special case. See: https://github.com/duna-oss/flystorage/issues/50
-    const rawContent = await this._fs.read(path);
     const content = decode(rawContent);
     return content.trim();
   }
 
   async setRef(ref: string, hash: string | undefined): Promise<void> {
-    const path = new Path(ref);
+    const path = getRefPath(ref);
     if (hash !== undefined) {
       const rawContent = `${hash}\n`;
       const content = encode(rawContent);
@@ -80,41 +88,58 @@ export class Repo implements IRepo {
   }
 
   async getReflog(ref: string): Promise<ReflogEntry[]> {
-    const logPath = new Path(`logs/${ref}`);
-    if (!(await this._fs.fileExists(logPath))) {
-      return [];
+    const logPath = Path.join(new Path('logs'), getRefPath(ref));
+
+    let rawContent: Uint8Array;
+    try {
+      rawContent = await this._fs.read(logPath);
+    } catch (error) {
+      if (error instanceof FSError) {
+        if (error.errno === Errno.ENOENT) {
+          return [];
+        }
+      }
+
+      throw error;
     }
 
-    // TODO: Handle not found as a special case. See: https://github.com/duna-oss/flystorage/issues/50
-    const rawContent = await this._fs.read(logPath);
     return decodeReflog(rawContent);
   }
 
   async setReflog(ref: string, reflog: ReflogEntry[]): Promise<void> {
+    const logPath = Path.join(new Path('logs'), getRefPath(ref));
+
     const rawContent = encodeReflog(reflog);
-    await this._fs.write(new Path(`logs/${ref}`), encode(rawContent));
+    await this._fs.write(logPath, encode(rawContent));
   }
 
   async saveRawObject(hash: string, raw: Uint8Array): Promise<void> {
     const compressed = fflate.deflateSync(raw);
-    const path = Repo._ObjectPath(hash);
+    const path = computeObjectPath(hash);
     await this._fs.write(path, compressed);
   }
 
   async loadRawObject(hash: string): Promise<Uint8Array | undefined> {
-    const path = Repo._ObjectPath(hash);
+    const path = computeObjectPath(hash);
 
-    // TODO: Handle not found properly and avoid the extra call that still allows for race conditions. See: https://github.com/duna-oss/flystorage/issues/50
-    if (!(await this._fs.fileExists(path))) {
-      return undefined;
+    let rawContent: Uint8Array;
+    try {
+      rawContent = await this._fs.read(path);
+    } catch (error) {
+      if (error instanceof FSError) {
+        if (error.errno === Errno.ENOENT) {
+          return undefined;
+        }
+      }
+
+      throw error;
     }
 
-    const compressed = await this._fs.read(path);
-    return compressed ? fflate.inflateSync(compressed) : undefined;
+    return fflate.inflateSync(rawContent);
   }
 
   async hasObject(hash: string): Promise<boolean> {
-    return await this._fs.fileExists(Repo._ObjectPath(hash));
+    return await this._fs.fileExists(computeObjectPath(hash));
   }
 
   async saveMetadata(name: string, value: Uint8Array | undefined): Promise<void> {
@@ -136,17 +161,20 @@ export class Repo implements IRepo {
       throw new Error(`Metadata files are only allowed at the root`);
     }
 
-    // TODO: Handle not found properly and avoid the extra call that still allows for race conditions. See: https://github.com/duna-oss/flystorage/issues/50
-    if (!(await this._fs.fileExists(path))) {
-      return undefined;
+    let rawContent: Uint8Array;
+    try {
+      rawContent = await this._fs.read(path);
+    } catch (error) {
+      if (error instanceof FSError) {
+        if (error.errno === Errno.ENOENT) {
+          return undefined;
+        }
+      }
+
+      throw error;
     }
 
-    const content = await this._fs.read(path);
-    return content;
-  }
-
-  private static _ObjectPath(hash: Hash) {
-    return new Path(`objects/${hash.substring(0, 2)}/${hash.substring(2)}`);
+    return rawContent;
   }
 }
 
@@ -172,4 +200,23 @@ function getDefaultConfig(): string {
   ];
 
   return lines.join('\n');
+}
+
+
+function computeObjectPath(hash: Hash): Path {
+  return new Path(`objects/${hash.substring(0, 2)}/${hash.substring(2)}`);
+}
+
+function getRefPath(ref: string): Path {
+  let path: Path | undefined = undefined;
+  try {
+    path = new Path(ref);
+  }
+  catch { }
+
+  if (path === undefined || !path.startsWith(new Path('refs'))) {
+    throw new Error(`Invalid ref '${ref}'`);
+  }
+
+  return path;
 }

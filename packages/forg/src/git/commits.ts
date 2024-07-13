@@ -60,7 +60,8 @@ export async function updateRef(
   person: Person,
   reflogMessage: string,
 ): Promise<void> {
-  // TODO: This method should be atomic (updating the ref and the reflog)
+  // TODO: This method should be idempotent (as much as possible) when updating the ref and the reflog,
+  // even though true atomicity atomic is not possible given the storage layer constraints we operate under
   const originalHash = await repo.getRef(ref);
   await repo.setRef(ref, commitId);
 

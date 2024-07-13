@@ -69,7 +69,7 @@ export async function reconcile(
     const treeA = await getTreeBody(repo, commitIdA);
     const treeB = await getTreeBody(repo, commitIdB);
 
-    // TODO: Figure out base
+    // Figure out base
     const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
     let baseTree: TreeBody | undefined = undefined;
     if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
