@@ -77,7 +77,7 @@ export class Path {
   }
 }
 
-const validSegmentRegex = /^[a-zA-Z0-9+=|~()<>{}?,.!;:'"\[\]&%$#@^*_-]+$/;
+const validSegmentRegex = /^[a-zA-Z0-9+=|~()<>{}?,.!;:'"\[\]&%$#@^*_ -]+$/;
 function validateSegments(segments: string[]) {
   for (const segment of segments) {
     if (segment === '') {
