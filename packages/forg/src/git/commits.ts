@@ -1,6 +1,6 @@
-import { Hash, Mode, ModeHash, Person, Type } from "./model";
-import { saveObject } from "./objects";
-import { IRepo } from "./Repo";
+import { Hash, Mode, ModeHash, Person, Type } from './model';
+import { saveObject } from './objects';
+import { IRepo } from './Repo';
 
 /**
  * Describes a folder that isn't known to alread exist in git.
@@ -10,11 +10,11 @@ import { IRepo } from "./Repo";
 export type NewFolder = {
   readonly files?: {
     readonly [key: string]: File;
-  }
+  };
   readonly folders?: {
     readonly [key: string]: Folder;
-  }
-}
+  };
+};
 /**
  * Describes an existing tree in git, indicated by its hash.
  */
@@ -22,33 +22,44 @@ export type ExistingFolder = Hash;
 export type Folder = NewFolder | ExistingFolder;
 
 export type BinaryFile = {
-  readonly isExecutable?: boolean
-  readonly body: Uint8Array
-}
+  readonly isExecutable?: boolean;
+  readonly body: Uint8Array;
+};
 export type ExistingFile = {
-  readonly isExecutable?: boolean
-  readonly hash: Hash
-}
+  readonly isExecutable?: boolean;
+  readonly hash: Hash;
+};
 export type File = BinaryFile | ExistingFile;
 
-export async function createCommit(repo: IRepo, tree: Folder, parents: Hash[], message: string, author: Person, committer: Person = author): Promise<Hash> {
+export async function createCommit(
+  repo: IRepo,
+  tree: Folder,
+  parents: Hash[],
+  message: string,
+  author: Person,
+  committer: Person = author,
+): Promise<Hash> {
   const treeHash = await saveTree(repo, tree);
-  const hash = await saveObject(
-    repo,
-    {
-      type: Type.commit,
-      body: {
-        tree: treeHash,
-        parents,
-        author,
-        committer,
-        message,
-      }
-    });
+  const hash = await saveObject(repo, {
+    type: Type.commit,
+    body: {
+      tree: treeHash,
+      parents,
+      author,
+      committer,
+      message,
+    },
+  });
   return hash;
 }
 
-export async function updateRef(repo: IRepo, ref: string, commitId: Hash, person: Person, reflogMessage: string): Promise<void> {
+export async function updateRef(
+  repo: IRepo,
+  ref: string,
+  commitId: Hash,
+  person: Person,
+  reflogMessage: string,
+): Promise<void> {
   // TODO: This method should be atomic (updating the ref and the reflog)
   const originalHash = await repo.getRef(ref);
   await repo.setRef(ref, commitId);
@@ -64,7 +75,7 @@ export async function updateRef(repo: IRepo, ref: string, commitId: Hash, person
 }
 
 async function saveTree(repo: IRepo, folder: NewFolder | Hash): Promise<Hash> {
-  if (typeof (folder) === 'string') return folder;
+  if (typeof folder === 'string') return folder;
 
   const body: { [key: string]: ModeHash } = {};
 
@@ -82,12 +93,10 @@ async function saveTree(repo: IRepo, folder: NewFolder | Hash): Promise<Hash> {
     }
   }
 
-  return await saveObject(
-    repo,
-    {
-      type: Type.tree,
-      body: body
-    });
+  return await saveObject(repo, {
+    type: Type.tree,
+    body: body,
+  });
 }
 
 async function saveFile(repo: IRepo, file: File): Promise<Hash> {

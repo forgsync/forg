@@ -1,4 +1,4 @@
-import { CommitObject, Hash, IRepo, loadCommitObject } from "../git";
+import { CommitObject, Hash, IRepo, loadCommitObject } from '../git';
 
 interface TraversingHead {
   headIndex: number;
@@ -33,7 +33,7 @@ export interface MergeBaseResult {
 export async function mergeBase(repo: IRepo, commitIds: Hash[]): Promise<MergeBaseResult> {
   // Step 1: Ensure inputs are distinct
   commitIds = Array.from(new Set<Hash>(commitIds));
-  
+
   // Breadth-first-search with multiple heads
   let heads: TraversingHead[] = commitIds.map((commitId, headIndex) => ({ headIndex, commitId }));
   const bestCommitIds = new Set<Hash>();
@@ -61,8 +61,7 @@ export async function mergeBase(repo: IRepo, commitIds: Hash[]): Promise<MergeBa
       let commit: CommitObject | undefined;
       try {
         commit = await loadCommitObject(repo, commitId);
-      }
-      catch (error) {
+      } catch (error) {
         // Keep going, worst case we will fail to find a suitable merge base
         errors.push(error);
       }
@@ -80,8 +79,12 @@ export async function mergeBase(repo: IRepo, commitIds: Hash[]): Promise<MergeBa
   }
 
   if (errors.length > 0) {
-    const details = errors.map(e => e instanceof Error ? `  Error ${e.name}, details: ${e.message}` : `  ${e}`);
-    throw new Error(`Unable to find merge base, and errors occurred during traversal\n${details.join('\n')}`);
+    const details = errors.map((e) =>
+      e instanceof Error ? `  Error ${e.name}, details: ${e.message}` : `  ${e}`,
+    );
+    throw new Error(
+      `Unable to find merge base, and errors occurred during traversal\n${details.join('\n')}`,
+    );
   }
 
   return {
@@ -90,7 +93,11 @@ export async function mergeBase(repo: IRepo, commitIds: Hash[]): Promise<MergeBa
   };
 }
 
-function markVisited(visited: Map<Hash, Set<number>>, commitId: Hash, headIndex: number): Set<number> {
+function markVisited(
+  visited: Map<Hash, Set<number>>,
+  commitId: Hash,
+  headIndex: number,
+): Set<number> {
   let set = visited.get(commitId);
   if (!set) {
     set = new Set<number>();

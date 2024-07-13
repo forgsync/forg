@@ -1,10 +1,7 @@
-import {
-  Repo,
-  createCommit, updateRef,
-} from "../git";
-import { dummyPerson } from "../__testHelpers__/dummyPerson";
+import { Repo, createCommit, updateRef } from '../git';
+import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { tryFindAvailableHead } from './tryFindAvailableHead';
-import { InMemoryFS } from "@forgsync/simplefs";
+import { InMemoryFS } from '@forgsync/simplefs';
 
 const encoder = new TextEncoder();
 
@@ -31,10 +28,16 @@ describe('tryFindAvailableHead', () => {
       },
       [],
       'Commit 1',
-      dummyPerson()
+      dummyPerson(),
     );
 
-    await updateRef(repo, 'refs/remotes/client1/main', commitId, dummyPerson(), 'commit (initial): Commit 1');
+    await updateRef(
+      repo,
+      'refs/remotes/client1/main',
+      commitId,
+      dummyPerson(),
+      'commit (initial): Commit 1',
+    );
 
     const result = await tryFindAvailableHead(repo, 'refs/remotes/client1/main');
     expect(result?.hash).toBe(commitId);
@@ -51,7 +54,7 @@ describe('tryFindAvailableHead', () => {
       },
       [],
       'Commit 1',
-      dummyPerson()
+      dummyPerson(),
     );
     const commit2 = await createCommit(
       repo,
@@ -62,7 +65,7 @@ describe('tryFindAvailableHead', () => {
       },
       [commit1],
       'Commit 2',
-      dummyPerson()
+      dummyPerson(),
     );
     const commit3 = await createCommit(
       repo,
@@ -73,7 +76,7 @@ describe('tryFindAvailableHead', () => {
       },
       [commit2],
       'Commit 3',
-      dummyPerson()
+      dummyPerson(),
     );
 
     await repo.setRef('refs/remotes/client1/main', commit3);
@@ -93,9 +96,15 @@ describe('tryFindAvailableHead', () => {
       },
       [],
       'Commit 1',
-      dummyPerson()
+      dummyPerson(),
     );
-    await updateRef(repo, 'refs/remotes/client1/main', commit1, dummyPerson(), 'commit (initial): Commit 1');
+    await updateRef(
+      repo,
+      'refs/remotes/client1/main',
+      commit1,
+      dummyPerson(),
+      'commit (initial): Commit 1',
+    );
 
     const commit2 = await createCommit(
       repo,
@@ -106,7 +115,7 @@ describe('tryFindAvailableHead', () => {
       },
       [commit1],
       'Commit 2',
-      dummyPerson()
+      dummyPerson(),
     );
     await updateRef(repo, 'refs/remotes/client1/main', commit2, dummyPerson(), 'commit: Commit 2');
 
@@ -119,7 +128,7 @@ describe('tryFindAvailableHead', () => {
       },
       [commit2],
       'Commit 3',
-      dummyPerson()
+      dummyPerson(),
     );
     await updateRef(repo, 'refs/remotes/client1/main', commit3, dummyPerson(), 'commit: Commit 3');
 

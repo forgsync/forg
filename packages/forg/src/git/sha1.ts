@@ -13,15 +13,15 @@ export default function sha1(buffer?: string | number[] | Uint8Array) {
   const shasum = create(shared);
   shasum.update(buffer);
   return shasum.digest();
-};
+}
 
 // A pure JS implementation of sha1 for non-node environments.
 function create(block: Uint32Array): Sha1 {
   let h0 = 0x67452301;
-  let h1 = 0xEFCDAB89;
-  let h2 = 0x98BADCFE;
+  let h1 = 0xefcdab89;
+  let h2 = 0x98badcfe;
   let h3 = 0x10325476;
-  let h4 = 0xC3D2E1F0;
+  let h4 = 0xc3d2e1f0;
   // The first 64 bytes (16 words) is the data chunk
   let offset = 0;
   let shift = 24;
@@ -34,7 +34,7 @@ function create(block: Uint32Array): Sha1 {
   function update(chunk: number[]): number[];
   function update(chunk: Uint8Array): Uint8Array;
   function update(chunk: string | number[] | Uint8Array): unknown {
-    if (typeof chunk === "string") return updateString(chunk);
+    if (typeof chunk === 'string') return updateString(chunk);
     const length = chunk.length;
     totalLength += length * 8;
     for (let i = 0; i < length; i++) {
@@ -51,13 +51,11 @@ function create(block: Uint32Array): Sha1 {
     }
   }
 
-
   function write(byte: number) {
     block[offset] |= (byte & 0xff) << shift;
     if (shift) {
       shift -= 8;
-    }
-    else {
+    } else {
       offset++;
       shift = 24;
     }
@@ -84,11 +82,7 @@ function create(block: Uint32Array): Sha1 {
     }
 
     // At this point one last processBlock() should trigger and we can pull out the result.
-    return toHex(h0) +
-      toHex(h1) +
-      toHex(h2) +
-      toHex(h3) +
-      toHex(h4);
+    return toHex(h0) + toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4);
   }
 
   // We have a full block to process.  Let's do it!
@@ -113,24 +107,21 @@ function create(block: Uint32Array): Sha1 {
     for (let i = 0; i < 80; i++) {
       if (i < 20) {
         f = d ^ (b & (c ^ d));
-        k = 0x5A827999;
-      }
-      else if (i < 40) {
+        k = 0x5a827999;
+      } else if (i < 40) {
         f = b ^ c ^ d;
-        k = 0x6ED9EBA1;
-      }
-      else if (i < 60) {
+        k = 0x6ed9eba1;
+      } else if (i < 60) {
         f = (b & c) | (d & (b | c));
-        k = 0x8F1BBCDC;
-      }
-      else {
+        k = 0x8f1bbcdc;
+      } else {
         f = b ^ c ^ d;
-        k = 0xCA62C1D6;
+        k = 0xca62c1d6;
       }
-      const temp = (a << 5 | a >>> 27) + f + e + k + (block[i] | 0);
+      const temp = ((a << 5) | (a >>> 27)) + f + e + k + (block[i] | 0);
       e = d;
       d = c;
-      c = (b << 30 | b >>> 2);
+      c = (b << 30) | (b >>> 2);
       b = a;
       a = temp;
     }
@@ -150,7 +141,7 @@ function create(block: Uint32Array): Sha1 {
   }
 
   function toHex(word: number) {
-    let hex = "";
+    let hex = '';
     for (let i = 28; i >= 0; i -= 4) {
       hex += ((word >> i) & 0xf).toString(16);
     }

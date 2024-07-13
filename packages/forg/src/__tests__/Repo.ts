@@ -1,11 +1,11 @@
-import { InMemoryFS } from "@forgsync/simplefs";
-import { createCommit, updateRef, CommitBody, loadObject, Repo, TreeBody } from "../git"
+import { InMemoryFS } from '@forgsync/simplefs';
+import { createCommit, updateRef, CommitBody, loadObject, Repo, TreeBody } from '../git';
 import { Mode, Person, ReflogEntry } from '../git/model';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-describe("Repo basics", () => {
+describe('Repo basics', () => {
   let repo: Repo;
   beforeEach(async () => {
     const fs = new InMemoryFS();
@@ -13,30 +13,27 @@ describe("Repo basics", () => {
     await repo.init();
   });
 
-  test('just init', () => { });
+  test('just init', () => {});
 
   test('trivial commit', async () => {
-    const hash = await createCommit(
-      repo,
-      {},
-      [],
-      "Initial commit",
-      dummyPerson());
+    const hash = await createCommit(repo, {}, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
-    await updateRef(repo, "refs/main", hash, dummyPerson(), "commit (initial): Initial commit");
-    expect(await repo.getRef("refs/main")).toBe(hash);
+    await updateRef(repo, 'refs/main', hash, dummyPerson(), 'commit (initial): Initial commit');
+    expect(await repo.getRef('refs/main')).toBe(hash);
 
-    const reflog = await repo.getReflog("refs/main");
-    expect(reflog).toEqual<ReflogEntry[]>([{
-      previousCommit: '0000000000000000000000000000000000000000',
-      newCommit: hash,
-      person: dummyPerson(),
-      description: 'commit (initial): Initial commit',
-    }]);
+    const reflog = await repo.getReflog('refs/main');
+    expect(reflog).toEqual<ReflogEntry[]>([
+      {
+        previousCommit: '0000000000000000000000000000000000000000',
+        newCommit: hash,
+        person: dummyPerson(),
+        description: 'commit (initial): Initial commit',
+      },
+    ]);
 
     const commitObject = await loadObject(repo, hash);
-    if (commitObject === undefined || commitObject.type !== "commit") {
+    if (commitObject === undefined || commitObject.type !== 'commit') {
       fail(`Not a commit: ${hash}`);
     }
     expect(commitObject.body).toEqual<CommitBody>({
@@ -53,34 +50,35 @@ describe("Repo basics", () => {
       repo,
       {
         files: {
-          "a.txt": {
+          'a.txt': {
             isExecutable: false,
-            body: encoder.encode("aa"),
+            body: encoder.encode('aa'),
           },
         },
         folders: {
-          "b": {
+          b: {
             files: {
-              "c.txt": {
+              'c.txt': {
                 isExecutable: false,
-                body: encoder.encode("cc"),
-              }
-            }
-          }
+                body: encoder.encode('cc'),
+              },
+            },
+          },
         },
       },
       [],
-      "Initial commit",
-      dummyPerson());
+      'Initial commit',
+      dummyPerson(),
+    );
     expect(hash).toBe('2f5877487a12348f8de42fc64e9c46bd5d22a651');
 
     const commitObject = await loadObject(repo, hash);
-    if (commitObject === undefined || commitObject.type !== "commit") {
+    if (commitObject === undefined || commitObject.type !== 'commit') {
       fail(`Not a commit: ${hash}`);
     }
 
     const rootTreeObject = await loadObject(repo, commitObject.body.tree);
-    if (rootTreeObject === undefined || rootTreeObject.type !== "tree") {
+    if (rootTreeObject === undefined || rootTreeObject.type !== 'tree') {
       fail(`Not a tree: ${commitObject.body.tree}`);
     }
 
@@ -89,7 +87,7 @@ describe("Repo basics", () => {
         mode: Mode.blob,
         hash: '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e',
       },
-      'b': {
+      b: {
         mode: Mode.tree,
         hash: 'bc3aa3eb92286b2ddaab0bef7564f25098f8fbdc',
       },
@@ -102,7 +100,7 @@ describe("Repo basics", () => {
     expect(decoder.decode(aBlobObject.body)).toBe('aa');
 
     const bTreeObject = await loadObject(repo, rootTreeObject.body['b'].hash);
-    if (bTreeObject === undefined || bTreeObject.type !== "tree") {
+    if (bTreeObject === undefined || bTreeObject.type !== 'tree') {
       fail(`Not a tree: ${rootTreeObject.body['b'].hash}`);
     }
 
@@ -121,32 +119,28 @@ describe("Repo basics", () => {
   });
 
   test('two commits', async () => {
-    const hash1 = await createCommit(
-      repo,
-      {},
-      [],
-      "Initial commit",
-      dummyPerson());
+    const hash1 = await createCommit(repo, {}, [], 'Initial commit', dummyPerson());
     expect(hash1).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const hash2 = await createCommit(
       repo,
       {
         files: {
-          "a.txt": {
+          'a.txt': {
             isExecutable: false,
-            body: encoder.encode("a"),
+            body: encoder.encode('a'),
           },
         },
       },
       [hash1],
-      "Added a.txt",
-      dummyPerson());
+      'Added a.txt',
+      dummyPerson(),
+    );
     expect(hash2).toBe('9254379c365d23429f0fff266834bdc853c35fe1');
 
     const commitObject = await loadObject(repo, hash2);
-    if (commitObject === undefined || commitObject.type !== "commit") {
-      throw new Error("not a commit!");
+    if (commitObject === undefined || commitObject.type !== 'commit') {
+      throw new Error('not a commit!');
     }
     expect(commitObject.body).toEqual<CommitBody>({
       tree: '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f',
@@ -166,11 +160,11 @@ describe("Repo basics", () => {
 
 function dummyPerson(): Person {
   return {
-    name: "Test Name",
-    email: "test@example.com",
+    name: 'Test Name',
+    email: 'test@example.com',
     date: {
       seconds: 2272247100,
       offset: 180,
     },
-  }
-};
+  };
+}

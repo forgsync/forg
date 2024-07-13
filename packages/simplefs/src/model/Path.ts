@@ -5,9 +5,15 @@ export class Path {
   /**
    * The sanitized path value. This never starts with a slash
    */
-  get value() { return this._value; }
-  get segments() { return [...this._segments]; }
-  get isRoot() { return this._segments.length === 0; }
+  get value() {
+    return this._value;
+  }
+  get segments() {
+    return [...this._segments];
+  }
+  get isRoot() {
+    return this._segments.length === 0;
+  }
 
   constructor(path: string) {
     if (path === '//') {
@@ -26,7 +32,6 @@ export class Path {
     this._segments = path === '' ? [] : path.split('/');
     validateSegments(this._segments);
   }
-
 
   getParent(): Path {
     if (this._segments.length === 0) {
@@ -81,7 +86,7 @@ const validSegmentRegex = /^[a-zA-Z0-9+=|~()<>{}?,.!;:'"\[\]&%$#@^*_ -]+$/;
 function validateSegments(segments: string[]) {
   for (const segment of segments) {
     if (segment === '') {
-      throw new Error('Path contains an empty segment (\'//\')');
+      throw new Error("Path contains an empty segment ('//')");
     }
 
     if (segment === '.' || segment === '..') {

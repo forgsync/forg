@@ -1,21 +1,24 @@
-import { MissingObjectError } from "./errors";
-import { Hash, Mode } from "./model";
-import { CommitBody, loadCommitObject, loadTreeObject } from "./objects";
-import { IRepo } from "./Repo";
-import { isFile } from "./util";
+import { MissingObjectError } from './errors';
+import { Hash, Mode } from './model';
+import { CommitBody, loadCommitObject, loadTreeObject } from './objects';
+import { IRepo } from './Repo';
+import { isFile } from './util';
 
 export type HashAndCommitBody = {
   readonly hash: Hash;
   readonly commit: CommitBody;
-}
+};
 
 export type HashModePath = {
   readonly hash: Hash;
   readonly mode: Mode;
   readonly path: string[];
-}
+};
 
-export async function* walkCommits(repo: IRepo, ...hash: Hash[]): AsyncGenerator<HashAndCommitBody, void, boolean | undefined> {
+export async function* walkCommits(
+  repo: IRepo,
+  ...hash: Hash[]
+): AsyncGenerator<HashAndCommitBody, void, boolean | undefined> {
   const queue = hash;
   const visited = new Set<Hash>(queue);
   while (queue.length > 0) {
@@ -41,7 +44,11 @@ export async function* walkCommits(repo: IRepo, ...hash: Hash[]): AsyncGenerator
   }
 }
 
-export async function* walkTree(repo: IRepo, hash: Hash, parentPath: string[] = []): AsyncGenerator<HashModePath> {
+export async function* walkTree(
+  repo: IRepo,
+  hash: Hash,
+  parentPath: string[] = [],
+): AsyncGenerator<HashModePath> {
   const tree = await loadTreeObject(repo, hash);
   if (!tree) {
     throw new MissingObjectError(hash);

@@ -1,4 +1,3 @@
-
 import { decodePerson } from './person';
 import { Hash, Person, Type } from '../model';
 import {
@@ -15,12 +14,12 @@ import { decode, fromDec, fromOct, unpackHash } from './util';
 
 export default function decodeObject(buffer: Uint8Array): GitObject {
   const space = buffer.indexOf(0x20);
-  if (space < 0) throw new Error("Invalid git object buffer");
+  if (space < 0) throw new Error('Invalid git object buffer');
   const nil = buffer.indexOf(0x00, space);
-  if (nil < 0) throw new Error("Invalid git object buffer");
+  if (nil < 0) throw new Error('Invalid git object buffer');
   const body = buffer.subarray(nil + 1);
   const size = fromDec(buffer, space + 1, nil);
-  if (size !== body.length) throw new Error("Invalid body length.");
+  if (size !== body.length) throw new Error('Invalid body length.');
   const type = decode(buffer, 0, space);
   switch (type) {
     case Type.blob:
@@ -32,14 +31,14 @@ export default function decodeObject(buffer: Uint8Array): GitObject {
     case Type.tag:
       return decodeTag(body);
     default:
-      throw new Error("Unknown type");
+      throw new Error('Unknown type');
   }
 }
 
 function decodeBlob(body: Uint8Array): BlobObject {
   return {
     type: Type.blob,
-    body
+    body,
   };
 }
 
@@ -50,21 +49,21 @@ function decodeTree(body: Uint8Array): TreeObject {
   while (i < length) {
     let start = i;
     i = body.indexOf(0x20, start);
-    if (i < 0) throw new SyntaxError("Missing space");
+    if (i < 0) throw new SyntaxError('Missing space');
     const mode = fromOct(body, start, i++);
     start = i;
     i = body.indexOf(0x00, start);
     const name = decode(body, start, i++);
-    const hash = unpackHash(body, i, i += 20);
+    const hash = unpackHash(body, i, (i += 20));
     tree[name] = {
       mode: mode,
-      hash: hash
+      hash: hash,
     };
   }
 
   return {
     type: Type.tree,
-    body: tree
+    body: tree,
   };
 }
 
@@ -74,26 +73,26 @@ function decodeCommit(body: Uint8Array): CommitObject {
   let i = 0;
   const parents: Hash[] = [];
   const commit: Writeable<CommitBody> = {
-    tree: "",
+    tree: '',
     parents: parents,
     author: nullPerson(),
     committer: nullPerson(),
-    message: "",
+    message: '',
   };
   while (body[i] !== 0x0a) {
     let start = i;
     i = body.indexOf(0x20, start);
-    if (i < 0) throw new SyntaxError("Missing space");
+    if (i < 0) throw new SyntaxError('Missing space');
     const key = decode(body, start, i++);
     start = i;
     i = body.indexOf(0x0a, start);
-    if (i < 0) throw new SyntaxError("Missing linefeed");
+    if (i < 0) throw new SyntaxError('Missing linefeed');
     let value = decode(body, start, i++);
-    if (key === "parent") {
+    if (key === 'parent') {
       parents.push(value);
-    } else if (key === "author" || key === "committer") {
+    } else if (key === 'author' || key === 'committer') {
       commit[key] = decodePerson(value);
-    } else if (key === "tree") {
+    } else if (key === 'tree') {
       commit[key] = value;
     }
   }
@@ -101,34 +100,34 @@ function decodeCommit(body: Uint8Array): CommitObject {
   commit.message = decode(body, i, body.length);
   return {
     type: Type.commit,
-    body: commit
+    body: commit,
   };
 }
 
 function decodeTag(body: Uint8Array): TagObject {
   let i = 0;
   const tag: Writeable<TagBody> = {
-    object: "",
-    type: "",
-    tag: "",
+    object: '',
+    type: '',
+    tag: '',
     tagger: nullPerson(),
-    message: "",
+    message: '',
   };
 
   while (body[i] !== 0x0a) {
     let start = i;
     i = body.indexOf(0x20, start);
-    if (i < 0) throw new SyntaxError("Missing space");
+    if (i < 0) throw new SyntaxError('Missing space');
     const key = decode(body, start, i++);
     start = i;
     i = body.indexOf(0x0a, start);
-    if (i < 0) throw new SyntaxError("Missing linefeed");
+    if (i < 0) throw new SyntaxError('Missing linefeed');
     let value = decode(body, start, i++);
-    if (key === "tagger") {
+    if (key === 'tagger') {
       const tagger = decodePerson(value);
       tag.tagger = tagger;
     }
-    if (key === "object" || key === "type" || key === "tag") {
+    if (key === 'object' || key === 'type' || key === 'tag') {
       tag[key] = value;
     }
   }
@@ -141,5 +140,5 @@ function decodeTag(body: Uint8Array): TagObject {
 }
 
 function nullPerson(): Person {
-  return { name: "", email: "", date: { seconds: 0, offset: 0 } };
+  return { name: '', email: '', date: { seconds: 0, offset: 0 } };
 }

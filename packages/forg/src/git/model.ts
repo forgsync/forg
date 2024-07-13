@@ -8,11 +8,11 @@ export enum Mode {
 }
 
 export enum Type {
-  unknown = "unknown",
-  commit = "commit",
-  tree = "tree",
-  blob = "blob",
-  tag = "tag",
+  unknown = 'unknown',
+  commit = 'commit',
+  tree = 'tree',
+  blob = 'blob',
+  tag = 'tag',
 }
 
 export type Hash = string;
@@ -20,18 +20,18 @@ export type Hash = string;
 export type SecondsWithOffset = {
   readonly seconds: number;
   readonly offset: number;
-}
+};
 
 export type Person = {
   readonly name: string;
   readonly email: string;
   readonly date: SecondsWithOffset;
-}
+};
 
 export type ModeHash = {
   readonly mode: Mode;
   readonly hash: string;
-}
+};
 
 export interface ReflogEntry {
   previousCommit: Hash;

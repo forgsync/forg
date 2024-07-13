@@ -1,6 +1,6 @@
-import { Errno, FSError } from "../model/FSError";
-import { ISimpleFS, ListEntry, ListOptions } from "../model/ISimpleFS";
-import { Path } from "../model/Path";
+import { Errno, FSError } from '../model/FSError';
+import { ISimpleFS, ListEntry, ListOptions } from '../model/ISimpleFS';
+import { Path } from '../model/Path';
 
 interface FileEntry {
   kind: 'file';
@@ -46,7 +46,7 @@ export class InMemoryFS implements ISimpleFS {
       kind: 'file',
       path: path,
       content: data,
-    })
+    });
   }
 
   async deleteFile(path: Path): Promise<void> {
@@ -112,16 +112,14 @@ export class InMemoryFS implements ISimpleFS {
     }
 
     for (const entry of this._store.values()) {
-      const isMatch =
-        recursive
-          ? path.isParentOf(entry.path)
-          : path.isImmediateParentOf(entry.path);
+      const isMatch = recursive
+        ? path.isParentOf(entry.path)
+        : path.isImmediateParentOf(entry.path);
 
       if (isMatch) {
         if (entry.kind === 'file') {
           results.push({ kind: 'file', path: entry.path });
-        }
-        else {
+        } else {
           results.push({ kind: 'dir', path: entry.path });
         }
       }
@@ -141,8 +139,7 @@ export class InMemoryFS implements ISimpleFS {
           kind: 'dir',
           path: new Path(segmentPath),
         });
-      }
-      else if (entry.kind !== 'dir') {
+      } else if (entry.kind !== 'dir') {
         throw new FSError(Errno.ENOTDIR, segmentPath);
       }
     }

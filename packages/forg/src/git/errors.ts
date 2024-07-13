@@ -1,4 +1,4 @@
-import { Hash, Type } from "./model";
+import { Hash, Type } from './model';
 
 export class MissingObjectError extends Error {
   hash: Hash;

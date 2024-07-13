@@ -1,12 +1,12 @@
 import * as fflate from 'fflate';
-import { ISimpleFS, Path } from "@forgsync/simplefs";
+import { ISimpleFS, Path } from '@forgsync/simplefs';
 
 import { Hash, ReflogEntry } from './model';
 import { decode, encode } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
 
 export interface IRepo {
-  listRefs(what: "refs/heads" | "refs/remotes"): Promise<string[]>;
+  listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
   getRef(ref: string): Promise<Hash | undefined>;
   setRef(ref: string, hash: Hash | undefined): Promise<void>;
   getReflog(ref: string): Promise<ReflogEntry[]>;
@@ -33,13 +33,12 @@ export class Repo implements IRepo {
     if (hasHeadFile && hasObjectsDir && hasRefsDir) {
       // All good!
       return;
-    }
-    else if (!hasHeadFile && !hasObjectsDir && !hasRefsDir) {
-      await this._fs.write(new Path("HEAD"), encode("ref: refs/heads/main")); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
-      await this._fs.createDirectory(new Path("objects"));
-      await this._fs.createDirectory(new Path("refs"));
-      if (!await this._fs.fileExists(new Path("config"))) {
-        await this._fs.write(new Path("config"), encode(getDefaultConfig()));
+    } else if (!hasHeadFile && !hasObjectsDir && !hasRefsDir) {
+      await this._fs.write(new Path('HEAD'), encode('ref: refs/heads/main')); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
+      await this._fs.createDirectory(new Path('objects'));
+      await this._fs.createDirectory(new Path('refs'));
+      if (!(await this._fs.fileExists(new Path('config')))) {
+        await this._fs.write(new Path('config'), encode(getDefaultConfig()));
       }
     }
   }
@@ -59,7 +58,7 @@ export class Repo implements IRepo {
 
   async getRef(ref: string): Promise<string | undefined> {
     const path = new Path(ref);
-    if (!await this._fs.fileExists(path)) {
+    if (!(await this._fs.fileExists(path))) {
       return undefined;
     }
 
@@ -75,15 +74,14 @@ export class Repo implements IRepo {
       const rawContent = `${hash}\n`;
       const content = encode(rawContent);
       await this._fs.write(path, content);
-    }
-    else {
+    } else {
       await this._fs.deleteFile(path);
     }
   }
 
   async getReflog(ref: string): Promise<ReflogEntry[]> {
     const logPath = new Path(`logs/${ref}`);
-    if (!await this._fs.fileExists(logPath)) {
+    if (!(await this._fs.fileExists(logPath))) {
       return [];
     }
 
@@ -107,7 +105,7 @@ export class Repo implements IRepo {
     const path = Repo._ObjectPath(hash);
 
     // TODO: Handle not found properly and avoid the extra call that still allows for race conditions. See: https://github.com/duna-oss/flystorage/issues/50
-    if (!await this._fs.fileExists(path)) {
+    if (!(await this._fs.fileExists(path))) {
       return undefined;
     }
 
@@ -127,8 +125,7 @@ export class Repo implements IRepo {
 
     if (value !== undefined) {
       await this._fs.write(path, value);
-    }
-    else {
+    } else {
       await this._fs.deleteFile(path);
     }
   }
@@ -140,7 +137,7 @@ export class Repo implements IRepo {
     }
 
     // TODO: Handle not found properly and avoid the extra call that still allows for race conditions. See: https://github.com/duna-oss/flystorage/issues/50
-    if (!await this._fs.fileExists(path)) {
+    if (!(await this._fs.fileExists(path))) {
       return undefined;
     }
 
@@ -155,24 +152,24 @@ export class Repo implements IRepo {
 
 function getDefaultConfig(): string {
   const lines = [
-    "# This is a FORG repo",
-    "# Learn more: https://github.com/davidnx/forg",
-    "#",
-    "[core]",
-    "\trepositoryformatversion = 0",
-    "\tfilemode = false",
-    "\tbare = true",
-    "\tsymlinks = false",
-    "",
-    "[gc]",
-    "\tauto = 0",
-    "\treflogExpire = never",
-    "\treflogExpireUnreachable = never",
-    "",
-    "[forg]",
-    "\tversion = 1",
-    "",
+    '# This is a FORG repo',
+    '# Learn more: https://github.com/davidnx/forg',
+    '#',
+    '[core]',
+    '\trepositoryformatversion = 0',
+    '\tfilemode = false',
+    '\tbare = true',
+    '\tsymlinks = false',
+    '',
+    '[gc]',
+    '\tauto = 0',
+    '\treflogExpire = never',
+    '\treflogExpireUnreachable = never',
+    '',
+    '[forg]',
+    '\tversion = 1',
+    '',
   ];
 
-  return lines.join("\n");
+  return lines.join('\n');
 }

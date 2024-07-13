@@ -54,23 +54,19 @@ export function fromOct(buffer: Uint8Array, start: number, end: number) {
   return val;
 }
 
-
 export function packHash(hex: string) {
   var raw = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length;) {
-    raw[i / 2] =
-      (fromHexChar(hex.charCodeAt(i++)) << 4)
-      | fromHexChar(hex.charCodeAt(i++));
+  for (let i = 0; i < hex.length; ) {
+    raw[i / 2] = (fromHexChar(hex.charCodeAt(i++)) << 4) | fromHexChar(hex.charCodeAt(i++));
   }
   return raw;
 }
 
 export function unpackHash(binary: Uint8Array, start = 0, end = binary.length) {
-  var hex = "";
+  var hex = '';
   for (var i = start; i < end; i++) {
     var byte = binary[i];
-    hex += String.fromCharCode(toHexChar(byte >> 4)) +
-      String.fromCharCode(toHexChar(byte & 0xf));
+    hex += String.fromCharCode(toHexChar(byte >> 4)) + String.fromCharCode(toHexChar(byte & 0xf));
   }
   return hex;
 }
@@ -80,5 +76,5 @@ export function toHexChar(val: number) {
 }
 
 export function sanitizeString(string: string) {
-  return string.replace(/(?:^[\.,:;<>"']+|[\0\n<>]+|[\.,:;<>"']+$)/gm, "");
+  return string.replace(/(?:^[\.,:;<>"']+|[\0\n<>]+|[\.,:;<>"']+$)/gm, '');
 }

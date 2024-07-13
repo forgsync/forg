@@ -1,4 +1,4 @@
-import { Mode, Type } from "./model";
+import { Mode, Type } from './model';
 
 enum Mask {
   mask = 0o100000,

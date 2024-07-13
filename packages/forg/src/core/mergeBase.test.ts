@@ -1,11 +1,7 @@
-import {
-  Hash, IRepo, Repo,
-  createCommit,
-  loadCommitObject,
-} from "../git";
-import { dummyPerson } from "../__testHelpers__/dummyPerson";
+import { Hash, IRepo, Repo, createCommit, loadCommitObject } from '../git';
+import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { mergeBase, MergeBaseResult } from './mergeBase';
-import { InMemoryFS } from "@forgsync/simplefs";
+import { InMemoryFS } from '@forgsync/simplefs';
 
 describe('mergeBase', () => {
   let repo: Repo;
@@ -143,7 +139,8 @@ describe('mergeBase', () => {
 async function assertCommit(repo: IRepo, actual: MergeBaseResult, expected: Hash[]) {
   expect(actual.bestAncestorCommitIds).toHaveLength(expected.length);
   for (let i = 0; i < expected.length; i++) {
-    const actualMessage = (await loadCommitObject(repo, actual.bestAncestorCommitIds[i]))?.body.message;
+    const actualMessage = (await loadCommitObject(repo, actual.bestAncestorCommitIds[i]))?.body
+      .message;
     const expectedMessage = (await loadCommitObject(repo, expected[i]))?.body.message;
 
     if (expectedMessage !== actualMessage) {

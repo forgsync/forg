@@ -1,5 +1,5 @@
-import { IRepo } from "../git";
-import { HeadInfo, tryFindAvailableHead } from "./tryFindAvailableHead";
+import { IRepo } from '../git';
+import { HeadInfo, tryFindAvailableHead } from './tryFindAvailableHead';
 
 export interface ForgClientHead {
   clientUuid: string;

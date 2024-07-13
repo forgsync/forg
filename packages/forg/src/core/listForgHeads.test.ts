@@ -1,10 +1,7 @@
 import { InMemoryFS } from '@forgsync/simplefs';
 
-import {
-  Repo,
-  createCommit,
-} from "../git";
-import { dummyPerson } from "../__testHelpers__/dummyPerson";
+import { Repo, createCommit } from '../git';
+import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { ForgClientHead, listForgHeads } from './listForgHeads';
 
 const encoder = new TextEncoder();
@@ -32,16 +29,18 @@ describe('listForgHeads', () => {
       },
       [],
       'Commit 1',
-      dummyPerson()
+      dummyPerson(),
     );
     await repo.setRef('refs/remotes/client1/main', commit1);
 
     const result = await listForgHeads(repo, 'main');
     expect(result.length).toBe(1);
 
-    type DeepPartial<T> = T extends object ? {
-      [P in keyof T]?: DeepPartial<T[P]>;
-    } : T;
+    type DeepPartial<T> = T extends object
+      ? {
+          [P in keyof T]?: DeepPartial<T[P]>;
+        }
+      : T;
     expect(result).toMatchObject<DeepPartial<ForgClientHead>[]>([
       {
         clientUuid: 'client1',
@@ -53,7 +52,7 @@ describe('listForgHeads', () => {
             },
           },
         },
-      }
+      },
     ]);
   });
 });

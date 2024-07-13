@@ -4,6 +4,6 @@
   "references": [
     {
       "path": "../simplefs"
-    },
+    }
   ]
 }

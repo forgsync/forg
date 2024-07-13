@@ -3,7 +3,7 @@ export interface ClientInfo {
 
   /**
    * ISO-8601 date.
-  */
+   */
   joinedAt: string;
 
   displayName: string;

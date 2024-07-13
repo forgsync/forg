@@ -1,14 +1,14 @@
-import { createCommit, updateRef } from "./commits";
-import { Repo } from "./Repo";
-import { Mode, ReflogEntry } from "./model";
-import { CommitBody, loadObject, TreeBody } from "./objects";
-import { dummyPerson } from "../__testHelpers__/dummyPerson";
-import { InMemoryFS } from "@forgsync/simplefs";
+import { createCommit, updateRef } from './commits';
+import { Repo } from './Repo';
+import { Mode, ReflogEntry } from './model';
+import { CommitBody, loadObject, TreeBody } from './objects';
+import { dummyPerson } from '../__testHelpers__/dummyPerson';
+import { InMemoryFS } from '@forgsync/simplefs';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-describe("createCommit", () => {
+describe('createCommit', () => {
   let repo: Repo;
   beforeEach(async () => {
     const fs = new InMemoryFS();
@@ -16,13 +16,8 @@ describe("createCommit", () => {
     await repo.init();
   });
 
-  test("initial commit", async () => {
-    const hash = await createCommit(
-      repo,
-      {},
-      [],
-      "Initial commit",
-      dummyPerson());
+  test('initial commit', async () => {
+    const hash = await createCommit(repo, {}, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const commit = await loadObject(repo, hash);
@@ -39,20 +34,21 @@ describe("createCommit", () => {
     });
   });
 
-  test("parented commit with tree", async () => {
+  test('parented commit with tree', async () => {
     const hash = await createCommit(
       repo,
       {
         files: {
-          "a.txt": {
+          'a.txt': {
             isExecutable: false,
-            body: encoder.encode("a"),
+            body: encoder.encode('a'),
           },
         },
       },
       ['eaef5b6f452335fad4dd280a113d81e82a3acaca'],
-      "Added a.txt",
-      dummyPerson());
+      'Added a.txt',
+      dummyPerson(),
+    );
     expect(hash).toBe('9254379c365d23429f0fff266834bdc853c35fe1');
 
     const commit = await loadObject(repo, hash);
@@ -69,7 +65,7 @@ describe("createCommit", () => {
     });
 
     const rootTreeObject = await loadObject(repo, '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f');
-    if (rootTreeObject === undefined || rootTreeObject.type !== "tree") {
+    if (rootTreeObject === undefined || rootTreeObject.type !== 'tree') {
       fail('Not a tree');
     }
 
@@ -88,7 +84,7 @@ describe("createCommit", () => {
   });
 });
 
-describe("updateRef", () => {
+describe('updateRef', () => {
   let repo: Repo;
   beforeEach(async () => {
     const fs = new InMemoryFS();
@@ -96,10 +92,16 @@ describe("updateRef", () => {
     await repo.init();
   });
 
-  test("initial commit", async () => {
+  test('initial commit', async () => {
     expect(await repo.getRef('refs/main')).toBe(undefined);
 
-    await updateRef(repo, 'refs/main', '0000000000000000000000000000000000000001', dummyPerson(), 'test reflog message');
+    await updateRef(
+      repo,
+      'refs/main',
+      '0000000000000000000000000000000000000001',
+      dummyPerson(),
+      'test reflog message',
+    );
     expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000001');
     expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([
       {
@@ -111,11 +113,23 @@ describe("updateRef", () => {
     ]);
   });
 
-  test("second commit", async () => {
+  test('second commit', async () => {
     expect(await repo.getRef('refs/main')).toBe(undefined);
 
-    await updateRef(repo, 'refs/main', '0000000000000000000000000000000000000001', dummyPerson(), 'test reflog message 1');
-    await updateRef(repo, 'refs/main', '0000000000000000000000000000000000000002', dummyPerson(), 'test reflog message 2');
+    await updateRef(
+      repo,
+      'refs/main',
+      '0000000000000000000000000000000000000001',
+      dummyPerson(),
+      'test reflog message 1',
+    );
+    await updateRef(
+      repo,
+      'refs/main',
+      '0000000000000000000000000000000000000002',
+      dummyPerson(),
+      'test reflog message 2',
+    );
 
     expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000002');
     expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([
@@ -134,5 +148,3 @@ describe("updateRef", () => {
     ]);
   });
 });
-
-;
