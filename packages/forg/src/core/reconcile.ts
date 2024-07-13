@@ -58,9 +58,38 @@ export async function reconcile(
   }
 
   // Reconcile older commits first
-  leafHeads.sort(
-    (a, b) => a.head.commit.body.committer.date.seconds - b.head.commit.body.committer.date.seconds,
-  );
+  leafHeads.sort((a, b) => {
+    const authorA = a.head.commit.body.author;
+    const authorB = b.head.commit.body.author;
+    let v = authorA.date.seconds - authorB.date.seconds;
+    if (v !== 0) {
+      return v;
+    }
+
+    if (authorA.name < authorB.name) {
+      return -1;
+    }
+    else if (authorA.name > authorB.name) {
+      return 1;
+    }
+
+    if (a.head.commit.body.message < b.head.commit.body.message) {
+      return -1;
+    }
+    else if (a.head.commit.body.message > b.head.commit.body.message) {
+      return 1;
+    }
+
+    if (a.head.hash < b.head.hash) {
+      return -1;
+    }
+    else if (a.head.hash > b.head.hash) {
+      return 1;
+    }
+
+    return 0;
+  });
+
   let prev: Hash = leafHeads[0].head.hash;
   for (let i = 1; i < leafHeads.length; i++) {
     const commitIdA = prev;
