@@ -202,7 +202,6 @@ function getDefaultConfig(): string {
   return lines.join('\n');
 }
 
-
 function computeObjectPath(hash: Hash): Path {
   return new Path(`objects/${hash.substring(0, 2)}/${hash.substring(2)}`);
 }
@@ -211,8 +210,7 @@ function getRefPath(ref: string): Path {
   let path: Path | undefined = undefined;
   try {
     path = new Path(ref);
-  }
-  catch { }
+  } catch {}
 
   if (path === undefined || !path.startsWith(new Path('refs'))) {
     throw new Error(`Invalid ref '${ref}'`);

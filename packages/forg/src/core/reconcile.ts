@@ -68,22 +68,19 @@ export async function reconcile(
 
     if (authorA.name < authorB.name) {
       return -1;
-    }
-    else if (authorA.name > authorB.name) {
+    } else if (authorA.name > authorB.name) {
       return 1;
     }
 
     if (a.head.commit.body.message < b.head.commit.body.message) {
       return -1;
-    }
-    else if (a.head.commit.body.message > b.head.commit.body.message) {
+    } else if (a.head.commit.body.message > b.head.commit.body.message) {
       return 1;
     }
 
     if (a.head.hash < b.head.hash) {
       return -1;
-    }
-    else if (a.head.hash > b.head.hash) {
+    } else if (a.head.hash > b.head.hash) {
       return 1;
     }
 

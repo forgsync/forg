@@ -43,7 +43,7 @@ describe('mergeBase', () => {
   });
 
   function toCommitNames(hashes: Hash[]): string[] {
-    return hashes.map(h => {
+    return hashes.map((h) => {
       const name = commitsReverseMap.get(h);
       if (name === undefined) {
         throw new Error(`Unknown commit hash ${h}`);
