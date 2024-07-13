@@ -3,6 +3,6 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   moduleNameMapper: {
-    "^@forgsync/(.*)$": "<rootDir>/../$1/src",
-  }
+    '^@forgsync/(.*)$': '<rootDir>/../$1/src',
+  },
 };
