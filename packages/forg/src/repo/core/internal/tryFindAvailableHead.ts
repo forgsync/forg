@@ -1,4 +1,4 @@
-import { IRepo, Hash, loadCommitObject, CommitObject } from '../git';
+import { IRepo, Hash, loadCommitObject, CommitObject } from '../../git';
 import { isTreeFullyReachable } from './isTreeFullyReachable';
 
 export interface HeadInfo {

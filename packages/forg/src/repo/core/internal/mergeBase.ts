@@ -1,4 +1,4 @@
-import { CommitObject, Hash, IRepo, loadCommitObject } from '../git';
+import { CommitObject, Hash, IRepo, loadCommitObject } from '../../git';
 
 interface TraversingHead {
   headIndex: number;

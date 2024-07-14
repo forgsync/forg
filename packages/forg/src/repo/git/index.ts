@@ -1,4 +1,5 @@
-export type { Hash, Mode, Type, ModeHash, Person, SecondsWithOffset } from './model';
+export type { Hash, Type, ModeHash, Person, SecondsWithOffset } from './model';
+export { Mode } from './model'
 
 export { Repo } from './Repo';
 export type { IRepo } from './Repo';

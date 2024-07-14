@@ -1,7 +1,7 @@
 import { InMemoryFS } from '@forgsync/simplefs';
 
-import { Repo, createCommit } from '../git';
-import { dummyPerson } from '../__testHelpers__/dummyPerson';
+import { Repo, createCommit } from '../../git';
+import { dummyPerson } from '../../../__testHelpers__/dummyPerson';
 import { ForgClientHead, listForgHeads } from './listForgHeads';
 
 const encoder = new TextEncoder();

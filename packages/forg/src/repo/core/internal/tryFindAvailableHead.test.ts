@@ -1,5 +1,5 @@
-import { Repo, createCommit, updateRef } from '../git';
-import { dummyPerson } from '../__testHelpers__/dummyPerson';
+import { Repo, createCommit, updateRef } from '../../git';
+import { dummyPerson } from '../../../__testHelpers__/dummyPerson';
 import { tryFindAvailableHead } from './tryFindAvailableHead';
 import { InMemoryFS } from '@forgsync/simplefs';
 

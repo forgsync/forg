@@ -1,5 +1,5 @@
 import { Folder, Hash, Repo, createCommit, loadCommitObject } from '../git';
-import { dummyPerson } from '../__testHelpers__/dummyPerson';
+import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { reconcile } from './reconcile';
 import { InMemoryFS } from '@forgsync/simplefs';
 import { ForgClientInfo } from './model';

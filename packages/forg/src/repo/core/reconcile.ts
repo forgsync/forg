@@ -9,9 +9,9 @@ import {
   TreeBody,
   updateRef,
 } from '../git';
-import { isTreeFullyReachable } from './isTreeFullyReachable';
-import { ForgClientHead, listForgHeads } from './listForgHeads';
-import { mergeBase } from './mergeBase';
+import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
+import { ForgClientHead, listForgHeads } from './internal/listForgHeads';
+import { mergeBase } from './internal/mergeBase';
 import { ForgClientInfo } from './model';
 
 type MergeFunc = (a: TreeBody, b: TreeBody, base: TreeBody | undefined) => Promise<Folder>;

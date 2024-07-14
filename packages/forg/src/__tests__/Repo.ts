@@ -1,6 +1,7 @@
 import { InMemoryFS } from '@forgsync/simplefs';
-import { createCommit, updateRef, CommitBody, loadObject, Repo, TreeBody } from '../git';
-import { Mode, Person, ReflogEntry } from '../git/model';
+import { createCommit, updateRef, CommitBody, loadObject, Repo, TreeBody } from '../repo/git';
+import { Mode, ReflogEntry } from '../repo/git/model';
+import { dummyPerson } from '../__testHelpers__/dummyPerson';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -157,14 +158,3 @@ describe('Repo basics', () => {
     expect(refs).toEqual(['refs/heads/main']);
   });
 });
-
-function dummyPerson(): Person {
-  return {
-    name: 'Test Name',
-    email: 'test@example.com',
-    date: {
-      seconds: 2272247100,
-      offset: 180,
-    },
-  };
-}

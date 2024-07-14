@@ -5,9 +5,9 @@ import {
   Repo,
   updateRef,
   walkTree,
-} from '@forgsync/forg/dist/git';
-import { encode } from '@forgsync/forg/dist/git/encoding/util';
-import { isFile } from '@forgsync/forg/dist/git/util';
+} from '@forgsync/forg/dist/repo/git';
+import { encode } from '@forgsync/forg/dist/repo/git/encoding/util';
+import { isFile } from '@forgsync/forg/dist/repo/git/util';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 export async function myFunc(): Promise<void> {

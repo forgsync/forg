@@ -1,4 +1,4 @@
-import { IRepo, Hash, walkTree, MissingObjectError } from '../git';
+import { IRepo, Hash, walkTree, MissingObjectError } from '../../git';
 
 export async function isTreeFullyReachable(repo: IRepo, treeHash: Hash): Promise<boolean> {
   try {

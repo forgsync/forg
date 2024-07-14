@@ -181,7 +181,7 @@ export class Repo implements IRepo {
 function getDefaultConfig(): string {
   const lines = [
     '# This is a FORG repo',
-    '# Learn more: https://github.com/davidnx/forg',
+    '# Learn more: https://github.com/forgsync/forg',
     '#',
     '[core]',
     '\trepositoryformatversion = 0',

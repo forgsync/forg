@@ -1,4 +1,4 @@
-import { IRepo } from '../git';
+import { IRepo } from '../../git';
 import { HeadInfo, tryFindAvailableHead } from './tryFindAvailableHead';
 
 export interface ForgClientHead {
