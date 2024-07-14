@@ -24,7 +24,12 @@ export type {
 } from './objects';
 
 export { createCommit, updateRef } from './commits';
-export type { File, BinaryFile, ExistingFile, Folder, NewFolder, ExistingFolder } from './commits';
+
+export { saveWorkingTree, treeToWorkingTree } from './workingTree';
+export type {
+  ExpandedFile, ExistingFile, WorkingTreeFile,
+  ExpandedFolder, ExistingFolder, WorkingTreeFolder,
+} from './workingTree';
 
 export { walkCommits, walkTree, listFiles } from './walkers';
 export type { HashAndCommitBody, HashModePath } from './walkers';

@@ -26,6 +26,7 @@ describe('listForgHeads', () => {
         files: {
           a: { isExecutable: false, body: encoder.encode('a') },
         },
+        folders: {},
       },
       [],
       'Commit 1',

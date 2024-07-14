@@ -5,13 +5,20 @@ export class Path {
   /**
    * The sanitized path value. This never starts with a slash
    */
-  get value() {
+  get value(): string {
     return this._value;
   }
-  get segments() {
+  get segments(): string[] {
     return [...this._segments];
   }
-  get isRoot() {
+  get leafName(): string {
+    if (this.segments.length === 0) {
+      throw new Error(`Unable to get leaf name of the root`);
+    }
+
+    return this.segments[this.segments.length - 1];
+  }
+  get isRoot(): boolean {
     return this._segments.length === 0;
   }
 

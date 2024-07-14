@@ -1,12 +1,12 @@
 import {
   createCommit,
-  Folder,
+  ExpandedFolder,
   Hash,
   IRepo,
   loadCommitObject,
   loadTreeObject,
   Person,
-  TreeBody,
+  treeToWorkingTree,
   updateRef,
 } from '../git';
 import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
@@ -14,7 +14,7 @@ import { ForgClientHead, listForgHeads } from './internal/listForgHeads';
 import { mergeBase } from './internal/mergeBase';
 import { ForgClientInfo } from './model';
 
-type MergeFunc = (a: TreeBody, b: TreeBody, base: TreeBody | undefined) => Promise<Folder>;
+type MergeFunc = (a: ExpandedFolder, b: ExpandedFolder, base: ExpandedFolder | undefined) => Promise<ExpandedFolder>;
 export async function reconcile(
   repo: IRepo,
   forgClient: ForgClientInfo,
@@ -97,7 +97,7 @@ export async function reconcile(
 
     // Figure out base
     const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
-    let baseTree: TreeBody | undefined = undefined;
+    let baseTree: ExpandedFolder | undefined = undefined;
     if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
       const baseCommitId = mergeBaseResult.bestAncestorCommitIds[0];
       const baseCommit = await loadCommitObject(repo, baseCommitId);
@@ -111,7 +111,7 @@ export async function reconcile(
           throw new Error();
         }
 
-        baseTree = tree.body;
+        baseTree = treeToWorkingTree(tree.body);
       } else {
         // Try to keep going, if merge func can work without a base, let it try its thing...
       }
@@ -153,7 +153,7 @@ function createCommitterInfo(forgClient: ForgClientInfo): Person {
   };
 }
 
-async function getTreeBody(repo: IRepo, commitId: Hash): Promise<TreeBody> {
+async function getTreeBody(repo: IRepo, commitId: Hash): Promise<ExpandedFolder> {
   const commit = await loadCommitObject(repo, commitId);
   if (commit === undefined) {
     throw new Error();
@@ -162,6 +162,6 @@ async function getTreeBody(repo: IRepo, commitId: Hash): Promise<TreeBody> {
   if (tree === undefined) {
     throw new Error();
   }
-
-  return tree.body;
+  const workingTree = treeToWorkingTree(tree.body);
+  return workingTree;
 }

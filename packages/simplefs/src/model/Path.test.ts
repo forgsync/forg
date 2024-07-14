@@ -12,6 +12,7 @@ describe('Path', () => {
     const path = new Path(input);
     expect(path.value).toBe('abc');
     expect(path.segments).toEqual(['abc']);
+    expect(path.leafName).toBe('abc');
     expect(path.isRoot).toBe(false);
   });
 
@@ -19,6 +20,7 @@ describe('Path', () => {
     const path = new Path(input);
     expect(path.value).toBe('ab c/d');
     expect(path.segments).toEqual(['ab c', 'd']);
+    expect(path.leafName).toBe('d');
     expect(path.isRoot).toBe(false);
   });
 
@@ -61,6 +63,11 @@ describe('Path', () => {
   test('getParent of root throws', () => {
     const root = new Path('');
     expect(() => root.getParent()).toThrow();
+  });
+
+  test('leafName of root throws', () => {
+    const root = new Path('');
+    expect(() => root.leafName).toThrow();
   });
 
   test.each([

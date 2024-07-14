@@ -17,7 +17,7 @@ describe('createCommit', () => {
   });
 
   test('initial commit', async () => {
-    const hash = await createCommit(repo, {}, [], 'Initial commit', dummyPerson());
+    const hash = await createCommit(repo, { files: {}, folders: {} }, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const commit = await loadObject(repo, hash);
@@ -44,6 +44,7 @@ describe('createCommit', () => {
             body: encoder.encode('a'),
           },
         },
+        folders: {},
       },
       ['eaef5b6f452335fad4dd280a113d81e82a3acaca'],
       'Added a.txt',

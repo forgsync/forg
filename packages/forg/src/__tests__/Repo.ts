@@ -14,10 +14,10 @@ describe('Repo basics', () => {
     await repo.init();
   });
 
-  test('just init', () => {});
+  test('just init', () => { });
 
   test('trivial commit', async () => {
-    const hash = await createCommit(repo, {}, [], 'Initial commit', dummyPerson());
+    const hash = await createCommit(repo, { files: {}, folders: {} }, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     await updateRef(repo, 'refs/main', hash, dummyPerson(), 'commit (initial): Initial commit');
@@ -64,6 +64,7 @@ describe('Repo basics', () => {
                 body: encoder.encode('cc'),
               },
             },
+            folders: {},
           },
         },
       },
@@ -120,7 +121,7 @@ describe('Repo basics', () => {
   });
 
   test('two commits', async () => {
-    const hash1 = await createCommit(repo, {}, [], 'Initial commit', dummyPerson());
+    const hash1 = await createCommit(repo, { files: {}, folders: {} }, [], 'Initial commit', dummyPerson());
     expect(hash1).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const hash2 = await createCommit(
@@ -132,6 +133,7 @@ describe('Repo basics', () => {
             body: encoder.encode('a'),
           },
         },
+        folders: {},
       },
       [hash1],
       'Added a.txt',

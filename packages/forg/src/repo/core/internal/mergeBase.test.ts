@@ -13,7 +13,7 @@ describe('mergeBase', () => {
     await repo.init();
 
     async function trackCommit(name: string, parents: Hash[]) {
-      const hash = await createCommit(repo, {}, parents, name, dummyPerson());
+      const hash = await createCommit(repo, { files: {}, folders: {} }, parents, name, dummyPerson());
       commits[name] = hash;
       commitsReverseMap.set(hash, name);
     }
