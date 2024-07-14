@@ -1,4 +1,4 @@
-import { Hash, Mode, ModeHash, Type } from "./model";
+import { Hash, Mode, Type } from "./model";
 import { saveObject, TreeBody } from "./objects";
 import { IRepo } from "./Repo";
 import { isFile } from "./util";
@@ -8,46 +8,47 @@ import { isFile } from "./util";
  * A new folder is described by the set of files and folders in it,
  * as opposed to being just a hash pointing at an existing tree in git.
  */
-export type ExpandedFolder = {
-  files: {
-    [key: string]: WorkingTreeFile;
-  };
-  folders: {
-    [key: string]: WorkingTreeFolder;
+export interface ExpandedTree {
+  type: 'tree';
+  entries: {
+    [key: string]: WorkingTreeEntry;
   };
 };
 /**
  * Describes an existing tree in git, indicated by its hash.
  */
-export type ExistingFolder = Hash;
-export type WorkingTreeFolder = ExpandedFolder | ExistingFolder;
+export interface ExistingTree {
+  type: 'tree';
+  hash: Hash;
+}
+export type WorkingTreeFolder = ExpandedTree | ExistingTree;
 
-export type ExpandedFile = {
+export interface ExpandedFile {
+  type: 'file';
   readonly isExecutable?: boolean;
   readonly body: Uint8Array;
 };
-export type ExistingFile = {
+export interface ExistingFile {
+  type: 'file'
   readonly isExecutable?: boolean;
   readonly hash: Hash;
 };
 export type WorkingTreeFile = ExpandedFile | ExistingFile;
 
+export type WorkingTreeEntry = WorkingTreeFolder | WorkingTreeFile;
+
 export async function saveWorkingTree(repo: IRepo, workingTree: WorkingTreeFolder): Promise<Hash> {
-  if (typeof workingTree === 'string') return workingTree;
+  if ('hash' in workingTree) return workingTree.hash;
 
-  const body: { [key: string]: ModeHash } = {};
-
-  if (workingTree.folders) {
-    for (const name of Object.keys(workingTree.folders)) {
-      const hash = await saveWorkingTree(repo, workingTree.folders[name]);
+  const body: TreeBody = {};
+  for (const name of Object.keys(workingTree.entries)) {
+    const entry = workingTree.entries[name];
+    if (entry.type === 'tree') {
+      const hash = await saveWorkingTree(repo, entry);
       body[name] = { hash, mode: Mode.tree };
-    }
-  }
-
-  if (workingTree.files) {
-    for (const name of Object.keys(workingTree.files)) {
-      const hash = await saveFile(repo, workingTree.files[name]);
-      body[name] = { hash, mode: workingTree.files[name].isExecutable ? Mode.exec : Mode.file };
+    } else {
+      const hash = await saveFile(repo, entry);
+      body[name] = { hash, mode: entry.isExecutable ? Mode.exec : Mode.file };
     }
   }
 
@@ -66,20 +67,25 @@ function isHash(file: WorkingTreeFile): file is ExistingFile {
   return 'hash' in file;
 }
 
-export function treeToWorkingTree(tree: TreeBody): ExpandedFolder {
-  const result: ExpandedFolder = {
-    files: {},
-    folders: {},
+export function treeToWorkingTree(tree: TreeBody): ExpandedTree {
+  const result: ExpandedTree = {
+    type: 'tree',
+    entries: {},
   };
 
   for (const name in tree) {
     const item = tree[name];
     if (isFile(item.mode)) {
-      result.files[name] = {
+      result.entries[name] = {
+        type: 'file',
+        isExecutable: item.mode === Mode.exec,
         hash: item.hash,
       };
     } else {
-      result.folders[name] = item.hash;
+      result.entries[name] = {
+        type: 'tree',
+        hash: item.hash,
+      };
     }
   }
 

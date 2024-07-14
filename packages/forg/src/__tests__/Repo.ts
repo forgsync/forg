@@ -17,7 +17,7 @@ describe('Repo basics', () => {
   test('just init', () => { });
 
   test('trivial commit', async () => {
-    const hash = await createCommit(repo, { files: {}, folders: {} }, [], 'Initial commit', dummyPerson());
+    const hash = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     await updateRef(repo, 'refs/main', hash, dummyPerson(), 'commit (initial): Initial commit');
@@ -50,21 +50,14 @@ describe('Repo basics', () => {
     const hash = await createCommit(
       repo,
       {
-        files: {
-          'a.txt': {
-            isExecutable: false,
-            body: encoder.encode('aa'),
-          },
-        },
-        folders: {
+        type: 'tree',
+        entries: {
+          'a.txt': { type: 'file', body: encoder.encode('aa'), },
           b: {
-            files: {
-              'c.txt': {
-                isExecutable: false,
-                body: encoder.encode('cc'),
-              },
+            type: 'tree',
+            entries: {
+              'c.txt': { type: 'file', body: encoder.encode('cc'), },
             },
-            folders: {},
           },
         },
       },
@@ -85,14 +78,8 @@ describe('Repo basics', () => {
     }
 
     expect(rootTreeObject.body).toEqual<TreeBody>({
-      'a.txt': {
-        mode: Mode.blob,
-        hash: '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e',
-      },
-      b: {
-        mode: Mode.tree,
-        hash: 'bc3aa3eb92286b2ddaab0bef7564f25098f8fbdc',
-      },
+      'a.txt': { mode: Mode.blob, hash: '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e', },
+      b: { mode: Mode.tree, hash: 'bc3aa3eb92286b2ddaab0bef7564f25098f8fbdc', },
     });
 
     const aBlobObject = await loadObject(repo, '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e');
@@ -107,10 +94,7 @@ describe('Repo basics', () => {
     }
 
     expect(bTreeObject.body).toEqual<TreeBody>({
-      'c.txt': {
-        mode: Mode.blob,
-        hash: '2652f5f42c003f125212dd61f95a3a8a37cb45d5',
-      },
+      'c.txt': { mode: Mode.blob, hash: '2652f5f42c003f125212dd61f95a3a8a37cb45d5', },
     });
 
     const cBlobObject = await loadObject(repo, '2652f5f42c003f125212dd61f95a3a8a37cb45d5');
@@ -121,19 +105,16 @@ describe('Repo basics', () => {
   });
 
   test('two commits', async () => {
-    const hash1 = await createCommit(repo, { files: {}, folders: {} }, [], 'Initial commit', dummyPerson());
+    const hash1 = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
     expect(hash1).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const hash2 = await createCommit(
       repo,
       {
-        files: {
-          'a.txt': {
-            isExecutable: false,
-            body: encoder.encode('a'),
-          },
+        type: 'tree',
+        entries: {
+          'a.txt': { type: 'file', body: encoder.encode('a'), },
         },
-        folders: {},
       },
       [hash1],
       'Added a.txt',

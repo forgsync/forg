@@ -1,4 +1,4 @@
-import { ExpandedFolder, Hash, Repo, createCommit, loadCommitObject } from '../git';
+import { ExpandedTree, Hash, Repo, createCommit, loadCommitObject } from '../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { reconcile } from './reconcile';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -14,7 +14,7 @@ describe('reconcile', () => {
     await repo.init();
 
     async function trackCommit(name: string, parents: Hash[]) {
-      const hash = await createCommit(repo, { files: {}, folders: {} }, parents, name, dummyPerson());
+      const hash = await createCommit(repo, { type: 'tree', entries: {} }, parents, name, dummyPerson());
       commits[name] = hash;
       commitsReverseMap.set(hash, name);
     }
@@ -126,7 +126,7 @@ describe('reconcile', () => {
   });
 });
 
-async function dummyMergeFunc(a: ExpandedFolder, _b: ExpandedFolder): Promise<ExpandedFolder> {
+async function dummyMergeFunc(a: ExpandedTree, _b: ExpandedTree): Promise<ExpandedTree> {
   // Just return the left side always
   return a;
 }

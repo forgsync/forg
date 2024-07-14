@@ -1,6 +1,6 @@
 import {
   createCommit,
-  ExpandedFolder,
+  ExpandedTree,
   Hash,
   IRepo,
   loadCommitObject,
@@ -14,7 +14,7 @@ import { ForgClientHead, listForgHeads } from './internal/listForgHeads';
 import { mergeBase } from './internal/mergeBase';
 import { ForgClientInfo } from './model';
 
-type MergeFunc = (a: ExpandedFolder, b: ExpandedFolder, base: ExpandedFolder | undefined) => Promise<ExpandedFolder>;
+type MergeFunc = (a: ExpandedTree, b: ExpandedTree, base: ExpandedTree | undefined) => Promise<ExpandedTree>;
 export async function reconcile(
   repo: IRepo,
   forgClient: ForgClientInfo,
@@ -97,7 +97,7 @@ export async function reconcile(
 
     // Figure out base
     const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
-    let baseTree: ExpandedFolder | undefined = undefined;
+    let baseTree: ExpandedTree | undefined = undefined;
     if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
       const baseCommitId = mergeBaseResult.bestAncestorCommitIds[0];
       const baseCommit = await loadCommitObject(repo, baseCommitId);
@@ -153,7 +153,7 @@ function createCommitterInfo(forgClient: ForgClientInfo): Person {
   };
 }
 
-async function getTreeBody(repo: IRepo, commitId: Hash): Promise<ExpandedFolder> {
+async function getTreeBody(repo: IRepo, commitId: Hash): Promise<ExpandedTree> {
   const commit = await loadCommitObject(repo, commitId);
   if (commit === undefined) {
     throw new Error();

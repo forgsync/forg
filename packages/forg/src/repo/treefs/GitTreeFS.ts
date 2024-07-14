@@ -1,11 +1,11 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from "@forgsync/simplefs";
 import { IRepo, loadBlobObject, loadTreeObject } from "../git";
-import { ExpandedFolder, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../git/workingTree";
+import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../git/workingTree";
 
 export class GitTreeFS implements ISimpleFS {
   constructor(
     private readonly _repo: IRepo,
-    private readonly _tree: ExpandedFolder,
+    private readonly _tree: ExpandedTree,
   ) { }
 
   async fileExists(path: Path): Promise<boolean> {
@@ -62,15 +62,10 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     const result: ListEntry[] = [];
-    for (const name in tree.files) {
+    for (const name in tree.entries) {
+      const entry = tree.entries[name];
       result.push({
-        kind: 'file',
-        path: Path.join(path, new Path(name)),
-      });
-    }
-    for (const name in tree.folders) {
-      result.push({
-        kind: 'dir',
+        kind: entry.type === 'tree' ? 'dir' : 'file',
         path: Path.join(path, new Path(name)),
       });
     }
@@ -94,53 +89,17 @@ export class GitTreeFS implements ISimpleFS {
     throw new FSError(Errno.EROFS, path.value);
   }
 
-  private async _findTree(path: Path): Promise<ExpandedFolder> {
-    let tree = this._tree;
-    const segments = path.segments;
-    for (let i = 0; i < segments.length; i++) {
-      tree = await this._expandChildFolder(tree, segments[i], path);
-    }
-
-    return tree;
-  }
-
-  private async _expandChildFolder(folder: ExpandedFolder, childName: string, path: Path): Promise<ExpandedFolder> {
-    const item = folder.folders[childName];
-    if (item === undefined) {
-      if (childName in folder.files) {
-        throw new FSError(Errno.ENOTDIR, path.value);
-      } else {
-        throw new FSError(Errno.ENOENT, path.value);
-      }
-    }
-
-    if (typeof item === 'string') {
-      const treeObject = await loadTreeObject(this._repo, item);
-      if (treeObject === undefined) {
-        throw new Error();
-      }
-      const expandedFolder = treeToWorkingTree(treeObject.body);
-      folder.folders[childName] = expandedFolder;
-      return expandedFolder;
-    }
-    else {
-      return item;
-    }
-  }
-
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
     if (path.isRoot) {
       throw new FSError(Errno.EINVAL, path.value);
     }
 
     const tree = await this._findTree(path.getParent());
-    const entry = tree.files[path.leafName];
+    const entry = tree.entries[path.leafName];
     if (entry === undefined) {
-      if (path.leafName in tree.folders) {
-        throw new FSError(Errno.EISDIR, path.value);
-      } else {
-        throw new FSError(Errno.ENOENT, path.value);
-      }
+      throw new FSError(Errno.ENOENT, path.value);
+    } else if (entry.type !== 'file') {
+      throw new FSError(Errno.EISDIR, path.value);
     }
 
     return entry;
@@ -152,15 +111,46 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     const tree = await this._findTree(path.getParent());
-    const entry = tree.folders[path.leafName];
+    const entry = tree.entries[path.leafName];
     if (entry === undefined) {
-      if (path.leafName in tree.files) {
-        throw new FSError(Errno.ENOTDIR, path.value);
-      } else {
-        throw new FSError(Errno.ENOENT, path.value);
-      }
+      throw new FSError(Errno.ENOENT, path.value);
+    }
+    else if (entry.type !== 'tree') {
+      throw new FSError(Errno.ENOTDIR, path.value);
     }
 
     return entry;
+  }
+
+  private async _findTree(path: Path): Promise<ExpandedTree> {
+    let tree = this._tree;
+    const segments = path.segments;
+    for (let i = 0; i < segments.length; i++) {
+      tree = await this._expandChildFolder(tree, segments[i], path);
+    }
+
+    return tree;
+  }
+
+  private async _expandChildFolder(folder: ExpandedTree, childName: string, path: Path): Promise<ExpandedTree> {
+    const item = folder.entries[childName];
+    if (item === undefined) {
+      throw new FSError(Errno.ENOENT, path.value);
+    } else if (item.type !== 'tree') {
+      throw new FSError(Errno.ENOTDIR, path.value);
+    }
+
+    if ('hash' in item) {
+      const treeObject = await loadTreeObject(this._repo, item.hash);
+      if (treeObject === undefined) {
+        throw new Error();
+      }
+      const expandedFolder = treeToWorkingTree(treeObject.body);
+      folder.entries[childName] = expandedFolder;
+      return expandedFolder;
+    }
+    else {
+      return item;
+    }
   }
 }

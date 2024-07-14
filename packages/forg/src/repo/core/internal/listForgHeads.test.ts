@@ -23,10 +23,10 @@ describe('listForgHeads', () => {
     const commit1 = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, body: encoder.encode('a') },
+        type: 'tree',
+        entries: {
+          a: { type: 'file', body: encoder.encode('a') },
         },
-        folders: {},
       },
       [],
       'Commit 1',

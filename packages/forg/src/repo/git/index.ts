@@ -28,7 +28,7 @@ export { createCommit, updateRef } from './commits';
 export { saveWorkingTree, treeToWorkingTree } from './workingTree';
 export type {
   ExpandedFile, ExistingFile, WorkingTreeFile,
-  ExpandedFolder, ExistingFolder, WorkingTreeFolder,
+  ExpandedTree, ExistingTree, WorkingTreeFolder,
 } from './workingTree';
 
 export { walkCommits, walkTree, listFiles } from './walkers';

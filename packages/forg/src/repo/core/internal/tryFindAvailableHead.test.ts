@@ -22,10 +22,10 @@ describe('tryFindAvailableHead', () => {
     const commitId = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, body: encoder.encode('a') },
+        type: 'tree',
+        entries: {
+          a: { type: 'file', body: encoder.encode('a') },
         },
-        folders: {},
       },
       [],
       'Commit 1',
@@ -49,10 +49,10 @@ describe('tryFindAvailableHead', () => {
     const commit1 = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, body: encoder.encode('a') },
+        type: 'tree',
+        entries: {
+          a: { type: 'file', body: encoder.encode('a') },
         },
-        folders: {},
       },
       [],
       'Commit 1',
@@ -61,10 +61,10 @@ describe('tryFindAvailableHead', () => {
     const commit2 = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, hash: '0000000000000000000000000000000000000001' }, // Not viable, this hash doesn't exist in the repo
+        type: 'tree',
+        entries: {
+          a: { type: 'file', hash: '0000000000000000000000000000000000000001' }, // Not viable, this hash doesn't exist in the repo
         },
-        folders: {},
       },
       [commit1],
       'Commit 2',
@@ -73,10 +73,10 @@ describe('tryFindAvailableHead', () => {
     const commit3 = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, hash: '0000000000000000000000000000000000000002' }, // Not viable, this hash doesn't exist in the repo
+        type: 'tree',
+        entries: {
+          a: { type: 'file', hash: '0000000000000000000000000000000000000002' }, // Not viable, this hash doesn't exist in the repo
         },
-        folders: {},
       },
       [commit2],
       'Commit 3',
@@ -94,10 +94,10 @@ describe('tryFindAvailableHead', () => {
     const commit1 = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, hash: '0000000000000000000000000000000000000001' },
+        type: 'tree',
+        entries: {
+          a: { type: 'file', hash: '0000000000000000000000000000000000000001' },
         },
-        folders: {},
       },
       [],
       'Commit 1',
@@ -114,10 +114,10 @@ describe('tryFindAvailableHead', () => {
     const commit2 = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, body: encoder.encode('a') },
+        type: 'tree',
+        entries: {
+          a: { type: 'file', body: encoder.encode('a') },
         },
-        folders: {},
       },
       [commit1],
       'Commit 2',
@@ -128,10 +128,10 @@ describe('tryFindAvailableHead', () => {
     const commit3 = await createCommit(
       repo,
       {
-        files: {
-          a: { isExecutable: false, hash: '0000000000000000000000000000000000000001' }, // Not viable, this hash doesn't exist in the repo
+        type: 'tree',
+        entries: {
+          a: { type: 'file', hash: '0000000000000000000000000000000000000001' }, // Not viable, this hash doesn't exist in the repo
         },
-        folders: {},
       },
       [commit2],
       'Commit 3',

@@ -1,34 +1,32 @@
 import { InMemoryFS, ListEntry, Path } from '@forgsync/simplefs';
 import { Repo } from '../git';
 import { GitTreeFS } from './GitTreeFS';
-import { ExpandedFolder, saveWorkingTree } from '../git/workingTree';
+import { ExpandedTree, saveWorkingTree } from '../git/workingTree';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 describe('GitTreeFS', () => {
   let repo: Repo;
-  let workingTree: ExpandedFolder;
+  let workingTree: ExpandedTree;
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
     await repo.init();
     workingTree = {
-      files: {
-        'a.txt': { body: encoder.encode('a') },
-      },
-      folders: {
+      type: 'tree',
+      entries: {
+        'a.txt': { type: 'file', body: encoder.encode('a') },
         b: {
-          files: {
-            'c.txt': { body: encoder.encode('c') },
-            'd.txt': { body: encoder.encode('d') },
-          },
-          folders: {
+          type: 'tree',
+          entries: {
+            'c.txt': { type: 'file', body: encoder.encode('c') },
+            'd.txt': { type: 'file', body: encoder.encode('d') },
             e: {
-              files: {
-                'f.txt': { body: encoder.encode('f') },
+              type: 'tree',
+              entries: {
+                'f.txt': { type: 'file', body: encoder.encode('f') },
               },
-              folders: {},
             },
           },
         },
