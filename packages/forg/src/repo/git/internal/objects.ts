@@ -12,32 +12,32 @@ export async function saveObject(repo: IRepo, object: GitObject): Promise<Hash> 
   return hash;
 }
 
-async function loadObject(repo: IRepo, hash: Hash): Promise<GitObject | undefined> {
+async function loadObject(repo: IRepo, hash: Hash): Promise<GitObject> {
   const raw = await repo.loadRawObject(hash);
-  return raw ? decodeObject(raw) : undefined;
+  return decodeObject(raw);
 }
 
-export async function loadCommitObject(repo: IRepo, hash: Hash): Promise<CommitObject | undefined> {
+export async function loadCommitObject(repo: IRepo, hash: Hash): Promise<CommitObject> {
   const object = await loadObject(repo, hash);
-  if (object !== undefined && object.type !== 'commit') {
+  if (object.type !== 'commit') {
     throw new ObjectTypeMismatchError(hash, Type.commit, object.type);
   }
 
   return object;
 }
 
-export async function loadTreeObject(repo: IRepo, hash: Hash): Promise<TreeObject | undefined> {
+export async function loadTreeObject(repo: IRepo, hash: Hash): Promise<TreeObject> {
   const object = await loadObject(repo, hash);
-  if (object !== undefined && object.type !== 'tree') {
+  if (object.type !== 'tree') {
     throw new ObjectTypeMismatchError(hash, Type.tree, object.type);
   }
 
   return object;
 }
 
-export async function loadBlobObject(repo: IRepo, hash: Hash): Promise<BlobObject | undefined> {
+export async function loadBlobObject(repo: IRepo, hash: Hash): Promise<BlobObject> {
   const object = await loadObject(repo, hash);
-  if (object !== undefined && object.type !== 'blob') {
+  if (object.type !== 'blob') {
     throw new ObjectTypeMismatchError(hash, Type.blob, object.type);
   }
 

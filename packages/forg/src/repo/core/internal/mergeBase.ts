@@ -58,14 +58,12 @@ export async function mergeBase(repo: IRepo, commitIds: Hash[]): Promise<MergeBa
     const oldHeads = heads;
     heads = [];
     for (const { commitId, headIndex } of oldHeads) {
-      let commit: CommitObject | undefined;
+      let commit: CommitObject;
       try {
         commit = await loadCommitObject(repo, commitId);
       } catch (error) {
         // Keep going, worst case we will fail to find a suitable merge base
         errors.push(error);
-      }
-      if (commit === undefined) {
         continue;
       }
 

@@ -4,6 +4,7 @@ import { Errno, FSError, ISimpleFS, Path } from '@forgsync/simplefs';
 import { Hash, ReflogEntry } from './model';
 import { decode, encode } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
+import { MissingObjectError } from './errors';
 
 export interface IRepo {
   listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
@@ -12,7 +13,7 @@ export interface IRepo {
   getReflog(ref: string): Promise<ReflogEntry[]>;
   setReflog(ref: string, reflog: ReflogEntry[]): Promise<void>;
   saveRawObject(hash: Hash, raw: Uint8Array): Promise<void>;
-  loadRawObject(hash: Hash): Promise<Uint8Array | undefined>;
+  loadRawObject(hash: Hash): Promise<Uint8Array>;
   hasObject(hash: Hash): Promise<boolean>;
   saveMetadata(name: string, value: Uint8Array | undefined): Promise<void>;
   loadMetadata(name: string): Promise<Uint8Array | undefined>;
@@ -119,7 +120,7 @@ export class Repo implements IRepo {
     await this._fs.write(path, compressed);
   }
 
-  async loadRawObject(hash: string): Promise<Uint8Array | undefined> {
+  async loadRawObject(hash: string): Promise<Uint8Array> {
     const path = computeObjectPath(hash);
 
     let rawContent: Uint8Array;
@@ -128,7 +129,7 @@ export class Repo implements IRepo {
     } catch (error) {
       if (error instanceof FSError) {
         if (error.errno === Errno.ENOENT) {
-          return undefined;
+          throw new MissingObjectError(hash);
         }
       }
 

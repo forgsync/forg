@@ -33,9 +33,6 @@ describe('Repo basics', () => {
     ]);
 
     const commitObject = await loadCommitObject(repo, hash);
-    if (commitObject === undefined) {
-      fail(`Not a commit: ${hash}`);
-    }
     expect(commitObject.body).toEqual<CommitBody>({
       tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
       parents: [],
@@ -67,39 +64,21 @@ describe('Repo basics', () => {
     expect(hash).toBe('2f5877487a12348f8de42fc64e9c46bd5d22a651');
 
     const commitObject = await loadCommitObject(repo, hash);
-    if (commitObject === undefined) {
-      fail(`Not a commit: ${hash}`);
-    }
-
     const rootTreeObject = await loadTreeObject(repo, commitObject.body.tree);
-    if (rootTreeObject === undefined) {
-      fail(`Not a tree: ${commitObject.body.tree}`);
-    }
-
     expect(rootTreeObject.body).toEqual<TreeBody>({
       'a.txt': { mode: Mode.blob, hash: '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e', },
       b: { mode: Mode.tree, hash: 'bc3aa3eb92286b2ddaab0bef7564f25098f8fbdc', },
     });
 
     const aBlobObject = await loadBlobObject(repo, '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e');
-    if (aBlobObject === undefined) {
-      fail('Not a blob');
-    }
     expect(decoder.decode(aBlobObject.body)).toBe('aa');
 
     const bTreeObject = await loadTreeObject(repo, rootTreeObject.body['b'].hash);
-    if (bTreeObject === undefined) {
-      fail(`Not a tree: ${rootTreeObject.body['b'].hash}`);
-    }
-
     expect(bTreeObject.body).toEqual<TreeBody>({
       'c.txt': { mode: Mode.blob, hash: '2652f5f42c003f125212dd61f95a3a8a37cb45d5', },
     });
 
     const cBlobObject = await loadBlobObject(repo, '2652f5f42c003f125212dd61f95a3a8a37cb45d5');
-    if (cBlobObject === undefined) {
-      fail('Not a blob');
-    }
     expect(decoder.decode(cBlobObject.body)).toBe('cc');
   });
 
@@ -122,9 +101,6 @@ describe('Repo basics', () => {
     expect(hash2).toBe('9254379c365d23429f0fff266834bdc853c35fe1');
 
     const commitObject = await loadCommitObject(repo, hash2);
-    if (commitObject === undefined) {
-      throw new Error('not a commit!');
-    }
     expect(commitObject.body).toEqual<CommitBody>({
       tree: '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f',
       parents: [hash1],

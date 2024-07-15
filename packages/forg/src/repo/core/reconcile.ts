@@ -92,8 +92,8 @@ export async function reconcile(
     const commitIdA = prev;
     const commitIdB = leafHeads[i].head.hash;
 
-    const treeA = await getTreeBody(repo, commitIdA);
-    const treeB = await getTreeBody(repo, commitIdB);
+    const treeA = await getWorkingTree(repo, commitIdA);
+    const treeB = await getWorkingTree(repo, commitIdB);
 
     // Figure out base
     const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
@@ -101,16 +101,9 @@ export async function reconcile(
     if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
       const baseCommitId = mergeBaseResult.bestAncestorCommitIds[0];
       const baseCommit = await loadCommitObject(repo, baseCommitId);
-      if (baseCommit === undefined) {
-        throw new Error();
-      }
       if (await isTreeFullyReachable(repo, baseCommit.body.tree)) {
         // TODO: Avoid reloading the same objects so many times.
         const tree = await loadTreeObject(repo, baseCommit.body.tree);
-        if (tree === undefined) {
-          throw new Error();
-        }
-
         baseTree = treeToWorkingTree(tree.body);
       } else {
         // Try to keep going, if merge func can work without a base, let it try its thing...
@@ -153,15 +146,9 @@ function createCommitterInfo(forgClient: ForgClientInfo): Person {
   };
 }
 
-async function getTreeBody(repo: IRepo, commitId: Hash): Promise<ExpandedTree> {
+async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<ExpandedTree> {
   const commit = await loadCommitObject(repo, commitId);
-  if (commit === undefined) {
-    throw new Error();
-  }
   const tree = await loadTreeObject(repo, commit.body.tree);
-  if (tree === undefined) {
-    throw new Error();
-  }
   const workingTree = treeToWorkingTree(tree.body);
   return workingTree;
 }

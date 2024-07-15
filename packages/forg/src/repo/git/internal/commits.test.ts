@@ -21,10 +21,6 @@ describe('createCommit', () => {
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const commit = await loadCommitObject(repo, hash);
-    if (commit === undefined) {
-      fail('Expected commit');
-    }
-
     expect(commit.body).toEqual<CommitBody>({
       tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
       parents: [],
@@ -53,10 +49,6 @@ describe('createCommit', () => {
     expect(hash).toBe('9254379c365d23429f0fff266834bdc853c35fe1');
 
     const commit = await loadCommitObject(repo, hash);
-    if (commit === undefined) {
-      fail('Expected commit');
-    }
-
     expect(commit.body).toEqual<CommitBody>({
       tree: '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f',
       parents: ['eaef5b6f452335fad4dd280a113d81e82a3acaca'],
@@ -66,10 +58,6 @@ describe('createCommit', () => {
     });
 
     const rootTreeObject = await loadTreeObject(repo, '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f');
-    if (rootTreeObject === undefined) {
-      fail('Not a tree');
-    }
-
     expect(rootTreeObject.body).toEqual<TreeBody>({
       'a.txt': {
         mode: Mode.blob,
@@ -78,9 +66,6 @@ describe('createCommit', () => {
     });
 
     const aBlobObject = await loadBlobObject(repo, '2e65efe2a145dda7ee51d1741299f848e5bf752e');
-    if (aBlobObject === undefined || aBlobObject.type !== 'blob') {
-      fail('Not a blob');
-    }
     expect(decoder.decode(aBlobObject.body)).toBe('a');
   });
 });

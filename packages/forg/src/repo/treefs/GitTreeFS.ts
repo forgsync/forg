@@ -1,5 +1,5 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from "@forgsync/simplefs";
-import { IRepo, loadBlobObject, loadTreeObject, saveObject, Type } from "../git";
+import { Hash, IRepo, loadBlobObject, loadTreeObject, MissingObjectError, saveObject, TreeObject, Type } from "../git";
 import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../git";
 
 export class GitTreeFS implements ISimpleFS {
@@ -44,11 +44,17 @@ export class GitTreeFS implements ISimpleFS {
   async read(path: Path): Promise<Uint8Array> {
     const entry = await this._findFileEntry(path);
     if ('hash' in entry) {
-      const result = await loadBlobObject(this._repo, entry.hash);
-      if (result === undefined) {
-        throw new FSError(Errno.EIO, path.value);
+      try {
+        const result = await loadBlobObject(this._repo, entry.hash);
+        return result.body;
+      } catch (error) {
+        if (error instanceof MissingObjectError) {
+          throw new FSError(Errno.EIO, path.value, `Unable to find blob object '${entry.hash}' corresponding to working tree path '${path.value}'`);
+        }
+
+        const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        throw new FSError(Errno.EIO, path.value, `Error while reading blob object '${entry.hash}' corresponding to working tree path '${path.value}': ${innerError}`);
       }
-      return result.body;
     } else {
       return entry.body;
     }
@@ -80,10 +86,16 @@ export class GitTreeFS implements ISimpleFS {
       throw new FSError(Errno.EISDIR, path.value);
     }
 
-    const fileHash = await saveObject(this._repo, {
-      type: Type.blob,
-      body: data,
-    });
+    let fileHash: Hash;
+    try {
+      fileHash = await saveObject(this._repo, {
+        type: Type.blob,
+        body: data,
+      });
+    } catch (error) {
+      const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      throw new FSError(Errno.EIO, path.value, `Error while saving blob object corresponding to working tree path '${path.value}': ${innerError}`);
+    }
 
     parentTree.entries[path.leafName] = {
       type: 'file',
@@ -193,9 +205,16 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     if ('hash' in item) {
-      const treeObject = await loadTreeObject(this._repo, item.hash);
-      if (treeObject === undefined) {
-        throw new Error();
+      let treeObject: TreeObject;
+      try {
+        treeObject = await loadTreeObject(this._repo, item.hash);
+      } catch (error) {
+        if (error instanceof MissingObjectError) {
+          throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${item.hash}' corresponding to a part of working tree path '${path.value}'`);
+        }
+
+        const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        throw new FSError(Errno.EIO, path.value, `Error while loading tree object corresponding to a part of working tree path '${path.value}': ${innerError}`);
       }
       const expandedFolder = treeToWorkingTree(treeObject.body);
       folder.entries[childName] = expandedFolder;

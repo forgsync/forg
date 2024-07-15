@@ -1,4 +1,3 @@
-import { MissingObjectError } from './errors';
 import { Hash, Mode } from './model';
 import { CommitBody, loadCommitObject, loadTreeObject } from './objects';
 import { IRepo } from './Repo';
@@ -27,9 +26,6 @@ export async function* walkCommits(
       return;
     }
     const commit = await loadCommitObject(repo, hash);
-    if (!commit) {
-      throw new MissingObjectError(hash);
-    }
     const visitParents = yield { hash, commit: commit.body };
     if (visitParents === false) {
       continue;
@@ -50,10 +46,6 @@ export async function* walkTree(
   parentPath: string[] = [],
 ): AsyncGenerator<HashModePath> {
   const tree = await loadTreeObject(repo, hash);
-  if (!tree) {
-    throw new MissingObjectError(hash);
-  }
-
   for (const name of Object.keys(tree.body)) {
     const { mode, hash } = tree.body[name];
     const path = [...parentPath, name];

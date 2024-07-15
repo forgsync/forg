@@ -18,6 +18,7 @@ describe('GitTreeFS', () => {
       type: 'tree',
       entries: {
         'a.txt': { type: 'file', body: encoder.encode('a') },
+        'bad.txt': { type: 'file', hash: '0000000000000000000000000000000000000001' },
         b: {
           type: 'tree',
           entries: {
@@ -29,6 +30,7 @@ describe('GitTreeFS', () => {
                 'f.txt': { type: 'file', body: encoder.encode('f') },
               },
             },
+            bad: { type: 'tree', hash: '0000000000000000000000000000000000000002' },
           },
         },
       },
@@ -47,7 +49,15 @@ describe('GitTreeFS', () => {
     await expect(() => fs.read(new Path('b'))).rejects.toThrow(/EISDIR/);
   });
 
-  test.each(['a.txt', 'b/c.txt', 'b/d.txt', 'b/e/f.txt'])(
+  test("read where blob is missing throws EIO", async () => {
+    await expect(() => fs.read(new Path('bad.txt'))).rejects.toThrow(/EIO/);
+  });
+
+  test("read where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.read(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+  });
+
+  test.each(['a.txt', 'b/c.txt', 'b/d.txt', 'b/e/f.txt', 'bad.txt'])(
     "fileExists '%p' positive cases", async (path: string) => {
       const val = await fs.fileExists(new Path(path));
       expect(val).toBe(true);
@@ -64,7 +74,11 @@ describe('GitTreeFS', () => {
       await expect(() => fs.fileExists(new Path(path))).rejects.toThrow(/EISDIR/);
     });
 
-  test.each(['', 'b', 'b/e'])(
+  test("fileExists where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.fileExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+  });
+
+  test.each(['', 'b', 'b/e', 'b/bad'])(
     "directoryExists '%p' positive cases", async (path: string) => {
       const val = await fs.directoryExists(new Path(path));
       expect(val).toBe(true);
@@ -81,10 +95,15 @@ describe('GitTreeFS', () => {
       await expect(() => fs.directoryExists(new Path(path))).rejects.toThrow(/ENOTDIR/);
     });
 
+  test("directoryExists where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.directoryExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+  });
+
   test("list root", async () => {
     const result = await fs.list(new Path(''));
     expect(result).toEqual<ListEntry[]>([
       { kind: 'file', path: new Path('a.txt') },
+      { kind: 'file', path: new Path('bad.txt') },
       { kind: 'dir', path: new Path('b') },
     ]);
   });
@@ -96,12 +115,24 @@ describe('GitTreeFS', () => {
     ]);
   });
 
+  test("list where tree is missing throws EIO", async () => {
+    await expect(() => fs.directoryExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+  });
+
+  test("list where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.directoryExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+  });
+
   test.each(['new.txt', 'b/new.txt', 'b/e/new.txt', 'new/new.txt', 'b/new/new.txt'])
     ("write creates new file '%p'", async (path: string) => {
       await fs.write(new Path(path), encoder.encode('new file'));
       const result = decoder.decode(await fs.read(new Path(path)));
       expect(result).toBe('new file');
     });
+
+  test("write where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.write(new Path('b/bad/whatever'), new Uint8Array())).rejects.toThrow(/EIO/);
+  });
 
   test.each(['new', 'b/new', 'b/e/new', 'new/new/new'])
     ("createDirectory creates entire path hierarchy '%p'", async (path: string) => {
@@ -118,6 +149,10 @@ describe('GitTreeFS', () => {
     ("createDirectory on a path comprised of non-folders '%p'", async (path: string) => {
       await expect(() => fs.createDirectory(new Path(path))).rejects.toThrow(/ENOTDIR/);
     });
+
+  test("createDirectory where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.createDirectory(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+  });
 
   test("deleteDirectory", async () => {
     expect(await fs.directoryExists(new Path('b/e'))).toBe(true);
@@ -137,6 +172,10 @@ describe('GitTreeFS', () => {
     await expect(() => fs.deleteDirectory(new Path(path))).rejects.toThrow(/ENOTDIR/);
   });
 
+  test("deleteDirectory where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.deleteDirectory(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+  });
+
   test("deleteFile", async () => {
     expect(await fs.directoryExists(new Path('b/e'))).toBe(true);
     expect(await fs.fileExists(new Path('b/e/f.txt'))).toBe(true);
@@ -153,5 +192,9 @@ describe('GitTreeFS', () => {
 
   test.each(['b', 'b/e'])("deleteFile throws if not a file: '%p'", async (path: string) => {
     await expect(() => fs.deleteFile(new Path(path))).rejects.toThrow(/EISDIR/);
+  });
+
+  test("deleteFile where some parent tree is missing throws EIO", async () => {
+    await expect(() => fs.deleteFile(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
   });
 });

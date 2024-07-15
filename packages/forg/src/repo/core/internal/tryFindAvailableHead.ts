@@ -1,4 +1,4 @@
-import { IRepo, Hash, loadCommitObject, CommitObject } from '../../git';
+import { IRepo, Hash, loadCommitObject, CommitObject, MissingObjectError } from '../../git';
 import { isTreeFullyReachable } from './isTreeFullyReachable';
 
 export interface HeadInfo {
@@ -39,17 +39,22 @@ async function tryFindAvailableCommitFromHead(
 ): Promise<HeadInfo | undefined> {
   let nextCommitIdToTry: string | undefined = commitId;
   while (nextCommitIdToTry !== undefined) {
-    const commitObject = await loadCommitObject(repo, nextCommitIdToTry);
-    if (commitObject === undefined) {
-      return undefined;
+    let commit: CommitObject;
+    try {
+      commit = await loadCommitObject(repo, nextCommitIdToTry);
+    } catch (error) {
+      if (error instanceof MissingObjectError) {
+        return undefined;
+      }
+
+      throw error;
     }
 
-    if (await isTreeFullyReachable(repo, commitObject.body.tree)) {
-      return { hash: nextCommitIdToTry, commit: commitObject };
+    if (await isTreeFullyReachable(repo, commit.body.tree)) {
+      return { hash: nextCommitIdToTry, commit: commit };
     }
 
-    nextCommitIdToTry =
-      commitObject.body.parents.length > 0 ? commitObject.body.parents[0] : undefined;
+    nextCommitIdToTry = commit.body.parents.length > 0 ? commit.body.parents[0] : undefined;
   }
 
   return undefined;
@@ -65,9 +70,19 @@ async function tryFindAvailableCommitFromReflog(
   const reflog = await repo.getReflog(ref);
   for (let i = reflog.length - 1; i >= 0; i--) {
     const entry = reflog[i];
-    const commit = await loadCommitObject(repo, entry.newCommit);
-    if (commit !== undefined && (await isTreeFullyReachable(repo, commit.body.tree))) {
-      return { hash: entry.newCommit, commit };
+    let commit: CommitObject;
+    try {
+      commit = await loadCommitObject(repo, entry.newCommit);
+    } catch (error) {
+      if (error instanceof MissingObjectError) {
+        continue;
+      }
+
+      throw error;
+    }
+
+    if (await isTreeFullyReachable(repo, commit.body.tree)) {
+      return { hash: entry.newCommit, commit: commit };
     }
   }
 

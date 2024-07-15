@@ -20,9 +20,8 @@ export class FSError extends Error {
   errno: Errno;
   path?: string;
 
-  constructor(errno: Errno, path: string | undefined, message?: string) {
-    const errnoString = Errno[errno];
-    super(message ?? `${errnoString}${path ? ` (path: '${path}')` : ''}`);
+  constructor(errno: Errno, path: string | undefined, details?: string) {
+    super(`${Errno[errno]}${path ? ` (path: '${path}')` : ''}${details ? `. Details: ${details}` : ''}`);
     this.errno = errno;
     this.path = path;
   }
