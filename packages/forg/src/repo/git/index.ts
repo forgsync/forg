@@ -1,11 +1,10 @@
-export type { Hash, Type, ModeHash, Person, SecondsWithOffset } from './model';
-export { Mode } from './model'
+export type { Hash, ModeHash, Person, SecondsWithOffset } from './model';
+export { Mode, Type } from './model'
 
 export { Repo } from './Repo';
 export type { IRepo } from './Repo';
 
 export {
-  loadObject,
   loadCommitObject,
   loadTreeObject,
   loadBlobObject,

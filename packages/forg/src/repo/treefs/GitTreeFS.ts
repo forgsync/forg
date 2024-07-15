@@ -1,5 +1,5 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from "@forgsync/simplefs";
-import { IRepo, loadBlobObject, loadTreeObject } from "../git";
+import { IRepo, loadBlobObject, loadTreeObject, saveObject, Type } from "../git";
 import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../git/workingTree";
 
 export class GitTreeFS implements ISimpleFS {
@@ -55,7 +55,7 @@ export class GitTreeFS implements ISimpleFS {
   }
 
   async list(path: Path, options?: ListOptions): Promise<ListEntry[]> {
-    const tree = await this._findTree(path);
+    const tree = await this._findTree(path, false);
     const recursive = options?.recursive;
     if (recursive) {
       throw new Error('Recursive is not implemented for GitTreeFS');
@@ -73,28 +73,65 @@ export class GitTreeFS implements ISimpleFS {
     return result;
   }
 
-  write(path: Path, _data: Uint8Array): Promise<void> {
-    throw new FSError(Errno.EROFS, path.value);
+  async write(path: Path, data: Uint8Array): Promise<void> {
+    const parentTree = await this._findParentFolder(path, true);
+    const entry = parentTree.entries[path.leafName];
+    if (entry !== undefined && entry.type !== 'file') {
+      throw new FSError(Errno.EISDIR, path.value);
+    }
+
+    const fileHash = await saveObject(this._repo, {
+      type: Type.blob,
+      body: data,
+    });
+
+    parentTree.entries[path.leafName] = {
+      type: 'file',
+      hash: fileHash,
+    };
   }
 
-  deleteFile(path: Path): Promise<void> {
-    throw new FSError(Errno.EROFS, path.value);
+  async deleteFile(path: Path): Promise<void> {
+    const parentTree = await this._findParentFolder(path, false);
+    const entry = parentTree.entries[path.leafName];
+    if (entry === undefined) {
+      throw new FSError(Errno.ENOENT, path.value);
+    }
+    else if (entry.type !== 'file') {
+      throw new FSError(Errno.EISDIR, path.value);
+    }
+
+    delete parentTree.entries[path.leafName];
   }
 
-  createDirectory(path: Path): Promise<void> {
-    throw new FSError(Errno.EROFS, path.value);
+  async createDirectory(path: Path): Promise<void> {
+    const parent = await this._findTree(path.getParent(), true);
+    const entry = parent.entries[path.leafName];
+    if (entry !== undefined) {
+      throw new FSError(Errno.EEXIST, path.value);
+    }
+
+    parent.entries[path.leafName] = {
+      type: 'tree',
+      entries: {},
+    };
   }
 
-  deleteDirectory(path: Path): Promise<void> {
-    throw new FSError(Errno.EROFS, path.value);
+  async deleteDirectory(path: Path): Promise<void> {
+    const parentTree = await this._findParentFolder(path, false);
+    const entry = parentTree.entries[path.leafName];
+    if (entry === undefined) {
+      throw new FSError(Errno.ENOENT, path.value);
+    }
+    else if (entry.type !== 'tree') {
+      throw new FSError(Errno.ENOTDIR, path.value);
+    }
+
+    delete parentTree.entries[path.leafName];
   }
 
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
-    if (path.isRoot) {
-      throw new FSError(Errno.EINVAL, path.value);
-    }
-
-    const tree = await this._findTree(path.getParent());
+    const tree = await this._findParentFolder(path, false);
     const entry = tree.entries[path.leafName];
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
@@ -106,11 +143,7 @@ export class GitTreeFS implements ISimpleFS {
   }
 
   private async _findFolderEntry(path: Path): Promise<WorkingTreeFolder> {
-    if (path.isRoot) {
-      throw new FSError(Errno.EINVAL, path.value);
-    }
-
-    const tree = await this._findTree(path.getParent());
+    const tree = await this._findParentFolder(path, false);
     const entry = tree.entries[path.leafName];
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
@@ -122,20 +155,39 @@ export class GitTreeFS implements ISimpleFS {
     return entry;
   }
 
-  private async _findTree(path: Path): Promise<ExpandedTree> {
+  private async _findParentFolder(path: Path, createIfNotExists: boolean): Promise<ExpandedTree> {
+    if (path.isRoot) {
+      throw new FSError(Errno.EINVAL, path.value);
+    }
+
+    const tree = await this._findTree(path.getParent(), createIfNotExists);
+    return tree;
+  }
+
+  private async _findTree(path: Path, createIfNotExists: boolean): Promise<ExpandedTree> {
     let tree = this._tree;
     const segments = path.segments;
     for (let i = 0; i < segments.length; i++) {
-      tree = await this._expandChildFolder(tree, segments[i], path);
+      tree = await this._expandChildFolder(tree, segments[i], createIfNotExists, path);
     }
 
     return tree;
   }
 
-  private async _expandChildFolder(folder: ExpandedTree, childName: string, path: Path): Promise<ExpandedTree> {
+  private async _expandChildFolder(folder: ExpandedTree, childName: string, createIfNotExists: boolean, path: Path): Promise<ExpandedTree> {
     const item = folder.entries[childName];
     if (item === undefined) {
-      throw new FSError(Errno.ENOENT, path.value);
+      if (createIfNotExists) {
+        const newItem: ExpandedTree = {
+          type: 'tree',
+          entries: {},
+        };
+        folder.entries[childName] = newItem;
+        return newItem;
+      }
+      else {
+        throw new FSError(Errno.ENOENT, path.value);
+      }
     } else if (item.type !== 'tree') {
       throw new FSError(Errno.ENOTDIR, path.value);
     }

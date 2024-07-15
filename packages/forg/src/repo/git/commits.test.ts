@@ -1,7 +1,7 @@
 import { createCommit, updateRef } from './commits';
 import { Repo } from './Repo';
 import { Mode, ReflogEntry } from './model';
-import { CommitBody, loadObject, TreeBody } from './objects';
+import { CommitBody, loadBlobObject, loadCommitObject, loadTreeObject, TreeBody } from './objects';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { InMemoryFS } from '@forgsync/simplefs';
 
@@ -20,8 +20,8 @@ describe('createCommit', () => {
     const hash = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
-    const commit = await loadObject(repo, hash);
-    if (commit === undefined || commit.type !== 'commit') {
+    const commit = await loadCommitObject(repo, hash);
+    if (commit === undefined) {
       fail('Expected commit');
     }
 
@@ -52,8 +52,8 @@ describe('createCommit', () => {
     );
     expect(hash).toBe('9254379c365d23429f0fff266834bdc853c35fe1');
 
-    const commit = await loadObject(repo, hash);
-    if (commit === undefined || commit.type !== 'commit') {
+    const commit = await loadCommitObject(repo, hash);
+    if (commit === undefined) {
       fail('Expected commit');
     }
 
@@ -65,8 +65,8 @@ describe('createCommit', () => {
       message: 'Added a.txt',
     });
 
-    const rootTreeObject = await loadObject(repo, '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f');
-    if (rootTreeObject === undefined || rootTreeObject.type !== 'tree') {
+    const rootTreeObject = await loadTreeObject(repo, '1a602d9bd07ce5272ddaa64e21da12dbca2b8c9f');
+    if (rootTreeObject === undefined) {
       fail('Not a tree');
     }
 
@@ -77,7 +77,7 @@ describe('createCommit', () => {
       },
     });
 
-    const aBlobObject = await loadObject(repo, '2e65efe2a145dda7ee51d1741299f848e5bf752e');
+    const aBlobObject = await loadBlobObject(repo, '2e65efe2a145dda7ee51d1741299f848e5bf752e');
     if (aBlobObject === undefined || aBlobObject.type !== 'blob') {
       fail('Not a blob');
     }

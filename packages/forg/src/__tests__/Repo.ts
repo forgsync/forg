@@ -1,5 +1,5 @@
 import { InMemoryFS } from '@forgsync/simplefs';
-import { createCommit, updateRef, CommitBody, loadObject, Repo, TreeBody } from '../repo/git';
+import { createCommit, updateRef, CommitBody, Repo, TreeBody, loadCommitObject, loadTreeObject, loadBlobObject } from '../repo/git';
 import { Mode, ReflogEntry } from '../repo/git/model';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
 
@@ -33,8 +33,8 @@ describe('Repo basics', () => {
       },
     ]);
 
-    const commitObject = await loadObject(repo, hash);
-    if (commitObject === undefined || commitObject.type !== 'commit') {
+    const commitObject = await loadCommitObject(repo, hash);
+    if (commitObject === undefined) {
       fail(`Not a commit: ${hash}`);
     }
     expect(commitObject.body).toEqual<CommitBody>({
@@ -67,13 +67,13 @@ describe('Repo basics', () => {
     );
     expect(hash).toBe('2f5877487a12348f8de42fc64e9c46bd5d22a651');
 
-    const commitObject = await loadObject(repo, hash);
-    if (commitObject === undefined || commitObject.type !== 'commit') {
+    const commitObject = await loadCommitObject(repo, hash);
+    if (commitObject === undefined) {
       fail(`Not a commit: ${hash}`);
     }
 
-    const rootTreeObject = await loadObject(repo, commitObject.body.tree);
-    if (rootTreeObject === undefined || rootTreeObject.type !== 'tree') {
+    const rootTreeObject = await loadTreeObject(repo, commitObject.body.tree);
+    if (rootTreeObject === undefined) {
       fail(`Not a tree: ${commitObject.body.tree}`);
     }
 
@@ -82,14 +82,14 @@ describe('Repo basics', () => {
       b: { mode: Mode.tree, hash: 'bc3aa3eb92286b2ddaab0bef7564f25098f8fbdc', },
     });
 
-    const aBlobObject = await loadObject(repo, '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e');
-    if (aBlobObject === undefined || aBlobObject.type !== 'blob') {
+    const aBlobObject = await loadBlobObject(repo, '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e');
+    if (aBlobObject === undefined) {
       fail('Not a blob');
     }
     expect(decoder.decode(aBlobObject.body)).toBe('aa');
 
-    const bTreeObject = await loadObject(repo, rootTreeObject.body['b'].hash);
-    if (bTreeObject === undefined || bTreeObject.type !== 'tree') {
+    const bTreeObject = await loadTreeObject(repo, rootTreeObject.body['b'].hash);
+    if (bTreeObject === undefined) {
       fail(`Not a tree: ${rootTreeObject.body['b'].hash}`);
     }
 
@@ -97,8 +97,8 @@ describe('Repo basics', () => {
       'c.txt': { mode: Mode.blob, hash: '2652f5f42c003f125212dd61f95a3a8a37cb45d5', },
     });
 
-    const cBlobObject = await loadObject(repo, '2652f5f42c003f125212dd61f95a3a8a37cb45d5');
-    if (cBlobObject === undefined || cBlobObject.type !== 'blob') {
+    const cBlobObject = await loadBlobObject(repo, '2652f5f42c003f125212dd61f95a3a8a37cb45d5');
+    if (cBlobObject === undefined) {
       fail('Not a blob');
     }
     expect(decoder.decode(cBlobObject.body)).toBe('cc');
@@ -122,8 +122,8 @@ describe('Repo basics', () => {
     );
     expect(hash2).toBe('9254379c365d23429f0fff266834bdc853c35fe1');
 
-    const commitObject = await loadObject(repo, hash2);
-    if (commitObject === undefined || commitObject.type !== 'commit') {
+    const commitObject = await loadCommitObject(repo, hash2);
+    if (commitObject === undefined) {
       throw new Error('not a commit!');
     }
     expect(commitObject.body).toEqual<CommitBody>({

@@ -12,7 +12,7 @@ export async function saveObject(repo: IRepo, object: GitObject): Promise<Hash> 
   return hash;
 }
 
-export async function loadObject(repo: IRepo, hash: Hash): Promise<GitObject | undefined> {
+async function loadObject(repo: IRepo, hash: Hash): Promise<GitObject | undefined> {
   const raw = await repo.loadRawObject(hash);
   return raw ? decodeObject(raw) : undefined;
 }
