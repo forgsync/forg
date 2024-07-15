@@ -214,7 +214,7 @@ export class GitTreeFS implements ISimpleFS {
         }
 
         const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        throw new FSError(Errno.EIO, path.value, `Error while loading tree object corresponding to a part of working tree path '${path.value}': ${innerError}`);
+        throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to a part of working tree path '${path.value}': ${innerError}`);
       }
       const expandedFolder = treeToWorkingTree(treeObject.body);
       folder.entries[childName] = expandedFolder;
