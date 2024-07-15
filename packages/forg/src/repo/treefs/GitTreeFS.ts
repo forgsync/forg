@@ -1,6 +1,6 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from "@forgsync/simplefs";
 import { IRepo, loadBlobObject, loadTreeObject, saveObject, Type } from "../git";
-import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../git/workingTree";
+import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../git";
 
 export class GitTreeFS implements ISimpleFS {
   constructor(

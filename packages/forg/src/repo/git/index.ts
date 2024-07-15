@@ -1,8 +1,8 @@
-export type { Hash, ModeHash, Person, SecondsWithOffset } from './model';
-export { Mode, Type } from './model'
+export type { Hash, ModeHash, Person, SecondsWithOffset, ReflogEntry } from './internal/model';
+export { Mode, Type } from './internal/model'
 
-export { Repo } from './Repo';
-export type { IRepo } from './Repo';
+export { Repo } from './internal/Repo';
+export type { IRepo } from './internal/Repo';
 
 export {
   loadCommitObject,
@@ -10,7 +10,7 @@ export {
   loadBlobObject,
   loadTagObject,
   saveObject,
-} from './objects';
+} from './internal/objects';
 export type {
   GitObject,
   BlobObject,
@@ -20,17 +20,17 @@ export type {
   TreeBody,
   CommitBody,
   TagBody,
-} from './objects';
+} from './internal/objects';
 
-export { createCommit, updateRef } from './commits';
+export { createCommit, updateRef } from './internal/commits';
 
-export { saveWorkingTree, treeToWorkingTree } from './workingTree';
+export { saveWorkingTree, treeToWorkingTree } from './internal/workingTree';
 export type {
   ExpandedFile, ExistingFile, WorkingTreeFile,
   ExpandedTree, ExistingTree, WorkingTreeFolder,
-} from './workingTree';
+} from './internal/workingTree';
 
-export { walkCommits, walkTree, listFiles } from './walkers';
-export type { HashAndCommitBody, HashModePath } from './walkers';
+export { walkCommits, walkTree, listFiles } from './internal/walkers';
+export type { HashAndCommitBody, HashModePath } from './internal/walkers';
 
-export { MissingObjectError, ObjectTypeMismatchError } from './errors';
+export { MissingObjectError, ObjectTypeMismatchError } from './internal/errors';
