@@ -1,14 +1,17 @@
 import {
   createCommit,
   loadCommitObject,
+  loadTreeObject,
   Person,
   Repo,
+  treeToWorkingTree,
   updateRef,
   walkTree,
 } from '@forgsync/forg/dist/repo/git';
-import { encode } from '@forgsync/forg/dist/repo/git/encoding/util';
-import { isFile } from '@forgsync/forg/dist/repo/git/util';
-import { InMemoryFS } from '@forgsync/simplefs';
+import { encode } from '@forgsync/forg/dist/repo/git/internal/encoding/util';
+import { isFile } from '@forgsync/forg/dist/repo/git/internal/util';
+import { GitTreeFS } from '@forgsync/forg/dist/repo/treefs';
+import { InMemoryFS, Path } from '@forgsync/simplefs';
 
 export async function myFunc(): Promise<void> {
   const fs = new InMemoryFS();
@@ -58,9 +61,18 @@ export async function myFunc(): Promise<void> {
   console.log();
 
   const commitObject = await loadCommitObject(repo, hash);
+  console.log('walkTree:');
   for await (const leaf of walkTree(repo, commitObject.body.tree)) {
     if (isFile(leaf.mode)) {
-      console.log(`File: ${leaf.path.join('/')} : ${leaf.hash}`);
+      console.log(`  File: ${leaf.path.join('/')} : ${leaf.hash}`);
     }
+  }
+
+  const treeObject = await loadTreeObject(repo, commitObject.body.tree);
+  const workingTree = treeToWorkingTree(treeObject.body);
+  const treefs = new GitTreeFS(repo, workingTree);
+  console.log('GitTreeFS:');
+  for (const entry of await treefs.list(new Path(''))) {
+    console.log(`  Entry: ${entry.path.value} : ${entry.kind}`);
   }
 }
