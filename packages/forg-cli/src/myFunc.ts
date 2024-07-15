@@ -1,6 +1,6 @@
 import {
   createCommit,
-  loadObject,
+  loadCommitObject,
   Person,
   Repo,
   updateRef,
@@ -29,17 +29,17 @@ export async function myFunc(): Promise<void> {
   const hash = await createCommit(
     repo,
     {
-      files: {
+      type: 'tree',
+      entries: {
         'a.txt': {
-          isExecutable: false,
+          type: 'file',
           body: encode('aa'),
         },
-      },
-      folders: {
         b: {
-          files: {
+          type: 'tree',
+          entries: {
             'c.txt': {
-              isExecutable: false,
+              type: 'file',
               body: encode('cc'),
             },
           },
@@ -57,11 +57,7 @@ export async function myFunc(): Promise<void> {
   console.log(reflog);
   console.log();
 
-  const commitObject = await loadObject(repo, hash);
-  if (commitObject.type !== 'commit') {
-    throw new Error('not a commit!');
-  }
-
+  const commitObject = await loadCommitObject(repo, hash);
   for await (const leaf of walkTree(repo, commitObject.body.tree)) {
     if (isFile(leaf.mode)) {
       console.log(`File: ${leaf.path.join('/')} : ${leaf.hash}`);
