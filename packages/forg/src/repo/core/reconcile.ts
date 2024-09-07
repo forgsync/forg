@@ -1,20 +1,19 @@
 import {
   createCommit,
-  ExpandedTree,
   Hash,
   IRepo,
   loadCommitObject,
   loadTreeObject,
   Person,
-  treeToWorkingTree,
   updateRef,
 } from '../git';
+import { GitTreeFS } from '../treefs';
 import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
 import { ForgClientHead, listForgHeads } from './internal/listForgHeads';
 import { mergeBase } from './internal/mergeBase';
 import { ForgClientInfo } from './model';
 
-type MergeFunc = (a: ExpandedTree, b: ExpandedTree, base: ExpandedTree | undefined) => Promise<ExpandedTree>;
+type MergeFunc = (a: GitTreeFS, b: GitTreeFS, base: GitTreeFS | undefined) => Promise<GitTreeFS>;
 export async function reconcile(
   repo: IRepo,
   forgClient: ForgClientInfo,
@@ -94,26 +93,12 @@ export async function reconcile(
 
     const treeA = await getWorkingTree(repo, commitIdA);
     const treeB = await getWorkingTree(repo, commitIdB);
-
-    // Figure out base
-    const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
-    let baseTree: ExpandedTree | undefined = undefined;
-    if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
-      const baseCommitId = mergeBaseResult.bestAncestorCommitIds[0];
-      const baseCommit = await loadCommitObject(repo, baseCommitId);
-      if (await isTreeFullyReachable(repo, baseCommit.body.tree)) {
-        // TODO: Avoid reloading the same objects so many times.
-        const tree = await loadTreeObject(repo, baseCommit.body.tree);
-        baseTree = treeToWorkingTree(tree.body);
-      } else {
-        // Try to keep going, if merge func can work without a base, let it try its thing...
-      }
-    }
+    const baseTree = await tryGetBaseWorkingTree(repo, commitIdA, commitIdB);
 
     const newTree = await merge(treeA, treeB, baseTree);
     prev = await createCommit(
       repo,
-      newTree,
+      newTree.root,
       [commitIdA, commitIdB],
       `Reconcile forg clients ${leafHeads
         .slice(0, i + 1)
@@ -146,9 +131,25 @@ function createCommitterInfo(forgClient: ForgClientInfo): Person {
   };
 }
 
-async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<ExpandedTree> {
+async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<GitTreeFS> {
   const commit = await loadCommitObject(repo, commitId);
   const tree = await loadTreeObject(repo, commit.body.tree);
-  const workingTree = treeToWorkingTree(tree.body);
-  return workingTree;
+  return GitTreeFS.fromTree(repo, tree);
+}
+
+async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: string): Promise<GitTreeFS | undefined> {
+  const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
+  let baseTree: GitTreeFS | undefined = undefined;
+  if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
+    const baseCommitId = mergeBaseResult.bestAncestorCommitIds[0];
+    const baseCommit = await loadCommitObject(repo, baseCommitId);
+    if (await isTreeFullyReachable(repo, baseCommit.body.tree)) {
+      // TODO: Avoid reloading the same objects so many times.
+      const tree = await loadTreeObject(repo, baseCommit.body.tree);
+      baseTree = GitTreeFS.fromTree(repo, tree);
+    } else {
+      // Try to keep going, if merge func can work without a base, let it try its thing...
+    }
+  }
+  return baseTree;
 }

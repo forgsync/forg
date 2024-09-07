@@ -4,9 +4,9 @@ import { IRepo } from "./Repo";
 import { isFile } from "./util";
 
 /**
- * Describes a folder that isn't known to alread exist in git.
- * A new folder is described by the set of files and folders in it,
- * as opposed to being just a hash pointing at an existing tree in git.
+ * Describes a folder that may or may not already exist in git.
+ * This describes the set of files and folders in a tree,
+ * as opposed to the hash for an existing tree object in git.
  */
 export interface ExpandedTree {
   type: 'tree';
@@ -23,6 +23,11 @@ export interface ExistingTree {
 }
 export type WorkingTreeFolder = ExpandedTree | ExistingTree;
 
+/**
+ * Describes a folder that may or may not already exist in git.
+ * This describes the file contents, as opposed to being just a hash
+ * for an existing blob object in git.
+ */
 export interface ExpandedFile {
   type: 'file';
   readonly isExecutable?: boolean;
@@ -37,12 +42,12 @@ export type WorkingTreeFile = ExpandedFile | ExistingFile;
 
 export type WorkingTreeEntry = WorkingTreeFolder | WorkingTreeFile;
 
-export async function saveWorkingTree(repo: IRepo, workingTree: WorkingTreeFolder): Promise<Hash> {
-  if ('hash' in workingTree) return workingTree.hash;
+export async function saveWorkingTree(repo: IRepo, root: WorkingTreeFolder): Promise<Hash> {
+  if ('hash' in root) return root.hash;
 
   const body: TreeBody = {};
-  for (const name of Object.keys(workingTree.entries)) {
-    const entry = workingTree.entries[name];
+  for (const name of Object.keys(root.entries)) {
+    const entry = root.entries[name];
     if (entry.type === 'tree') {
       const hash = await saveWorkingTree(repo, entry);
       body[name] = { hash, mode: Mode.tree };
@@ -52,19 +57,12 @@ export async function saveWorkingTree(repo: IRepo, workingTree: WorkingTreeFolde
     }
   }
 
-  return await saveObject(repo, {
-    type: Type.tree,
-    body: body,
-  });
+  return await saveObject(repo, { type: Type.tree, body: body });
 }
 
 async function saveFile(repo: IRepo, file: WorkingTreeFile): Promise<Hash> {
-  if (isHash(file)) return file.hash;
+  if ('hash' in file) return file.hash;
   return await saveObject(repo, { type: Type.blob, body: file.body });
-}
-
-function isHash(file: WorkingTreeFile): file is ExistingFile {
-  return 'hash' in file;
 }
 
 export function treeToWorkingTree(tree: TreeBody): ExpandedTree {

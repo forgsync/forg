@@ -1,8 +1,9 @@
-import { ExpandedTree, Hash, Repo, createCommit, loadCommitObject } from '../git';
+import { Hash, Repo, createCommit, loadCommitObject } from '../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { reconcile } from './reconcile';
 import { InMemoryFS } from '@forgsync/simplefs';
 import { ForgClientInfo } from './model';
+import { GitTreeFS } from '../treefs';
 
 describe('reconcile', () => {
   let repo: Repo;
@@ -126,7 +127,7 @@ describe('reconcile', () => {
   });
 });
 
-async function dummyMergeFunc(a: ExpandedTree, _b: ExpandedTree): Promise<ExpandedTree> {
+async function dummyMergeFunc(a: GitTreeFS, _b: GitTreeFS): Promise<GitTreeFS> {
   // Just return the left side always
   return a;
 }

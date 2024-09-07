@@ -69,8 +69,7 @@ export async function myFunc(): Promise<void> {
   }
 
   const treeObject = await loadTreeObject(repo, commitObject.body.tree);
-  const workingTree = treeToWorkingTree(treeObject.body);
-  const treefs = new GitTreeFS(repo, workingTree);
+  const treefs = GitTreeFS.fromTree(repo, treeObject);
   console.log('GitTreeFS:');
   for (const entry of await treefs.list(new Path(''))) {
     console.log(`  Entry: ${entry.path.value} : ${entry.kind}`);

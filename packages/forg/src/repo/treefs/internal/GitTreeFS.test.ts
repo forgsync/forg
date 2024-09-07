@@ -36,7 +36,7 @@ describe('GitTreeFS', () => {
       },
     };
     await saveWorkingTree(repo, workingTree);
-    fs = new GitTreeFS(repo, workingTree);
+    fs = GitTreeFS.fromWorkingTree(repo, workingTree);
   });
 
   test.each([['a.txt', 'a'], ['b/c.txt', 'c'], ['b/d.txt', 'd'], ['b/e/f.txt', 'f']])(

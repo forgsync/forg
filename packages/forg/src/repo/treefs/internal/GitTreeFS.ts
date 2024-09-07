@@ -3,10 +3,32 @@ import { Hash, IRepo, loadBlobObject, loadTreeObject, MissingObjectError, saveOb
 import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../../git";
 
 export class GitTreeFS implements ISimpleFS {
-  constructor(
+  private _modified: boolean = false;
+
+  private constructor(
     private readonly _repo: IRepo,
-    private readonly _tree: ExpandedTree,
+    private readonly _root: ExpandedTree,
   ) { }
+
+  get modified() { return this._modified; }
+  get root() { return this._root; }
+
+  /**
+   * Initializes a GitTreeFS from a git Tree object.
+   * This is usually used to create a filesystem interface on top of an existing git commit tree.
+   */
+  static fromTree(repo: IRepo, tree: TreeObject) {
+    const root = treeToWorkingTree(tree.body);
+    return new GitTreeFS(repo, root);
+  }
+
+  /**
+   * Initializes a GitTreeFS from an in-memory representation of a working tree.
+   * This is usually used to create a filesystem interface for a new tree that will be later committed to git.
+   */
+  static fromWorkingTree(repo: IRepo, root: ExpandedTree) {
+    return new GitTreeFS(repo, root);
+  }
 
   async fileExists(path: Path): Promise<boolean> {
     try {
@@ -101,6 +123,7 @@ export class GitTreeFS implements ISimpleFS {
       type: 'file',
       hash: fileHash,
     };
+    this._modified = true;
   }
 
   async deleteFile(path: Path): Promise<void> {
@@ -114,6 +137,7 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     delete parentTree.entries[path.leafName];
+    this._modified = true;
   }
 
   async createDirectory(path: Path): Promise<void> {
@@ -127,6 +151,7 @@ export class GitTreeFS implements ISimpleFS {
       type: 'tree',
       entries: {},
     };
+    this._modified = true;
   }
 
   async deleteDirectory(path: Path): Promise<void> {
@@ -140,6 +165,7 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     delete parentTree.entries[path.leafName];
+    this._modified = true;
   }
 
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
@@ -177,7 +203,7 @@ export class GitTreeFS implements ISimpleFS {
   }
 
   private async _findTree(path: Path, createIfNotExists: boolean): Promise<ExpandedTree> {
-    let tree = this._tree;
+    let tree = this._root;
     const segments = path.segments;
     for (let i = 0; i < segments.length; i++) {
       tree = await this._expandChildFolder(tree, segments[i], createIfNotExists, path);
@@ -195,6 +221,7 @@ export class GitTreeFS implements ISimpleFS {
           entries: {},
         };
         folder.entries[childName] = newItem;
+        this._modified = true;
         return newItem;
       }
       else {
