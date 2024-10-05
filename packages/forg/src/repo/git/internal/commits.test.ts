@@ -91,7 +91,7 @@ describe('updateRef', () => {
     expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000001');
     expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([
       {
-        previousCommit: '0000000000000000000000000000000000000000',
+        previousCommit: undefined,
         newCommit: '0000000000000000000000000000000000000001',
         person: dummyPerson(),
         description: 'test reflog message',
@@ -120,7 +120,7 @@ describe('updateRef', () => {
     expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000002');
     expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([
       {
-        previousCommit: '0000000000000000000000000000000000000000',
+        previousCommit: undefined,
         newCommit: '0000000000000000000000000000000000000001',
         person: dummyPerson(),
         description: 'test reflog message 1',

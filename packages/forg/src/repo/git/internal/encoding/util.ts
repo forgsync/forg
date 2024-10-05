@@ -76,5 +76,5 @@ export function toHexChar(val: number) {
 }
 
 export function sanitizeString(string: string) {
-  return string.replace(/(?:^[\.,:;<>"']+|[\0\n<>]+|[\.,:;<>"']+$)/gm, '');
+  return string.replace(/(?:^[\.,:;<>"']+|[\0\n\t<>]+|[\.,:;<>"']+$)/g, '');
 }

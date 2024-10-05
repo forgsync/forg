@@ -25,7 +25,7 @@ describe('Repo basics', () => {
     const reflog = await repo.getReflog('refs/main');
     expect(reflog).toEqual<ReflogEntry[]>([
       {
-        previousCommit: '0000000000000000000000000000000000000000',
+        previousCommit: undefined,
         newCommit: hash,
         person: dummyPerson(),
         description: 'commit (initial): Initial commit',

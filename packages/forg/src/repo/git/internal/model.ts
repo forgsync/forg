@@ -34,7 +34,7 @@ export type ModeHash = {
 };
 
 export interface ReflogEntry {
-  previousCommit: Hash;
+  previousCommit: Hash | undefined;
   newCommit: Hash;
   person: Person;
   description: string;

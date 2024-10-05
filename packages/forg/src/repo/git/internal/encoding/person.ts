@@ -3,7 +3,7 @@ import { sanitizeString } from './util';
 
 export function decodePerson(string: string): Person {
   const match = string.match(/^([^<]*) <([^>]*)> ([^ ]*) (.*)$/);
-  if (!match) throw new Error('Improperly formatted person string');
+  if (!match) throw new Error(`Improperly formatted person string: ${string}`);
   return {
     name: match[1],
     email: match[2],
