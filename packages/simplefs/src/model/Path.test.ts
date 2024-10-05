@@ -56,7 +56,7 @@ describe('Path', () => {
     expect(new Path(a).isImmediateParentOf(new Path(b))).toBe(expected);
   });
 
-  test.each(['//', '/a//b', '/a\\b/c', 'a/b\tc/d'])("Rejects suspicious '%p'", (input: string) => {
+  test.each(['//', '///', '/a//b', '/a\\b/c', 'a/b\tc/d'])("Rejects suspicious '%p'", (input: string) => {
     expect(() => new Path(input)).toThrow();
   });
 
