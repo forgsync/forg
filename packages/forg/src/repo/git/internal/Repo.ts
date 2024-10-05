@@ -21,6 +21,7 @@ export interface IRepo {
 
 export class Repo implements IRepo {
   private readonly _fs: ISimpleFS;
+  private _initialized: boolean = false;
 
   constructor(fs: ISimpleFS) {
     this._fs = fs;
@@ -33,6 +34,7 @@ export class Repo implements IRepo {
 
     if (hasHeadFile && hasObjectsDir && hasRefsDir) {
       // All good!
+      this._initialized = true;
       return;
     } else if (!hasHeadFile && !hasObjectsDir && !hasRefsDir) {
       await this._fs.write(new Path('HEAD'), encode('ref: refs/heads/main')); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
@@ -41,12 +43,17 @@ export class Repo implements IRepo {
       if (!(await this._fs.fileExists(new Path('config')))) {
         await this._fs.write(new Path('config'), encode(getDefaultConfig()));
       }
+      this._initialized = true;
+    }
+    else {
+      throw new Error('Repo is partially initialized. Delete first and try again');
     }
   }
 
   async listRefs(): Promise<string[]> {
-    const refs: string[] = [];
+    this._ensureInitialized();
 
+    const refs: string[] = [];
     for (const node of await this._fs.list(new Path('refs'), { recursive: true })) {
       if (node.kind === 'file') {
         refs.push(node.path.value);
@@ -58,8 +65,9 @@ export class Repo implements IRepo {
   }
 
   async getRef(ref: string): Promise<string | undefined> {
-    const path = getRefPath(ref);
+    this._ensureInitialized();
 
+    const path = getRefPath(ref);
     let rawContent: Uint8Array;
     try {
       rawContent = await this._fs.read(path);
@@ -78,6 +86,8 @@ export class Repo implements IRepo {
   }
 
   async setRef(ref: string, hash: string | undefined): Promise<void> {
+    this._ensureInitialized();
+
     const path = getRefPath(ref);
     if (hash !== undefined) {
       const rawContent = `${hash}\n`;
@@ -89,8 +99,9 @@ export class Repo implements IRepo {
   }
 
   async getReflog(ref: string): Promise<ReflogEntry[]> {
-    const logPath = Path.join(new Path('logs'), getRefPath(ref));
+    this._ensureInitialized();
 
+    const logPath = Path.join(new Path('logs'), getRefPath(ref));
     let rawContent: Uint8Array;
     try {
       rawContent = await this._fs.read(logPath);
@@ -108,21 +119,25 @@ export class Repo implements IRepo {
   }
 
   async setReflog(ref: string, reflog: ReflogEntry[]): Promise<void> {
-    const logPath = Path.join(new Path('logs'), getRefPath(ref));
+    this._ensureInitialized();
 
+    const logPath = Path.join(new Path('logs'), getRefPath(ref));
     const rawContent = encodeReflog(reflog);
     await this._fs.write(logPath, encode(rawContent));
   }
 
   async saveRawObject(hash: string, raw: Uint8Array): Promise<void> {
+    this._ensureInitialized();
+
     const compressed = fflate.deflateSync(raw);
     const path = computeObjectPath(hash);
     await this._fs.write(path, compressed);
   }
 
   async loadRawObject(hash: string): Promise<Uint8Array> {
-    const path = computeObjectPath(hash);
+    this._ensureInitialized();
 
+    const path = computeObjectPath(hash);
     let rawContent: Uint8Array;
     try {
       rawContent = await this._fs.read(path);
@@ -140,10 +155,13 @@ export class Repo implements IRepo {
   }
 
   async hasObject(hash: string): Promise<boolean> {
+    this._ensureInitialized();
     return await this._fs.fileExists(computeObjectPath(hash));
   }
 
   async saveMetadata(name: string, value: Uint8Array | undefined): Promise<void> {
+    this._ensureInitialized();
+
     const path = new Path(name);
     if (path.segments.length !== 1) {
       throw new Error(`Metadata files are only allowed at the root`);
@@ -157,6 +175,8 @@ export class Repo implements IRepo {
   }
 
   async loadMetadata(name: string): Promise<Uint8Array | undefined> {
+    this._ensureInitialized();
+
     const path = new Path(name);
     if (path.segments.length !== 1) {
       throw new Error(`Metadata files are only allowed at the root`);
@@ -176,6 +196,12 @@ export class Repo implements IRepo {
     }
 
     return rawContent;
+  }
+
+  private _ensureInitialized() {
+    if (!this._initialized) {
+      throw new Error('Repo is not initialized');
+    }
   }
 }
 
@@ -211,7 +237,7 @@ function getRefPath(ref: string): Path {
   let path: Path | undefined = undefined;
   try {
     path = new Path(ref);
-  } catch {}
+  } catch { }
 
   if (path === undefined || !path.startsWith(new Path('refs'))) {
     throw new Error(`Invalid ref '${ref}'`);
