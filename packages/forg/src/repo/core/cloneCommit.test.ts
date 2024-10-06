@@ -1,9 +1,10 @@
-import { Hash, Repo, createCommit, updateRef } from '../git';
+import { Hash, Repo, createCommit } from '../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
-import { fetchRefs } from './fetch';
+import { cloneCommit } from './cloneCommit';
 import { InMemoryFS } from '@forgsync/simplefs';
+import { ConsistencyMode } from './consistency';
 
-describe('fetch', () => {
+describe('cloneCommit', () => {
   let remote: Repo;
   let commits: { [key: string]: Hash };
   beforeEach(async () => {
@@ -14,7 +15,6 @@ describe('fetch', () => {
     async function trackCommit(name: string, parents: Hash[]) {
       const hash = await createCommit(remote, { type: 'tree', entries: {} }, parents, name, dummyPerson());
       commits[name] = hash;
-      await updateRef(remote, 'refs/remotes/client1/main', hash, dummyPerson(), `Committed: ${name}`);
     }
     commits = {};
 
@@ -22,7 +22,7 @@ describe('fetch', () => {
     //  \
     //   C -- D
     //    \
-    //     E (refs/remotes/client1/main)
+    //     E
     //
     await trackCommit('A', []);
     await trackCommit('B', [commits.A]);
@@ -36,11 +36,28 @@ describe('fetch', () => {
     const local = new Repo(fs);
     await local.init();
 
-    await fetchRefs(remote, local, () => true);
+    await cloneCommit(remote, local, commits.E);
     expect(await local.hasObject(commits.E)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(true);
     expect(await local.hasObject(commits.A)).toBe(true);
     expect(await local.hasObject(commits.D)).toBe(false);
     expect(await local.hasObject(commits.B)).toBe(false);
+  });
+
+  test('Consistency modes', async () => {
+    const fs = new InMemoryFS();
+    const local = new Repo(fs);
+    await local.init();
+
+    await cloneCommit(remote, local, commits.E);
+    expect(await local.hasObject(commits.A)).toBe(true); // A exists after cloning
+
+    // Delete A in local repo, then try cloning again with default consistency options
+    await local.deleteObject(commits.A);
+    await cloneCommit(remote, local, commits.E);
+    expect(await local.hasObject(commits.A)).toBe(false); // A still does NOT exist, since AssumeConnectivity will not traverse down to A if E already exists
+
+    await cloneCommit(remote, local, commits.E, { headCommit: ConsistencyMode.OptimisticAssumeObjectIntegrity, parentCommits: ConsistencyMode.OptimisticAssumeObjectIntegrity });
+    expect(await local.hasObject(commits.A)).toBe(true); // A exists again after cloning with the higher consistency mode
   });
 });

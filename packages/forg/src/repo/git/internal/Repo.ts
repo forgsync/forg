@@ -6,17 +6,21 @@ import { decode, encode } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
 import { MissingObjectError } from './errors';
 
-export interface IRepo {
+export type IRepo = IReadOnlyRepo & IWriteOnlyRepo;
+export interface IReadOnlyRepo {
   listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
   getRef(ref: string): Promise<Hash | undefined>;
-  setRef(ref: string, hash: Hash | undefined): Promise<void>;
   getReflog(ref: string): Promise<ReflogEntry[]>;
-  setReflog(ref: string, reflog: ReflogEntry[]): Promise<void>;
-  saveRawObject(hash: Hash, raw: Uint8Array): Promise<void>;
   loadRawObject(hash: Hash): Promise<Uint8Array>;
   hasObject(hash: Hash): Promise<boolean>;
-  saveMetadata(name: string, value: Uint8Array | undefined): Promise<void>;
   loadMetadata(name: string): Promise<Uint8Array | undefined>;
+}
+interface IWriteOnlyRepo {
+  setRef(ref: string, hash: Hash | undefined): Promise<void>;
+  setReflog(ref: string, reflog: ReflogEntry[]): Promise<void>;
+  saveRawObject(hash: Hash, raw: Uint8Array): Promise<void>;
+  deleteObject(hash: Hash): Promise<void>;
+  saveMetadata(name: string, value: Uint8Array | undefined): Promise<void>;
 }
 
 export class Repo implements IRepo {
@@ -132,6 +136,21 @@ export class Repo implements IRepo {
     const compressed = fflate.deflateSync(raw);
     const path = computeObjectPath(hash);
     await this._fs.write(path, compressed);
+  }
+
+  async deleteObject(hash: string): Promise<void> {
+    const path = computeObjectPath(hash);
+    try {
+      await this._fs.deleteFile(path);
+    } catch (error) {
+      if (error instanceof FSError) {
+        if (error.errno === Errno.ENOENT) {
+          return;
+        }
+      }
+
+      throw error;
+    }
   }
 
   async loadRawObject(hash: string): Promise<Uint8Array> {
