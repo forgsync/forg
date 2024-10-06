@@ -182,7 +182,7 @@ export class Repo implements IRepo {
     this._ensureInitialized();
 
     const path = new Path(name);
-    if (path.segments.length !== 1) {
+    if (path.numSegments !== 1) {
       throw new Error(`Metadata files are only allowed at the root`);
     }
 
@@ -197,7 +197,7 @@ export class Repo implements IRepo {
     this._ensureInitialized();
 
     const path = new Path(name);
-    if (path.segments.length !== 1) {
+    if (path.numSegments !== 1) {
       throw new Error(`Metadata files are only allowed at the root`);
     }
 

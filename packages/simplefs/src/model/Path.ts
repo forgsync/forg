@@ -11,6 +11,9 @@ export class Path {
   get segments(): string[] {
     return [...this._segments];
   }
+  get numSegments(): number {
+    return this._segments.length;
+  }
   get leafName(): string {
     if (this.segments.length === 0) {
       throw new Error(`Unable to get leaf name of the root`);
@@ -46,6 +49,15 @@ export class Path {
     }
 
     return new Path(this._segments.slice(0, this._segments.length - 1).join('/'));
+  }
+
+  segmentAt(index: number) {
+    index = index | 0;
+    if (index < 0 || index >= this._segments.length) {
+      throw new Error(`Index ${index} out of bounds`);
+    }
+
+    return this._segments[index];
   }
 
   startsWith(path: Path): boolean {

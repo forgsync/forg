@@ -4,6 +4,7 @@ describe('Path', () => {
   test.each(['', '/'])("'%p' is a valid root", (input: string) => {
     const path = new Path(input);
     expect(path.value).toBe('');
+    expect(path.numSegments).toBe(0);
     expect(path.segments).toEqual([]);
     expect(path.isRoot).toBe(true);
   });
@@ -11,6 +12,8 @@ describe('Path', () => {
   test.each(['abc', '/abc', 'abc/'])("Single segment '%p'", (input: string) => {
     const path = new Path(input);
     expect(path.value).toBe('abc');
+    expect(path.numSegments).toBe(1);
+    expect(path.segmentAt(0)).toBe('abc');
     expect(path.segments).toEqual(['abc']);
     expect(path.leafName).toBe('abc');
     expect(path.isRoot).toBe(false);
@@ -19,6 +22,9 @@ describe('Path', () => {
   test.each(['ab c/d', '/ab c/d', 'ab c/d/'])("Two segments '%p'", (input: string) => {
     const path = new Path(input);
     expect(path.value).toBe('ab c/d');
+    expect(path.numSegments).toBe(2);
+    expect(path.segmentAt(0)).toBe('ab c');
+    expect(path.segmentAt(1)).toBe('d');
     expect(path.segments).toEqual(['ab c', 'd']);
     expect(path.leafName).toBe('d');
     expect(path.isRoot).toBe(false);
@@ -68,6 +74,12 @@ describe('Path', () => {
   test('leafName of root throws', () => {
     const root = new Path('');
     expect(() => root.leafName).toThrow();
+  });
+
+  test('getSegmentAt checks bounds', () => {
+    const path = new Path('abc/def');
+    expect(() => path.segmentAt(-1)).toThrow();
+    expect(() => path.segmentAt(2)).toThrow();
   });
 
   test.each([
