@@ -4,13 +4,12 @@ import {
   loadTreeObject,
   Person,
   Repo,
-  treeToWorkingTree,
   updateRef,
   walkTree,
-} from '@forgsync/forg/dist/repo/git';
-import { encode } from '@forgsync/forg/dist/repo/git/internal/encoding/util';
-import { isFile } from '@forgsync/forg/dist/repo/git/internal/util';
-import { GitTreeFS } from '@forgsync/forg/dist/repo/treefs';
+} from '@forgsync/forg/dist/git';
+import { encode } from '@forgsync/forg/dist/git/internal/encoding/util';
+import { isFile } from '@forgsync/forg/dist/git/internal/util';
+import { GitTreeFS } from '@forgsync/forg/dist/treefs';
 import { InMemoryFS, Path } from '@forgsync/simplefs';
 
 export async function myFunc(): Promise<void> {
