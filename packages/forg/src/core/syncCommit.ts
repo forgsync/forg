@@ -1,12 +1,12 @@
 import {
   CommitObject,
   Hash,
+  IReadOnlyRepo,
   IRepo,
   loadCommitObject,
   loadTreeObject,
   Mode,
 } from '../git';
-import { IReadOnlyRepo } from '../git/internal/Repo';
 import { SyncConsistencyOptions, defaultConsistencyOptions, ConsistencyMode } from './consistency';
 
 /**

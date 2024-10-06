@@ -4,10 +4,10 @@ import {
   IRepo,
   loadCommitObject,
   loadTreeObject,
-  Person,
   updateRef,
 } from '../git';
 import { GitTreeFS } from '../treefs';
+import createCommitterInfo from './createCommitterInfo';
 import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
 import { ForgClientHead, listForgHeads } from './internal/listForgHeads';
 import { mergeBase } from './internal/mergeBase';
@@ -117,18 +117,6 @@ export async function reconcile(
   );
 
   return prev;
-}
-
-function createCommitterInfo(forgClient: ForgClientInfo): Person {
-  const now = new Date();
-  return {
-    name: forgClient.uuid,
-    email: `${forgClient.uuid}@forg`, // TODO: Figure out what to use for commiter email
-    date: {
-      seconds: (new Date().getTime() / 1000) | 0,
-      offset: now.getTimezoneOffset(),
-    },
-  };
 }
 
 async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<GitTreeFS> {

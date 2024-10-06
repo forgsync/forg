@@ -1,20 +1,22 @@
 import {
   CommitObject,
   Hash,
+  IReadOnlyRepo,
   IRepo,
   MissingObjectError,
   updateRef,
 } from '../git';
-import { IReadOnlyRepo } from '../git/internal/Repo';
 import { syncCommit } from './syncCommit';
 import { SyncConsistencyOptions, defaultConsistencyOptions } from './consistency';
-import tryParseForgRef, { ForgHeadInfo } from './internal/tryParseForgRef';
+import tryParseForgRef from './internal/tryParseForgRef';
+import { ForgBranch } from './model';
 
 /**
  * Fetches forg heads from the provided `remote` to the `local` repo.
  * The predicate selects which heads should be fetched. In most cases, a fetch would apply to all branches except for those of the current forg client uuid.
  */
-export async function fetchRefs(remote: IReadOnlyRepo, local: IRepo, predicate: (refInfo: ForgHeadInfo) => boolean, consistency: SyncConsistencyOptions = defaultConsistencyOptions()): Promise<void> {
+export async function fetchRefs(remote: IReadOnlyRepo, local: IRepo, predicate: (branch: ForgBranch) => boolean, consistency: SyncConsistencyOptions = defaultConsistencyOptions()): Promise<void> {
+  // TODO: Also fetch the reconciled branches (e.g. refs/heads) (?)
   const refs = await remote.listRefs('refs/remotes');
   for (const ref of refs) {
     const refInfo = tryParseForgRef(ref);

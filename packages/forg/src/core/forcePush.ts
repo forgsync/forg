@@ -1,8 +1,8 @@
 import {
+  IReadOnlyRepo,
   IRepo,
   updateRef,
 } from '../git';
-import { IReadOnlyRepo } from '../git/internal/Repo';
 import { syncCommit } from './syncCommit';
 
 export async function forcePush(local: IReadOnlyRepo, remote: IRepo, ref: string): Promise<void> {

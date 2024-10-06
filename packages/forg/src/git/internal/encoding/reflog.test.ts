@@ -1,6 +1,6 @@
 import { ReflogEntry } from '../model';
 import { decodeReflog, encodeReflog } from './reflog';
-import { dummyPerson } from '../../../../__testHelpers__/dummyPerson';
+import { dummyPerson } from '../../../__testHelpers__/dummyPerson';
 
 const encoder = new TextEncoder();
 

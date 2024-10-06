@@ -15,7 +15,7 @@ export async function listForgHeads(repo: IRepo, branchName: string): Promise<Fo
     if (refInfo && refInfo.branchName === branchName) {
       const head = await tryFindAvailableHead(repo, ref);
       if (head !== undefined) {
-        results.push({ clientUuid: refInfo.clientUuid, head });
+        results.push({ clientUuid: refInfo.client.uuid, head });
       }
     }
   }

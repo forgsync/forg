@@ -1,5 +1,5 @@
 import { Hash, Repo, createCommit } from '../../git';
-import { dummyPerson } from '../../../__testHelpers__/dummyPerson';
+import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { mergeBase } from './mergeBase';
 import { InMemoryFS } from '@forgsync/simplefs';
 

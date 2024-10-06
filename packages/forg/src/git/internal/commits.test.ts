@@ -2,7 +2,7 @@ import { createCommit, updateRef } from './commits';
 import { Repo } from './Repo';
 import { Mode, ReflogEntry } from './model';
 import { CommitBody, loadBlobObject, loadCommitObject, loadTreeObject, TreeBody } from './objects';
-import { dummyPerson } from '../../../__testHelpers__/dummyPerson';
+import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 const encoder = new TextEncoder();

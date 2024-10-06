@@ -1,4 +1,4 @@
-import { Person } from '../repo/git';
+import { Person } from '../git';
 
 export function dummyPerson(): Person {
   return {

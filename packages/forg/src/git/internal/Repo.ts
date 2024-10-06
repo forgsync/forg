@@ -35,22 +35,23 @@ export class Repo implements IRepo {
     const hasHeadFile = await this._fs.fileExists(new Path('HEAD'));
     const hasObjectsDir = await this._fs.directoryExists(new Path('objects'));
     const hasRefsDir = await this._fs.directoryExists(new Path('refs'));
+    const hasConfigFile = await this._fs.fileExists(new Path('config'));
 
-    if (hasHeadFile && hasObjectsDir && hasRefsDir) {
+    if (hasHeadFile && hasObjectsDir && hasRefsDir && hasConfigFile) {
+      // TODO: Check that config file specifies `forg.version` === 1
+
       // All good!
       this._initialized = true;
       return;
-    } else if (!hasHeadFile && !hasObjectsDir && !hasRefsDir) {
+    } else if (!hasHeadFile && !hasObjectsDir && !hasRefsDir && !hasConfigFile) {
       await this._fs.write(new Path('HEAD'), encode('ref: refs/heads/main')); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
       await this._fs.createDirectory(new Path('objects'));
       await this._fs.createDirectory(new Path('refs'));
-      if (!(await this._fs.fileExists(new Path('config')))) {
-        await this._fs.write(new Path('config'), encode(getDefaultConfig()));
-      }
+      await this._fs.write(new Path('config'), encode(getDefaultConfig()));
       this._initialized = true;
     }
     else {
-      throw new Error('Repo is partially initialized. Delete first and try again');
+      throw new Error('Repo is partially initialized. Delete first and try again or fix manually');
     }
   }
 

@@ -1,5 +1,5 @@
 import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../git';
-import { dummyPerson } from '../../__testHelpers__/dummyPerson';
+import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { forcePush } from './forcePush';
 import { InMemoryFS } from '@forgsync/simplefs';
 

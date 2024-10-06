@@ -2,7 +2,7 @@ export type { Hash, ModeHash, Person, SecondsWithOffset, ReflogEntry } from './i
 export { Mode, Type } from './internal/model'
 
 export { Repo } from './internal/Repo';
-export type { IRepo } from './internal/Repo';
+export type { IRepo, IReadOnlyRepo } from './internal/Repo';
 
 export {
   loadCommitObject,
