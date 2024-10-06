@@ -36,7 +36,7 @@ users fully own their data, and app developers need not own any server infrastru
 
 ## How does it work?
 
-See the [official specifications](./docs/specs.md) in this repo for the inner workings of forg.
+See the [specifications](./docs/specs.md) in this repo for the inner workings of forg.
 
 See also the [Basic Operation](./docs/basic-operation.md) of a forg repo.
 
