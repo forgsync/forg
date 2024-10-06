@@ -3,17 +3,18 @@ import {
   Hash,
   IRepo,
   MissingObjectError,
+  updateRef,
 } from '../git';
 import { IReadOnlyRepo } from '../git/internal/Repo';
-import { cloneCommit } from './cloneCommit';
-import { CloneConsistencyOptions, defaultConsistencyOptions } from './consistency';
+import { syncCommit } from './syncCommit';
+import { SyncConsistencyOptions, defaultConsistencyOptions } from './consistency';
 import tryParseForgRef, { ForgHeadInfo } from './internal/tryParseForgRef';
 
 /**
  * Fetches forg heads from the provided `remote` to the `local` repo.
  * The predicate selects which heads should be fetched. In most cases, a fetch would apply to all branches except for those of the current forg client uuid.
  */
-export async function fetchRefs(remote: IReadOnlyRepo, local: IRepo, predicate: (refInfo: ForgHeadInfo) => boolean, consistency: CloneConsistencyOptions = defaultConsistencyOptions()): Promise<void> {
+export async function fetchRefs(remote: IReadOnlyRepo, local: IRepo, predicate: (refInfo: ForgHeadInfo) => boolean, consistency: SyncConsistencyOptions = defaultConsistencyOptions()): Promise<void> {
   const refs = await remote.listRefs('refs/remotes');
   for (const ref of refs) {
     const refInfo = tryParseForgRef(ref);
@@ -27,7 +28,7 @@ export async function fetchRefs(remote: IReadOnlyRepo, local: IRepo, predicate: 
  * @returns the commit hash that was successfully fetched, if any. This method will first try to fetch the commit that the ref actually points to if it is a valid and complete commit,
  * but if that fails, we fall back to using the remote reflog instead.
  */
-export async function fetchRef(remote: IReadOnlyRepo, local: IRepo, ref: string, consistency: CloneConsistencyOptions = defaultConsistencyOptions()): Promise<Hash | undefined> {
+export async function fetchRef(remote: IReadOnlyRepo, local: IRepo, ref: string, consistency: SyncConsistencyOptions = defaultConsistencyOptions()): Promise<Hash | undefined> {
   //console.log(`Fetching ${ref}`);
   const remoteReflog = await remote.getReflog(ref);
   const remoteRefHash = await remote.getRef(ref);
@@ -35,7 +36,7 @@ export async function fetchRef(remote: IReadOnlyRepo, local: IRepo, ref: string,
 
   if (remoteRefHash) {
     try {
-      const commit = await cloneCommit(remote, local, remoteRefHash, consistency);
+      const commit = await syncCommit(remote, local, remoteRefHash, consistency);
       fetchedHead = {
         oid: remoteRefHash,
         commit,
@@ -52,9 +53,10 @@ export async function fetchRef(remote: IReadOnlyRepo, local: IRepo, ref: string,
   }
 
   if (fetchedHead === undefined) {
-    for (const reflogEntry of remoteReflog) {
+    for (let i = remoteReflog.length - 1; i >= 0; i--) {
+      const reflogEntry = remoteReflog[i];
       try {
-        const commit = await cloneCommit(remote, local, reflogEntry.newCommit, consistency);
+        const commit = await syncCommit(remote, local, reflogEntry.newCommit, consistency);
         fetchedHead = {
           oid: reflogEntry.newCommit,
           commit,
@@ -73,17 +75,9 @@ export async function fetchRef(remote: IReadOnlyRepo, local: IRepo, ref: string,
   }
 
   if (fetchedHead !== undefined) {
-    const originalHash = await local.getRef(ref);
-    const localReflog = await local.getReflog(ref);
-    localReflog.push({
-      previousCommit: originalHash,
-      newCommit: fetchedHead.oid,
-      person: fetchedHead.commit.body.author,
-      description: `fetch: ${fetchedHead.commit.body.message}`,
-    });
-    await local.setRef(ref, remoteRefHash);
-    await local.setReflog(ref, localReflog);
-
+    await updateRef(local, ref, fetchedHead.oid, fetchedHead.commit.body.author, `fetch: ${fetchedHead.commit.body.message}`);
     return fetchedHead.oid;
   }
+
+  return undefined;
 }

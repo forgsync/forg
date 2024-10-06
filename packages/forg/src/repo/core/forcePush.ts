@@ -1,8 +1,9 @@
 import {
   IRepo,
+  updateRef,
 } from '../git';
 import { IReadOnlyRepo } from '../git/internal/Repo';
-import { cloneCommit } from './cloneCommit';
+import { syncCommit } from './syncCommit';
 
 export async function forcePush(local: IReadOnlyRepo, remote: IRepo, ref: string): Promise<void> {
   //console.log(`Pushing ${ref}`);
@@ -11,14 +12,6 @@ export async function forcePush(local: IReadOnlyRepo, remote: IRepo, ref: string
     throw new Error(`Could not resolve ref ${ref} in local repo`);
   }
 
-  const pushedHead = await cloneCommit(local, remote, commitHash);
-
-  const remoteOldRef = await remote.getRef(ref);
-  const remoteReflog = await remote.getReflog(ref);
-  remoteReflog.push({
-    previousCommit: remoteOldRef,
-    newCommit: commitHash,
-    person: pushedHead.body.author,
-    description: `push (force): ${pushedHead.body.message}`,
-  });
+  const pushedHead = await syncCommit(local, remote, commitHash);
+  await updateRef(remote, ref, commitHash, pushedHead.body.author, `push (force): ${pushedHead.body.message}`);
 }

@@ -7,16 +7,22 @@ import {
   Mode,
 } from '../git';
 import { IReadOnlyRepo } from '../git/internal/Repo';
-import { CloneConsistencyOptions, defaultConsistencyOptions, ConsistencyMode } from './consistency';
+import { SyncConsistencyOptions, defaultConsistencyOptions, ConsistencyMode } from './consistency';
 
-export async function cloneCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, consistency: CloneConsistencyOptions = defaultConsistencyOptions()): Promise<CommitObject> {
-  //console.log(`Cloning commit ${commitHash}`);
-  if (consistency.headCommit === ConsistencyMode.Skip) {
-    throw new Error('Invalid consistency mode Skip for headCommit');
+/**
+ * Low level primitive used to sync a commit and its dependencies between repo's.
+ * This implementation regardless of whether `src` / `dst` are local / remote repo's, and as such this is used both for both `fetch` and `forcePush`.
+ */
+export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, consistency: SyncConsistencyOptions = defaultConsistencyOptions()): Promise<CommitObject> {
+  //console.log(`Syncing commit ${commitHash}`);
+  if (consistency.headCommitConsistency === ConsistencyMode.Skip) {
+    throw new Error(`Invalid headCommitConsistency consistency mode (${ConsistencyMode[consistency.headCommitConsistency]})`);
   }
 
-  if (consistency.headCommit < consistency.parentCommits) {
-    throw new Error(`Invalid consistency options, expected headCommit (${ConsistencyMode[consistency.headCommit]}) to be higher or equal to parentCommits (${ConsistencyMode[consistency.parentCommits]})`);
+  if (consistency.headCommitConsistency < consistency.parentCommitsConsistency) {
+    throw new Error(
+      `Invalid consistency options, expected headCommitConsistency (${ConsistencyMode[consistency.headCommitConsistency]}) ` +
+      `to be higher or equal to parentCommitsConsistency (${ConsistencyMode[consistency.parentCommitsConsistency]})`);
   }
 
   // Step 1: Find all commits via parallel DFS
@@ -25,13 +31,13 @@ export async function cloneCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: st
   while (heads.length > 0) {
     const nextHeads: Hash[] = [];
     for (const head of heads) {
-      const mode = head === commitHash ? consistency.headCommit : consistency.parentCommits;
+      const mode = head === commitHash ? consistency.headCommitConsistency : consistency.parentCommitsConsistency;
 
       let skip = false;
       if (mode === ConsistencyMode.Skip) {
         skip = true;
       }
-      if (mode === ConsistencyMode.OptimisticAssumeConnectivity) {
+      if (mode === ConsistencyMode.AssumeConnectivity) {
         if (await dst.hasObject(head)) {
           // Commit already exists in the destination and we are assuming connectivity, so all of its dependencies (parent commits, trees, blobs) are assumed to also exist in the destination.
           // We can stop this traversal...
@@ -55,9 +61,9 @@ export async function cloneCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: st
   // Step 2: Go backwards through all commits we decided to scan. It is important to go backwards so that the objects are always connected at all times, including in case of an unexpected exit
   // (i.e. we never store an object until all dependencies are stored)
   for (const [curCommitHash, curCommit] of Array.from(allCommits).reverse()) {
-    const mode = curCommitHash === commitHash ? consistency.headCommit : consistency.parentCommits;
-    await cloneTree(src, dst, curCommit.body.tree, mode);
-    await cloneObject(src, dst, curCommitHash, mode);
+    const mode = curCommitHash === commitHash ? consistency.headCommitConsistency : consistency.parentCommitsConsistency;
+    await syncTree(src, dst, curCommit.body.tree, mode);
+    await syncObject(src, dst, curCommitHash, mode);
   }
 
   const commit = allCommits.get(commitHash);
@@ -68,9 +74,9 @@ export async function cloneCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: st
   return commit;
 }
 
-async function cloneTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: ConsistencyMode) {
-  //console.log(`Cloning tree ${treeHash}`);
-  if (consistency === ConsistencyMode.OptimisticAssumeConnectivity) {
+async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: ConsistencyMode) {
+  //console.log(`Syncing tree ${treeHash}`);
+  if (consistency === ConsistencyMode.AssumeConnectivity) {
     if (await dst.hasObject(treeHash)) {
       // Tree already exists in the destination and we are assuming connectivity, so all of its dependencies (other trees, blobs) are assumed to also exist in the destination.
       // We can stop this traversal...
@@ -83,19 +89,19 @@ async function cloneTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consi
     const { mode, hash } = tree.body[name];
 
     if (mode === Mode.tree) {
-      await cloneTree(src, dst, hash, consistency);
+      await syncTree(src, dst, hash, consistency);
     } else {
-      await cloneObject(src, dst, hash, consistency);
+      await syncObject(src, dst, hash, consistency);
     }
   }
 
   // Important: copy the tree object last, so that all of its dependencies were already copied before it.
-  await cloneObject(src, dst, treeHash, consistency);
+  await syncObject(src, dst, treeHash, consistency);
 }
 
-async function cloneObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistency: ConsistencyMode) {
-  //console.log(`Cloning object ${hash}`);
-  if (consistency <= ConsistencyMode.OptimisticAssumeObjectIntegrity) {
+async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistency: ConsistencyMode) {
+  //console.log(`Syncing object ${hash}`);
+  if (consistency <= ConsistencyMode.AssumeObjectIntegrity) {
     if (await dst.hasObject(hash)) {
       return;
     }

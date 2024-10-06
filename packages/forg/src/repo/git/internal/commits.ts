@@ -39,7 +39,7 @@ export async function updateRef(
 
   const reflog = await repo.getReflog(ref);
   reflog.push({
-    previousCommit: originalHash ?? '0'.repeat(40),
+    previousCommit: originalHash,
     newCommit: commitId,
     person: person,
     description: reflogMessage,

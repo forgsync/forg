@@ -13,14 +13,14 @@ export enum ConsistencyMode {
    *   - If a commit object does not exist, but its associated tree does, we copy the commit object but not its tree, since we assume the dependencies that *do* exists are valid.
    *   - Etc.
    */
-  OptimisticAssumeConnectivity = 1,
+  AssumeConnectivity = 1,
 
   /**
    * If an object exists in the destination repo, assume that it is well-formed, but not that its dependencies are as well.
    * This can be costly, as it will mean at the very least an object existence check will be performed for all objects.
    * This is an intermediate consistency mode between `OptimisticAssumeConnectivity` and `Pessimistic`.
    */
-  OptimisticAssumeObjectIntegrity = 2,
+  AssumeObjectIntegrity = 2,
 
   /**
    * Makes no assumption about the integrity of any objects in the destination, and copies everything again.
@@ -30,22 +30,22 @@ export enum ConsistencyMode {
   Pessimistic = 3
 }
 
-export interface CloneConsistencyOptions {
+export interface SyncConsistencyOptions {
   /**
    * Consistency mode when cloning the head commit. Defaults to `OptimisticAssumeConnectivity`.
    * You can use a stronger consistency mode for the head commit than others when the integrity of the history is not as important as that of the head commit.
    */
-  headCommit: ConsistencyMode;
+  headCommitConsistency: ConsistencyMode;
 
   /**
    * Consistency mode when cloning commits other than the head. Defaults to `OptimisticAssumeConnectivity`.
    */
-  parentCommits: ConsistencyMode;
+  parentCommitsConsistency: ConsistencyMode;
 }
 
-export function defaultConsistencyOptions(): CloneConsistencyOptions {
+export function defaultConsistencyOptions(): SyncConsistencyOptions {
   return {
-    headCommit: ConsistencyMode.OptimisticAssumeConnectivity,
-    parentCommits: ConsistencyMode.OptimisticAssumeConnectivity,
+    headCommitConsistency: ConsistencyMode.AssumeConnectivity,
+    parentCommitsConsistency: ConsistencyMode.AssumeConnectivity,
   };
 }
