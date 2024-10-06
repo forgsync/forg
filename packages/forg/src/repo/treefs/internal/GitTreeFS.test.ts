@@ -75,7 +75,7 @@ describe('GitTreeFS', () => {
     });
 
   test("fileExists where some parent tree is missing throws EIO", async () => {
-    await expect(() => fs.fileExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+    await expect(() => fs.fileExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO.*corresponding to working tree path 'b\/bad'/);
   });
 
   test.each(['', 'b', 'b/e', 'b/bad'])(
@@ -96,7 +96,7 @@ describe('GitTreeFS', () => {
     });
 
   test("directoryExists where some parent tree is missing throws EIO", async () => {
-    await expect(() => fs.directoryExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+    await expect(() => fs.directoryExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO.*corresponding to working tree path 'b\/bad'/);
   });
 
   test("list root", async () => {

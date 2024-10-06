@@ -204,15 +204,15 @@ export class GitTreeFS implements ISimpleFS {
 
   private async _findTree(path: Path, createIfNotExists: boolean): Promise<ExpandedTree> {
     let tree = this._root;
-    const segments = path.segments;
-    for (let i = 0; i < segments.length; i++) {
-      tree = await this._expandChildFolder(tree, segments[i], createIfNotExists, path);
+    for (let i = 0; i < path.numSegments; i++) {
+      tree = await this._expandChildFolder(tree, path, i, createIfNotExists);
     }
 
     return tree;
   }
 
-  private async _expandChildFolder(folder: ExpandedTree, childName: string, createIfNotExists: boolean, path: Path): Promise<ExpandedTree> {
+  private async _expandChildFolder(folder: ExpandedTree, path: Path, segmentIndex: number, createIfNotExists: boolean): Promise<ExpandedTree> {
+    const childName = path.segmentAt(segmentIndex);
     const item = folder.entries[childName];
     if (item === undefined) {
       if (createIfNotExists) {
@@ -237,11 +237,11 @@ export class GitTreeFS implements ISimpleFS {
         treeObject = await loadTreeObject(this._repo, item.hash);
       } catch (error) {
         if (error instanceof MissingObjectError) {
-          throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${item.hash}' corresponding to a part of working tree path '${path.value}'`);
+          throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
         }
 
         const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to a part of working tree path '${path.value}': ${innerError}`);
+        throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${innerError}`);
       }
       const expandedFolder = treeToWorkingTree(treeObject.body);
       folder.entries[childName] = expandedFolder;
