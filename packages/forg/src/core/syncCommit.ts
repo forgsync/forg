@@ -7,22 +7,22 @@ import {
   loadTreeObject,
   Mode,
 } from '../git';
-import { SyncConsistencyOptions, defaultConsistencyOptions, ConsistencyMode } from './consistency';
+import { SyncConsistencyOptions, SyncConsistencyMode } from "./model";
 
 /**
  * Low level primitive used to sync a commit and its dependencies between repo's.
  * This implementation regardless of whether `src` / `dst` are local / remote repo's, and as such this is used both for both `fetch` and `forcePush`.
  */
-export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, consistency: SyncConsistencyOptions = defaultConsistencyOptions()): Promise<CommitObject> {
+export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, consistency: SyncConsistencyOptions = defaultSyncConsistencyOptions()): Promise<CommitObject> {
   //console.log(`Syncing commit ${commitHash}`);
-  if (consistency.headCommitConsistency === ConsistencyMode.Skip) {
-    throw new Error(`Invalid headCommitConsistency consistency mode (${ConsistencyMode[consistency.headCommitConsistency]})`);
+  if (consistency.headCommitConsistency === SyncConsistencyMode.Skip) {
+    throw new Error(`Invalid headCommitConsistency consistency mode (${SyncConsistencyMode[consistency.headCommitConsistency]})`);
   }
 
   if (consistency.headCommitConsistency < consistency.parentCommitsConsistency) {
     throw new Error(
-      `Invalid consistency options, expected headCommitConsistency (${ConsistencyMode[consistency.headCommitConsistency]}) ` +
-      `to be higher or equal to parentCommitsConsistency (${ConsistencyMode[consistency.parentCommitsConsistency]})`);
+      `Invalid consistency options, expected headCommitConsistency (${SyncConsistencyMode[consistency.headCommitConsistency]}) ` +
+      `to be higher or equal to parentCommitsConsistency (${SyncConsistencyMode[consistency.parentCommitsConsistency]})`);
   }
 
   // Step 1: Find all commits via parallel DFS
@@ -34,10 +34,10 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
       const mode = head === commitHash ? consistency.headCommitConsistency : consistency.parentCommitsConsistency;
 
       let skip = false;
-      if (mode === ConsistencyMode.Skip) {
+      if (mode === SyncConsistencyMode.Skip) {
         skip = true;
       }
-      if (mode === ConsistencyMode.AssumeConnectivity) {
+      if (mode === SyncConsistencyMode.AssumeConnectivity) {
         if (await dst.hasObject(head)) {
           // Commit already exists in the destination and we are assuming connectivity, so all of its dependencies (parent commits, trees, blobs) are assumed to also exist in the destination.
           // We can stop this traversal...
@@ -74,9 +74,9 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
   return commit;
 }
 
-async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: ConsistencyMode) {
+async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: SyncConsistencyMode) {
   //console.log(`Syncing tree ${treeHash}`);
-  if (consistency === ConsistencyMode.AssumeConnectivity) {
+  if (consistency === SyncConsistencyMode.AssumeConnectivity) {
     if (await dst.hasObject(treeHash)) {
       // Tree already exists in the destination and we are assuming connectivity, so all of its dependencies (other trees, blobs) are assumed to also exist in the destination.
       // We can stop this traversal...
@@ -99,9 +99,9 @@ async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consis
   await syncObject(src, dst, treeHash, consistency);
 }
 
-async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistency: ConsistencyMode) {
+async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistency: SyncConsistencyMode) {
   //console.log(`Syncing object ${hash}`);
-  if (consistency <= ConsistencyMode.AssumeObjectIntegrity) {
+  if (consistency <= SyncConsistencyMode.AssumeObjectIntegrity) {
     if (await dst.hasObject(hash)) {
       return;
     }
@@ -109,4 +109,11 @@ async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistenc
 
   const raw = await src.loadRawObject(hash);
   await dst.saveRawObject(hash, raw);
+}
+
+function defaultSyncConsistencyOptions(): SyncConsistencyOptions {
+  return {
+    headCommitConsistency: SyncConsistencyMode.AssumeConnectivity,
+    parentCommitsConsistency: SyncConsistencyMode.AssumeConnectivity,
+  };
 }

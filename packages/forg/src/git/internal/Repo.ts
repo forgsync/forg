@@ -51,18 +51,28 @@ export class Repo implements IRepo {
       this._initialized = true;
     }
     else {
+      // TODO: Make repo init idempotent in case a previous attempt failed halfway through and no other changes were made since.
       throw new Error('Repo is partially initialized. Delete first and try again or fix manually');
     }
   }
 
-  async listRefs(): Promise<string[]> {
+  async listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]> {
     this._ensureInitialized();
 
     const refs: string[] = [];
-    for (const node of await this._fs.list(new Path('refs'), { recursive: true })) {
-      if (node.kind === 'file') {
-        refs.push(node.path.value);
+    try {
+      for (const node of await this._fs.list(new Path(what), { recursive: true })) {
+        if (node.kind === 'file') {
+          refs.push(node.path.value);
+        }
       }
+    }
+    catch (error) {
+      if (error instanceof FSError && error.errno === Errno.ENOENT) {
+        return [];
+      }
+
+      throw error;
     }
 
     //console.log(`Found refs: ${JSON.stringify(refs)}`);

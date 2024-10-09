@@ -110,9 +110,24 @@ describe('Repo basics', () => {
     });
   });
 
-  test('listRefs', async () => {
+  test('listRefs heads', async () => {
     await repo.setRef('refs/heads/main', '0000000000000000000000000000000000000001');
-    const refs = await repo.listRefs();
-    expect(refs).toEqual(['refs/heads/main']);
+    await repo.setRef('refs/remotes/origin/main', '0000000000000000000000000000000000000002');
+
+    const headRefs = await repo.listRefs('refs/heads');
+    expect(headRefs).toEqual(['refs/heads/main']);
+  });
+
+  test('listRefs remotes', async () => {
+    await repo.setRef('refs/heads/main', '0000000000000000000000000000000000000001');
+    await repo.setRef('refs/remotes/origin/main', '0000000000000000000000000000000000000002');
+
+    const remoteRefs = await repo.listRefs('refs/remotes');
+    expect(remoteRefs).toEqual(['refs/remotes/origin/main']);
+  });
+
+  test('listRefs with missing ref parent folder', async () => {
+    const remoteRefs = await repo.listRefs('refs/remotes');
+    expect(remoteRefs).toEqual([]);
   });
 });

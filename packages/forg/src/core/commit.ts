@@ -6,20 +6,21 @@ import {
   updateRef,
 } from '../git';
 import createCommitterInfo from './createCommitterInfo';
-import { ForgBranch } from './model';
+import { ForgClientInfo } from './model';
 
 export async function commit(
   repo: IRepo,
-  branch: ForgBranch,
+  client: ForgClientInfo,
+  branchName: string,
   workingTree: WorkingTreeFolder,
   message: string,
 ): Promise<Hash> {
-  const ref = `remotes/${branch.client}/${branch.branchName}`;
+  const ref = `refs/remotes/${client.uuid}/${branchName}`;
   const parentCommitId = await repo.getRef(ref);
   if (parentCommitId === undefined) {
     throw new Error(`No ref '${ref}'`);
   }
-  const committer = createCommitterInfo(branch.client);
+  const committer = createCommitterInfo(client);
   const commitId = await createCommit(repo, workingTree, [parentCommitId], message, committer);
   await updateRef(repo, ref, commitId, committer, `commit: ${message}`);
 

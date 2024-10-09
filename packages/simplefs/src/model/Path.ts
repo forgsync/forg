@@ -92,6 +92,22 @@ export class Path {
     return true;
   }
 
+  // Called when serializing with JSON.stringify
+  toJSON() {
+    return this._value;
+  }
+
+  // Called from string interpolations and other use cases, e.g. ``const formatted = `${myPath}`; ``
+  toString() {
+    return JSON.stringify(this._value);
+  }
+
+  // Called when someone attempts to log this using `console.log` in Node.js
+  // See: https://stackoverflow.com/a/72577668
+  [Symbol.for('nodejs.util.inspect.custom')]() {
+    return JSON.stringify(this._value);
+  }
+
   static join(a: Path, b: Path): Path {
     if (b.value === '') {
       return a;
