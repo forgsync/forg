@@ -5,24 +5,25 @@ import {
   IRepo,
   loadCommitObject,
   loadTreeObject,
+  MissingObjectError,
   Mode,
 } from '../git';
-import { SyncConsistencyOptions, SyncConsistencyMode } from "./model";
+import { SyncOptions, SyncConsistencyMode } from "./model";
 
 /**
  * Low level primitive used to sync a commit and its dependencies between repo's.
- * This implementation regardless of whether `src` / `dst` are local / remote repo's, and as such this is used both for both `fetch` and `forcePush`.
+ * This implementation is symmetric regardless of whether `src` / `dst` are local / remote repo's, and as such this is used both for both `fetch` and `forcePush`.
  */
-export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, consistency: SyncConsistencyOptions = defaultSyncConsistencyOptions()): Promise<CommitObject> {
+export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions = defaultSyncConsistencyOptions()): Promise<CommitObject> {
   //console.log(`Syncing commit ${commitHash}`);
-  if (consistency.headCommitConsistency === SyncConsistencyMode.Skip) {
-    throw new Error(`Invalid headCommitConsistency consistency mode (${SyncConsistencyMode[consistency.headCommitConsistency]})`);
+  if (options.topCommitConsistency === SyncConsistencyMode.Skip) {
+    throw new Error(`Invalid headCommitConsistency consistency mode (${SyncConsistencyMode[options.topCommitConsistency]})`);
   }
 
-  if (consistency.headCommitConsistency < consistency.parentCommitsConsistency) {
+  if (options.topCommitConsistency < options.otherCommitsConsistency) {
     throw new Error(
-      `Invalid consistency options, expected headCommitConsistency (${SyncConsistencyMode[consistency.headCommitConsistency]}) ` +
-      `to be higher or equal to parentCommitsConsistency (${SyncConsistencyMode[consistency.parentCommitsConsistency]})`);
+      `Invalid consistency options, expected headCommitConsistency (${SyncConsistencyMode[options.topCommitConsistency]}) ` +
+      `to be higher or equal to parentCommitsConsistency (${SyncConsistencyMode[options.otherCommitsConsistency]})`);
   }
 
   // Step 1: Find all commits via parallel DFS
@@ -31,13 +32,14 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
   while (heads.length > 0) {
     const nextHeads: Hash[] = [];
     for (const head of heads) {
-      const mode = head === commitHash ? consistency.headCommitConsistency : consistency.parentCommitsConsistency;
+      const isTop = head === commitHash;
+      const mode = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
 
       let skip = false;
       if (mode === SyncConsistencyMode.Skip) {
         skip = true;
       }
-      if (mode === SyncConsistencyMode.AssumeConnectivity) {
+      else if (mode === SyncConsistencyMode.AssumeConnectivity) {
         if (await dst.hasObject(head)) {
           // Commit already exists in the destination and we are assuming connectivity, so all of its dependencies (parent commits, trees, blobs) are assumed to also exist in the destination.
           // We can stop this traversal...
@@ -46,8 +48,20 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
       }
 
       // Even if we decided to skip, still need to load the commit object in case this was the first commit, since we need to return the commit object in the end
-      if (!skip || head === commitHash) {
-        const commit = await loadCommitObject(src, head);
+      // TODO: Refactor, this has become a bit unwieldy
+      if (!skip || isTop) {
+        const skipOnError = options.allowShallow && !isTop;
+
+        let commit: CommitObject;
+        try {
+          commit = await loadCommitObject(src, head);
+        } catch (error) {
+          if (skipOnError && error instanceof MissingObjectError) {
+            continue;
+          }
+
+          throw error;
+        }
         allCommits.set(head, commit);
         if (!skip) {
           nextHeads.push(...commit.body.parents);
@@ -61,9 +75,24 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
   // Step 2: Go backwards through all commits we decided to scan. It is important to go backwards so that the objects are always connected at all times, including in case of an unexpected exit
   // (i.e. we never store an object until all dependencies are stored)
   for (const [curCommitHash, curCommit] of Array.from(allCommits).reverse()) {
-    const mode = curCommitHash === commitHash ? consistency.headCommitConsistency : consistency.parentCommitsConsistency;
-    await syncTree(src, dst, curCommit.body.tree, mode);
-    await syncObject(src, dst, curCommitHash, mode);
+    const isTop = curCommitHash === commitHash;
+    const mode = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
+
+    const skipOnError = options.allowShallow && !isTop;
+    try {
+      // NOTE: This may leave some orphaned files in the destination repo (when skipOnError is true), but they are harmless
+      // (and deleting them could be catastrophic in case another client had also just written them and expects them to stay. Since we cannot be sure nobody else relies on these files, we cannot delete).
+      // Deletion would only be possible from a separate, explicit and potentially destructive method to garbage-collect the destination repo.
+      await syncTree(src, dst, curCommit.body.tree, mode);
+      await syncObject(src, dst, curCommitHash, mode);
+    }
+    catch (error) {
+      if (skipOnError && error instanceof MissingObjectError) {
+        continue;
+      }
+
+      throw error;
+    }
   }
 
   const commit = allCommits.get(commitHash);
@@ -111,9 +140,10 @@ async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistenc
   await dst.saveRawObject(hash, raw);
 }
 
-function defaultSyncConsistencyOptions(): SyncConsistencyOptions {
+function defaultSyncConsistencyOptions(): SyncOptions {
   return {
-    headCommitConsistency: SyncConsistencyMode.AssumeConnectivity,
-    parentCommitsConsistency: SyncConsistencyMode.AssumeConnectivity,
+    topCommitConsistency: SyncConsistencyMode.AssumeConnectivity,
+    otherCommitsConsistency: SyncConsistencyMode.AssumeConnectivity,
+    allowShallow: true,
   };
 }

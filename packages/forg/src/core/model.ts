@@ -34,7 +34,7 @@ export enum SyncConsistencyMode {
   /**
    * If an object exists in the destination repo, assume that it is well-formed, but not that its dependencies are as well.
    * This can be costly, as it will mean at the very least an object existence check will be performed for all objects.
-   * This is an intermediate consistency mode between `OptimisticAssumeConnectivity` and `Pessimistic`.
+   * This is an intermediate consistency mode between `AssumeConnectivity` and `Pessimistic`.
    */
   AssumeObjectIntegrity = 2,
 
@@ -46,15 +46,24 @@ export enum SyncConsistencyMode {
   Pessimistic = 3
 }
 
-export interface SyncConsistencyOptions {
+export interface SyncOptions {
   /**
-   * Consistency mode when cloning the head commit. Defaults to `OptimisticAssumeConnectivity`.
-   * You can use a stronger consistency mode for the head commit than others when the integrity of the history is not as important as that of the head commit.
+   * Consistency mode when cloning the top commit.
+   * You can use a stronger consistency mode for the top commit than others (e.g. when the integrity of the history is not as important as that of the top commit).
+   * @default AssumeConnectivity
    */
-  headCommitConsistency: SyncConsistencyMode;
+  topCommitConsistency: SyncConsistencyMode;
 
   /**
-   * Consistency mode when cloning commits other than the head. Defaults to `OptimisticAssumeConnectivity`.
+   * Consistency mode when cloning commits other than the top commit.
+   * @default AssumeConnectivity
    */
-  parentCommitsConsistency: SyncConsistencyMode;
+  otherCommitsConsistency: SyncConsistencyMode;
+
+  /**
+   * Whether an incomplete commit history is acceptable. If set to true, sync will succeed even if one of the traversed commits in the source repo is incomplete (but the head commit must always exist).
+   * If false, the corresponding git error may bubble out (i.e. `MissingObjectError`).
+   * @default true
+   */
+  allowShallow: boolean;
 }

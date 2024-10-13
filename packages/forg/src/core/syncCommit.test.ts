@@ -57,7 +57,11 @@ describe('syncCommit', () => {
     await syncCommit(origin, local, commits.E);
     expect(await local.hasObject(commits.A)).toBe(false); // A still does NOT exist, since AssumeConnectivity will not traverse down to A if E already exists
 
-    await syncCommit(origin, local, commits.E, { headCommitConsistency: SyncConsistencyMode.AssumeObjectIntegrity, parentCommitsConsistency: SyncConsistencyMode.AssumeObjectIntegrity });
+    await syncCommit(origin, local, commits.E, {
+      topCommitConsistency: SyncConsistencyMode.AssumeObjectIntegrity,
+      otherCommitsConsistency: SyncConsistencyMode.AssumeObjectIntegrity,
+      allowShallow: false,
+    });
     expect(await local.hasObject(commits.A)).toBe(true); // A exists again after cloning with the higher consistency mode
   });
 });
