@@ -14,7 +14,7 @@ export interface ForgHeadBranch extends ForgBranchBase {
   kind: 'head',
 }
 
-export enum SyncConsistencyMode {
+export enum SyncCommitConsistency {
   /**
    * Skips copying entirely. This can be used to achieve something analogous to a git shallow clone when applied to `CloneConsistencyOptions.parentCommits`.
    */
@@ -52,13 +52,13 @@ export interface SyncOptions {
    * You can use a stronger consistency mode for the top commit than others (e.g. when the integrity of the history is not as important as that of the top commit).
    * @default AssumeConnectivity
    */
-  topCommitConsistency: SyncConsistencyMode;
+  topCommitConsistency: SyncCommitConsistency;
 
   /**
    * Consistency mode when cloning commits other than the top commit.
    * @default AssumeConnectivity
    */
-  otherCommitsConsistency: SyncConsistencyMode;
+  otherCommitsConsistency: SyncCommitConsistency;
 
   /**
    * Whether an incomplete commit history is acceptable. If set to true, sync will succeed even if one of the traversed commits in the source repo is incomplete (but the head commit must always exist).

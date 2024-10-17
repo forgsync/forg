@@ -2,7 +2,7 @@ import { Hash, Repo, createCommit, loadCommitObject, loadTreeObject } from '../g
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { syncCommit } from './syncCommit';
 import { InMemoryFS } from '@forgsync/simplefs';
-import { SyncConsistencyMode } from './model';
+import { SyncCommitConsistency } from './model';
 
 const encoder = new TextEncoder();
 describe('syncCommit', () => {
@@ -59,8 +59,8 @@ describe('syncCommit', () => {
     expect(await local.hasObject(commits.A)).toBe(false); // A still does NOT exist, since AssumeConnectivity will not traverse down to A if E already exists
 
     await syncCommit(origin, local, commits.E, {
-      topCommitConsistency: SyncConsistencyMode.AssumeObjectIntegrity,
-      otherCommitsConsistency: SyncConsistencyMode.AssumeObjectIntegrity,
+      topCommitConsistency: SyncCommitConsistency.AssumeObjectIntegrity,
+      otherCommitsConsistency: SyncCommitConsistency.AssumeObjectIntegrity,
       allowShallow: false,
     });
     expect(await local.hasObject(commits.A)).toBe(true); // A exists again after cloning with the higher consistency mode
