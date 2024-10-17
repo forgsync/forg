@@ -40,24 +40,25 @@ describe('forcePush', () => {
     const remote = new Repo(fs);
     await remote.init();
 
-    await forcePush(local, remote, TEST_REF);
-    expect(await remote.getRef(TEST_REF)).toBe(commits.E);
-    expect(await remote.hasObject(commits.E)).toBe(true);
-    expect(await remote.hasObject(commits.C)).toBe(true);
-    expect(await remote.hasObject(commits.A)).toBe(true);
-    expect(await remote.hasObject(commits.D)).toBe(false);
-    expect(await remote.hasObject(commits.B)).toBe(false);
+    for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
+      await forcePush(local, remote, TEST_REF);
+      expect(await remote.getRef(TEST_REF)).toBe(commits.E);
+      expect(await remote.hasObject(commits.E)).toBe(true);
+      expect(await remote.hasObject(commits.C)).toBe(true);
+      expect(await remote.hasObject(commits.A)).toBe(true);
+      expect(await remote.hasObject(commits.D)).toBe(false);
+      expect(await remote.hasObject(commits.B)).toBe(false);
 
-    const remoteReflog = await remote.getReflog(TEST_REF);
-    expect(remoteReflog).toEqual<ReflogEntry[]>([
-      {
-        previousCommit: undefined,
-        newCommit: commits.E,
-        person: dummyPerson(),
-        description: 'push (force): E',
-      },
-    ]);
-
+      const remoteReflog = await remote.getReflog(TEST_REF);
+      expect(remoteReflog).toEqual<ReflogEntry[]>([
+        {
+          previousCommit: undefined,
+          newCommit: commits.E,
+          person: dummyPerson(),
+          description: 'push (force): E',
+        },
+      ]);
+    }
 
     // A -- B
     //  \

@@ -1,6 +1,7 @@
 import {
   IReadOnlyRepo,
   IRepo,
+  loadCommitObject,
   updateRef,
 } from '../git';
 import { SyncOptions } from './model';
@@ -13,6 +14,11 @@ export async function forcePush(local: IReadOnlyRepo, origin: IRepo, ref: string
     throw new Error(`Could not resolve ref ${ref} in local repo`);
   }
 
-  const pushedHead = await syncCommit(local, origin, commitHash, options);
-  await updateRef(origin, ref, commitHash, pushedHead.body.author, `push (force): ${pushedHead.body.message}`);
+  await syncCommit(local, origin, commitHash, options);
+
+  const remoteRefHash = await origin.getRef(ref);
+  if (remoteRefHash !== commitHash) {
+    const commit = await loadCommitObject(local, commitHash);
+    await updateRef(origin, ref, commitHash, commit.body.author, `push (force): ${commit.body.message}`);
+  }
 }

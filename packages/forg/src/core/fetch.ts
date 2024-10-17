@@ -1,8 +1,8 @@
 import {
-  CommitObject,
   Hash,
   IReadOnlyRepo,
   IRepo,
+  loadCommitObject,
   MissingObjectError,
   updateRef,
 } from '../git';
@@ -39,15 +39,12 @@ export async function fetchRef(origin: IReadOnlyRepo, local: IRepo, ref: string,
   //console.log(`Fetching ${ref}`);
   const remoteReflog = await origin.getReflog(ref);
   const remoteRefHash = await origin.getRef(ref);
-  let fetchedHead: { oid: Hash, commit: CommitObject } | undefined = undefined;
+  let fetchedCommitHash: Hash | undefined = undefined;
 
   if (remoteRefHash) {
     try {
-      const commit = await syncCommit(origin, local, remoteRefHash, options);
-      fetchedHead = {
-        oid: remoteRefHash,
-        commit,
-      };
+      await syncCommit(origin, local, remoteRefHash, options);
+      fetchedCommitHash = remoteRefHash;
     }
     catch (error) {
       if (error instanceof MissingObjectError) {
@@ -59,21 +56,20 @@ export async function fetchRef(origin: IReadOnlyRepo, local: IRepo, ref: string,
     }
   }
 
-  if (fetchedHead === undefined) {
+  if (fetchedCommitHash === undefined) {
     for (let i = remoteReflog.length - 1; i >= 0; i--) {
       const reflogEntry = remoteReflog[i];
       try {
-        const commit = await syncCommit(origin, local, reflogEntry.newCommit, options);
-        fetchedHead = {
-          oid: reflogEntry.newCommit,
-          commit,
-        };
+        await syncCommit(origin, local, reflogEntry.newCommit, options);
+        fetchedCommitHash = reflogEntry.newCommit;
         break;
       }
       catch (error) {
         if (error instanceof MissingObjectError) {
           // If we couldn't fetch this commit in its entirety (e.g. perhaps we are missing one blob from one of the parent commits, but also possibly because even the commit object is missing)
           // we can still try other commits based on the reflog. This can help in cases where another client pushed their changes out-of-order such that some files were updated to the remote, but not all.
+          // Note that using the reflog for this is only acceptable because of the Rules of Forg, specifically that clients MUST NOT rewrite history, ever.
+          // Therefore we know that all reflog entries are certainly part of the ref history and we just couldn't get the latest commit, rather an older one.
         } else {
           throw error;
         }
@@ -81,9 +77,13 @@ export async function fetchRef(origin: IReadOnlyRepo, local: IRepo, ref: string,
     }
   }
 
-  if (fetchedHead !== undefined) {
-    await updateRef(local, ref, fetchedHead.oid, fetchedHead.commit.body.author, `fetch: ${fetchedHead.commit.body.message}`);
-    return fetchedHead.oid;
+  if (fetchedCommitHash !== undefined) {
+    const localRefHash = await local.getRef(ref);
+    if (localRefHash !== fetchedCommitHash) {
+      const commit = await loadCommitObject(local, fetchedCommitHash);
+      await updateRef(local, ref, fetchedCommitHash, commit.body.author, `fetch: ${commit.body.message}`);
+    }
+    return fetchedCommitHash;
   }
 
   return undefined;
