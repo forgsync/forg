@@ -12,9 +12,9 @@ import { SyncOptions, SyncConsistencyMode } from "./model";
 
 /**
  * Low level primitive used to sync a commit and its dependencies between repo's.
- * This implementation is symmetric regardless of whether `src` / `dst` are local / remote repo's, and as such this is used both for both `fetch` and `forcePush`.
+ * This implementation is symmetric regardless of whether `src` / `dst` are local / remote repo's, and as such this is used for both `fetch` and `forcePush`.
  */
-export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions = defaultSyncConsistencyOptions()): Promise<void> {
+export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions = defaultSyncOptions()): Promise<void> {
   //console.log(`Syncing commit ${commitHash}`);
   if (options.topCommitConsistency === SyncConsistencyMode.Skip) {
     throw new Error(`Invalid headCommitConsistency (${SyncConsistencyMode[options.topCommitConsistency]})`);
@@ -33,24 +33,32 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
 
   // Step 2: Sync commit objects backwards. It is important to go backwards (older ones first) so that the git graph remains connected at all times,
   // (i.e. we never store an object until all dependencies are stored, including in case of an unexpected exit)
-  for (const curCommitHash of commitsToSync.reverse()) {
-    const isTop = curCommitHash === commitHash;
+  for (const commit of commitsToSync.reverse()) {
+    const isTop = commit.oid === commitHash;
     const consistency = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
-    await syncObject(src, dst, curCommitHash, consistency);
+    await syncObject(src, dst, commit.oid, consistency);
   }
+
+  // Future: Store the list of shallow commits that we ended up with (e.g. `commitsToSync.filter(c => c.shallow)`) in file `/shallow`, but only in the local repo. See: https://git-scm.com/docs/shallow
+  // TODO: Figure out how to know whether dst is indeed a local repo. We don't want to manage a `shallow` file in a remote repo during a forcePush, that wouldn't work with our concurrency model.
 }
 
 /**
  * Walks the history starting from `commitHash`, syncs each tree found along the way, and keeps going until we are done or,
  * if `options.allowShallow` is true, until we cannot go further (e.g. because some objects are missing in src, possibly as a result of a deliberate history truncation).
  */
-async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions): Promise<Hash[]> {
-  const allCommits: Hash[] = [];
-  let heads = [commitHash];
+async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions): Promise<{ oid: Hash, shallow: boolean }[]> {
+  const allCommits: { oid: Hash, shallow: boolean }[] = [];
+
+  interface SearchHead {
+    referencedByCommitIndex: number | undefined;
+    oid: Hash;
+  }
+  let heads: SearchHead[] = [{ referencedByCommitIndex: undefined, oid: commitHash }];
   while (heads.length > 0) {
-    const nextHeads: Hash[] = [];
+    const nextHeads: SearchHead[] = [];
     for (const head of heads) {
-      const isTop = head === commitHash;
+      const isTop = head.oid === commitHash;
       const consistency = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
 
       let includeInSync: boolean;
@@ -59,7 +67,15 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
       }
       else if (consistency === SyncConsistencyMode.AssumeConnectivity) {
         // If commit already exists in the destination and we are assuming connectivity, then we can assume that all of its dependencies (parent commits, trees, blobs) also exist in the destination.
-        includeInSync = !await dst.hasObject(head);
+        //
+        // Future: it may be interesting to support a sync mode where we would assume graph connectivity, but would also try to deepen the history at dst in case it is currently a shallower copy than the src.
+        // This would really only be meaningful during a `fetch` operation in the case where the remote data provider contained partial data in a previous `fetch` attempt, which would have resulted in a shallow fetch.
+        // Right now, that would lead to a local copy that would forever be shallow and missing history from the remote.
+        // NOTE: Use of git `shallow` file may be useful here to know which commits are known to be missing parents in a local repo, see: https://git-scm.com/docs/shallow
+        // To do that, we would have to traverse the commit history at dst until we find the cutoff point, and then resume attempting to sync from there.
+        // To do that efficiently, we should consider doing that traversal using as much local data as we have (which could be in either `src` or `dst` depending on the flow), and reducing the amount of data transferred from a remote repo.
+        // This would be important to achieve eventual consistency and complete history rehydration after a partial failure e.g. due to out-of-order writes by another party.
+        includeInSync = !await dst.hasObject(head.oid);
       }
       else {
         includeInSync = true;
@@ -70,7 +86,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
 
         let commit: CommitObject;
         try {
-          commit = await loadCommitObject(src, head);
+          commit = await loadCommitObject(src, head.oid);
 
           // NOTE: This may leave orphaned files in the destination repo (in case we fail before all commit objects have been written, or if we encounter a tree with missing objects).
           // Such orphaned files are harmless (and deleting them could be catastrophic in case another client had also just written them and expects them to stay. Since we cannot be sure nobody else relies on these files, we cannot delete).
@@ -78,14 +94,20 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
           await syncTree(src, dst, commit.body.tree, consistency);
         } catch (error) {
           if (skipOnError && error instanceof MissingObjectError) {
+            if (head.referencedByCommitIndex !== undefined) {
+              allCommits[head.referencedByCommitIndex].shallow = true;
+            }
             continue;
           }
 
           throw error;
         }
 
-        allCommits.push(head);
-        nextHeads.push(...commit.body.parents);
+        nextHeads.push(...commit.body.parents.map(parent => ({ referencedByCommitIndex: allCommits.length, oid: parent })));
+        allCommits.push({
+          oid: head.oid,
+          shallow: false, // Assume initially that it won't be shallow, but it may become so if we later find an incomplete parent commit
+        });
       }
     }
 
@@ -132,7 +154,7 @@ async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistenc
   await dst.saveRawObject(hash, raw);
 }
 
-function defaultSyncConsistencyOptions(): SyncOptions {
+function defaultSyncOptions(): SyncOptions {
   return {
     topCommitConsistency: SyncConsistencyMode.AssumeConnectivity,
     otherCommitsConsistency: SyncConsistencyMode.AssumeConnectivity,
