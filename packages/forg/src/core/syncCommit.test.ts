@@ -2,7 +2,7 @@ import { Hash, Repo, createCommit, loadCommitObject, loadTreeObject } from '../g
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { syncCommit } from './syncCommit';
 import { InMemoryFS } from '@forgsync/simplefs';
-import { SyncCommitConsistency } from './model';
+import { SyncConsistency } from './model';
 
 const encoder = new TextEncoder();
 describe('syncCommit', () => {
@@ -37,7 +37,12 @@ describe('syncCommit', () => {
     const local = new Repo(fs);
     await local.init();
 
-    await syncCommit(origin, local, commits.E);
+    await syncCommit(origin, local, commits.E, {
+      topCommitConsistency: SyncConsistency.AssumeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeConnectivity,
+      allowShallow: true,
+      attemptDeepen: false,
+    });
     expect(await local.hasObject(commits.E)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(true);
     expect(await local.hasObject(commits.A)).toBe(true);
@@ -50,18 +55,29 @@ describe('syncCommit', () => {
     const local = new Repo(fs);
     await local.init();
 
-    await syncCommit(origin, local, commits.E);
+    await syncCommit(origin, local, commits.E, {
+      topCommitConsistency: SyncConsistency.AssumeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeConnectivity,
+      allowShallow: true,
+      attemptDeepen: false,
+    });
     expect(await local.hasObject(commits.A)).toBe(true); // A exists after cloning
 
     // Delete A in local repo, then try cloning again with default consistency options
     await local.deleteObject(commits.A);
-    await syncCommit(origin, local, commits.E);
+    await syncCommit(origin, local, commits.E, {
+      topCommitConsistency: SyncConsistency.AssumeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeConnectivity,
+      allowShallow: true,
+      attemptDeepen: false,
+    });
     expect(await local.hasObject(commits.A)).toBe(false); // A still does NOT exist, since AssumeConnectivity will not traverse down to A if E already exists
 
     await syncCommit(origin, local, commits.E, {
-      topCommitConsistency: SyncCommitConsistency.AssumeObjectIntegrity,
-      otherCommitsConsistency: SyncCommitConsistency.AssumeObjectIntegrity,
-      allowShallow: false,
+      topCommitConsistency: SyncConsistency.AssumeObjectIntegrity,
+      otherCommitsConsistency: SyncConsistency.AssumeObjectIntegrity,
+      allowShallow: true,
+      attemptDeepen: false,
     });
     expect(await local.hasObject(commits.A)).toBe(true); // A exists again after cloning with the higher consistency mode
   });
@@ -73,7 +89,12 @@ describe('syncCommit', () => {
 
     await origin.deleteObject(commits.A);
 
-    await syncCommit(origin, local, commits.E);
+    await syncCommit(origin, local, commits.E, {
+      topCommitConsistency: SyncConsistency.AssumeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeConnectivity,
+      allowShallow: true,
+      attemptDeepen: false,
+    });
     expect(await local.hasObject(commits.E)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(true);
     expect(await local.hasObject(commits.A)).toBe(false); // We ended up with a shallow sync because commit A was missing in the origin!
@@ -89,9 +110,29 @@ describe('syncCommit', () => {
     const fileHash = treeE.body['someFile.txt'].hash;
     await origin.deleteObject(fileHash);
 
-    await syncCommit(origin, local, commits.E);
+    await syncCommit(origin, local, commits.E, {
+      topCommitConsistency: SyncConsistency.AssumeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeConnectivity,
+      allowShallow: true,
+      attemptDeepen: false,
+    });
     expect(await local.hasObject(commits.E)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(false); // We ended up with a shallow sync because commit C was incomplete in the origin!
     expect(await local.hasObject(commits.A)).toBe(false);
+  });
+
+  test('not shallow explodes', async () => {
+    const fs = new InMemoryFS();
+    const local = new Repo(fs);
+    await local.init();
+
+    await origin.deleteObject(commits.A);
+
+    await expect(() => syncCommit(origin, local, commits.E, {
+      topCommitConsistency: SyncConsistency.AssumeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeConnectivity,
+      allowShallow: false,
+      attemptDeepen: false,
+    })).rejects.toThrow();
   });
 });

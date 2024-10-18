@@ -8,22 +8,22 @@ import {
   MissingObjectError,
   Mode,
 } from '../git';
-import { SyncOptions, SyncCommitConsistency } from "./model";
+import { SyncOptions, SyncConsistency } from "./model";
 
 /**
  * Low level primitive used to sync a commit and its dependencies between repo's.
  * This implementation is symmetric regardless of whether `src` / `dst` are local / remote repo's, and as such this is used for both `fetch` and `forcePush`.
  */
-export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions = defaultSyncOptions()): Promise<void> {
+export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions): Promise<void> {
   //console.log(`Syncing commit ${commitHash}`);
-  if (options.topCommitConsistency === SyncCommitConsistency.Skip) {
-    throw new Error(`Invalid headCommitConsistency (${SyncCommitConsistency[options.topCommitConsistency]})`);
+  if (options.topCommitConsistency === SyncConsistency.Skip) {
+    throw new Error(`Invalid headCommitConsistency (${SyncConsistency[options.topCommitConsistency]})`);
   }
 
   if (options.topCommitConsistency < options.otherCommitsConsistency) {
     throw new Error(
-      `Invalid consistency options, expected headCommitConsistency (${SyncCommitConsistency[options.topCommitConsistency]}) ` +
-      `to be higher or equal to otherCommitsConsistency (${SyncCommitConsistency[options.otherCommitsConsistency]})`);
+      `Invalid consistency options, expected headCommitConsistency (${SyncConsistency[options.topCommitConsistency]}) ` +
+      `to be higher or equal to otherCommitsConsistency (${SyncConsistency[options.otherCommitsConsistency]})`);
   }
 
   // Step 1: Walk the commit history and sync all the trees that we find along the way, but do not sync the commit objects yet. We will do that in step 2.
@@ -39,8 +39,8 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
     await syncObject(src, dst, commit.oid, consistency);
   }
 
-  // Future: Store the list of shallow commits that we ended up with (e.g. `commitsToSync.filter(c => c.shallow)`) in file `/shallow`, but only in the local repo. See: https://git-scm.com/docs/shallow
-  // TODO: Figure out how to know whether dst is indeed a local repo. We don't want to manage a `shallow` file in a remote repo during a forcePush, that wouldn't work with our concurrency model.
+  // Future: support `options.attemptDeepen`.
+  // Future: Consider storing the list of shallow commits that we ended up with (e.g. `commitsToSync.filter(c => c.shallow)`) in file `/shallow`, but only in the local repo. See: https://git-scm.com/docs/shallow
 }
 
 /**
@@ -62,10 +62,10 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
       const consistency = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
 
       let includeInSync: boolean;
-      if (consistency === SyncCommitConsistency.Skip) {
+      if (consistency === SyncConsistency.Skip) {
         includeInSync = false;
       }
-      else if (consistency === SyncCommitConsistency.AssumeConnectivity) {
+      else if (consistency === SyncConsistency.AssumeConnectivity) {
         // If commit already exists in the destination and we are assuming connectivity, then we can assume that all of its dependencies (parent commits, trees, blobs) also exist in the destination.
         //
         // Future: it may be interesting to support a sync mode where we would assume graph connectivity, but would also try to deepen the history at dst in case it is currently a shallower copy than the src.
@@ -117,9 +117,9 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
   return allCommits;
 }
 
-async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: SyncCommitConsistency): Promise<void> {
+async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: SyncConsistency): Promise<void> {
   //console.log(`Syncing tree ${treeHash}`);
-  if (consistency === SyncCommitConsistency.AssumeConnectivity) {
+  if (consistency === SyncConsistency.AssumeConnectivity) {
     if (await dst.hasObject(treeHash)) {
       // Tree already exists in the destination and we are assuming connectivity, so all of its dependencies (other trees, blobs) are assumed to also exist in the destination.
       // We can stop this traversal...
@@ -142,9 +142,9 @@ async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consis
   await syncObject(src, dst, treeHash, consistency);
 }
 
-async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistency: SyncCommitConsistency): Promise<void> {
+async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistency: SyncConsistency): Promise<void> {
   //console.log(`Syncing object ${hash}`);
-  if (consistency <= SyncCommitConsistency.AssumeObjectIntegrity) {
+  if (consistency <= SyncConsistency.AssumeObjectIntegrity) {
     if (await dst.hasObject(hash)) {
       return;
     }
@@ -152,12 +152,4 @@ async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistenc
 
   const raw = await src.loadRawObject(hash);
   await dst.saveRawObject(hash, raw);
-}
-
-function defaultSyncOptions(): SyncOptions {
-  return {
-    topCommitConsistency: SyncCommitConsistency.AssumeConnectivity,
-    otherCommitsConsistency: SyncCommitConsistency.AssumeConnectivity,
-    allowShallow: true,
-  };
 }

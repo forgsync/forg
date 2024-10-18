@@ -14,7 +14,7 @@ export interface ForgHeadBranch extends ForgBranchBase {
   kind: 'head',
 }
 
-export enum SyncCommitConsistency {
+export enum SyncConsistency {
   /**
    * Skips copying entirely. This can be used to achieve something analogous to a git shallow clone when applied to `CloneConsistencyOptions.parentCommits`.
    */
@@ -52,18 +52,24 @@ export interface SyncOptions {
    * You can use a stronger consistency mode for the top commit than others (e.g. when the integrity of the history is not as important as that of the top commit).
    * @default AssumeConnectivity
    */
-  topCommitConsistency: SyncCommitConsistency;
+  topCommitConsistency: SyncConsistency;
 
   /**
    * Consistency mode when cloning commits other than the top commit.
    * @default AssumeConnectivity
    */
-  otherCommitsConsistency: SyncCommitConsistency;
+  otherCommitsConsistency: SyncConsistency;
 
   /**
-   * Whether an incomplete commit history is acceptable. If set to true, sync will succeed even if one of the traversed commits in the source repo is incomplete (but the head commit must always exist).
+   * Whether an incomplete commit history in the src repo is acceptable. If set to true, sync will succeed even if one of the traversed commits in the source repo is incomplete (but the head commit must always exist).
    * If false, the corresponding git error may bubble out (i.e. `MissingObjectError`).
    * @default true
    */
   allowShallow: boolean;
+
+  /**
+   * Whether to attempt to deepen the history in the destination, useful to achieve eventual consistency when a previous sync specified `allowShallow` true.
+   * This comes at a perf penalty, and the local repo will have to be traversed all the way in order to find all shallow commits.
+   */
+  attemptDeepen: boolean;
 }
