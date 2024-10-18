@@ -6,15 +6,39 @@ import {
 import { SyncConsistency } from './model';
 import { syncRef, SyncRefOptions } from './syncRef';
 
-export async function forcePush(src: IReadOnlyRepo, dst: IRepo, ref: string): Promise<Hash> {
+export enum PushConsistency {
+  Pessimistic,
+  Balanced,
+  Optimistic,
+}
+
+export async function forcePush(src: IReadOnlyRepo, dst: IRepo, ref: string, consistency: PushConsistency): Promise<Hash> {
   //console.log(`Pushing ref '${ref}'`);
+
+  let topCommitConsistency: SyncConsistency;
+  let otherCommitsConsistency: SyncConsistency;
+  switch (consistency) {
+    default:
+    case PushConsistency.Pessimistic:
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.Pessimistic;
+      break;
+    case PushConsistency.Balanced:
+      // Destination repo may not be consistent (e.g. another party could have deleted objects that we care about), so ensure we are pushing all that matter at laest for the top commit
+      topCommitConsistency = SyncConsistency.AssumeObjectIntegrity;
+      otherCommitsConsistency = SyncConsistency.AssumeConnectivity;
+      break;
+    case PushConsistency.Optimistic:
+      topCommitConsistency = SyncConsistency.AssumeConnectivity;
+      otherCommitsConsistency = SyncConsistency.AssumeConnectivity;
+      break;
+  }
+
   const syncRefOptions: SyncRefOptions = {
     attemptRecoveryFromSrcReflog: false, // Local repo should always be consistent, so there's no need to leverage reflog
     reflogOperationName: 'push (force)',
     commitSyncOptions: {
-      // Destination repo may not be consistent (e.g. another party could have deleted objects that we care about), so ensure we are pushing all that matter
-      topCommitConsistency: SyncConsistency.AssumeObjectIntegrity,
-      otherCommitsConsistency: SyncConsistency.AssumeConnectivity,
+      topCommitConsistency,
+      otherCommitsConsistency,
       allowShallow: true, // Because the local repo could be shallow as a result of a previous shallow fetch
 
       // TODO: It seems safe to leave this as false. Example scenario that would seem interesting, but even then we wouldn't need attemptDeepen == true:
