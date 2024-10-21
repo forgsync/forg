@@ -1,6 +1,6 @@
 import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
-import { FetchConsistency, fetchRef, fetchRefs } from './fetch';
+import { FetchMode, fetchRef, fetchRefs } from './fetch';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 const MY_CLIENT_UUID = 'client1';
@@ -41,7 +41,7 @@ describe('fetch', () => {
       await local.init();
 
       for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
-        const result = await fetchRef(origin, local, TEST_REF, FetchConsistency.Balanced);
+        const result = await fetchRef(origin, local, TEST_REF, FetchMode.FastEventualConsistent);
         expect(result).toBe(commits.E);
         expect(await local.getReflog(TEST_REF)).toEqual<ReflogEntry[]>([
           {
@@ -61,7 +61,7 @@ describe('fetch', () => {
       const local = new Repo(fs);
       await local.init();
 
-      await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchConsistency.Balanced);
+      await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchMode.FastEventualConsistent);
       expect(await local.getRef(TEST_REF)).toBe(commits.E);
       expect(await local.hasObject(commits.E)).toBe(true);
       expect(await local.hasObject(commits.C)).toBe(true);
@@ -75,7 +75,7 @@ describe('fetch', () => {
       const local = new Repo(fs);
       await local.init();
 
-      await fetchRefs(origin, local, { uuid: MY_CLIENT_UUID }, FetchConsistency.Balanced);
+      await fetchRefs(origin, local, { uuid: MY_CLIENT_UUID }, FetchMode.FastEventualConsistent);
       expect(await local.getRef(TEST_REF)).toBeUndefined();
     });
 
@@ -86,7 +86,7 @@ describe('fetch', () => {
 
       await origin.deleteObject(commits.E); // ref still points here, but we delete the object (e.g. simulate that this wasn't uploaded yet to the remote)
 
-      await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchConsistency.Balanced); // would attempt to sync commit E, which would fail, and then falls back to reflog -- the next entry would be commit D
+      await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchMode.FastEventualConsistent); // would attempt to sync commit E, which would fail, and then falls back to reflog -- the next entry would be commit D
       expect(await local.getRef(TEST_REF)).toBe(commits.D);
       expect(await local.hasObject(commits.D)).toBe(true);
       expect(await local.hasObject(commits.C)).toBe(true);

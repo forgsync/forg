@@ -1,6 +1,6 @@
 import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
-import { forcePush, PushConsistency } from './forcePush';
+import { forcePush, PushMode } from './forcePush';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 const TEST_REF = 'refs/remotes/client1/main';
@@ -41,7 +41,7 @@ describe('forcePush', () => {
     await remote.init();
 
     for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
-      await forcePush(local, remote, TEST_REF, PushConsistency.Balanced);
+      await forcePush(local, remote, TEST_REF, PushMode.Fast);
       expect(await remote.getRef(TEST_REF)).toBe(commits.E);
       expect(await remote.hasObject(commits.E)).toBe(true);
       expect(await remote.hasObject(commits.C)).toBe(true);
@@ -69,7 +69,7 @@ describe('forcePush', () => {
     await commit('F', [commits.D]);
     await commit('G', [commits.D, commits.F], TEST_REF);
 
-    await forcePush(local, remote, TEST_REF, PushConsistency.Balanced); // Now D, F and G should appear in the remote
+    await forcePush(local, remote, TEST_REF, PushMode.Fast); // Now D, F and G should appear in the remote
     expect(await remote.hasObject(commits.D)).toBe(true);
     expect(await remote.hasObject(commits.F)).toBe(true);
     expect(await remote.hasObject(commits.G)).toBe(true);

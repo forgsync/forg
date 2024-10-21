@@ -6,30 +6,56 @@ import {
 import { SyncConsistency } from './model';
 import { syncRef, SyncRefOptions } from './syncRef';
 
-export enum PushConsistency {
-  Pessimistic,
-  Balanced,
-  Optimistic,
+export enum PushMode {
+  /**
+   * Assumes a fully connected graph for all objects that exist in the remote. This is the recommended default in most cases.
+   */
+  Fast,
+
+  /**
+   * Ensures that the top commit's tree and the tree's dependencies actually exist in the destination,
+   * but assumes a connected graph for other commits. This means that if files were randomly deleted in the remote,
+   * we guarantee that at least the top commit contents will be salvageable after this, but not necessarily its history.
+   */
+  FullSyncTopCommit,
+
+  /**
+   * Ensures that every referenced object actually exists in the destination.
+   * This can be very slow, and generally is only useful to restore a bad remote after files were catastrophically deleted.
+   */
+  FullSyncAll,
+
+  /**
+   * Overwrites every object in the destination.
+   * This is equivalent to a fresh clone, and is rarely if ever useful.
+   */
+  OverwriteAll,
+
+  /**
+   * Recommended default, equals to `Fast`.
+   */
+  Default = Fast,
 }
 
-export async function forcePush(src: IReadOnlyRepo, dst: IRepo, ref: string, consistency: PushConsistency): Promise<Hash> {
+export async function forcePush(src: IReadOnlyRepo, dst: IRepo, ref: string, mode: PushMode): Promise<Hash> {
   //console.log(`Pushing ref '${ref}'`);
 
   let topCommitConsistency: SyncConsistency;
   let otherCommitsConsistency: SyncConsistency;
-  switch (consistency) {
+  switch (mode) {
     default:
-    case PushConsistency.Pessimistic:
-      topCommitConsistency = otherCommitsConsistency = SyncConsistency.Pessimistic;
+    case PushMode.Fast:
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.AssumeTotalConnectivity;
       break;
-    case PushConsistency.Balanced:
-      // Destination repo may not be consistent (e.g. another party could have deleted objects that we care about), so ensure we are pushing all that matter at laest for the top commit
+    case PushMode.FullSyncTopCommit:
       topCommitConsistency = SyncConsistency.AssumeObjectIntegrity;
-      otherCommitsConsistency = SyncConsistency.AssumeConnectivity;
+      otherCommitsConsistency = SyncConsistency.AssumeTotalConnectivity;
       break;
-    case PushConsistency.Optimistic:
-      topCommitConsistency = SyncConsistency.AssumeConnectivity;
-      otherCommitsConsistency = SyncConsistency.AssumeConnectivity;
+    case PushMode.FullSyncAll:
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.AssumeObjectIntegrity;
+      break;
+    case PushMode.OverwriteAll:
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.Pessimistic;
       break;
   }
 
@@ -40,17 +66,6 @@ export async function forcePush(src: IReadOnlyRepo, dst: IRepo, ref: string, con
       topCommitConsistency,
       otherCommitsConsistency,
       allowShallow: true, // Because the local repo could be shallow as a result of a previous shallow fetch
-
-      // TODO: It seems safe to leave this as false. Example scenario that would seem interesting, but even then we wouldn't need attemptDeepen == true:
-      // - client2 fetched a partial git history of client1
-      // - client2 performed consolidation, and created a new merged commit from the heads of client2 and client1.
-      //   That merge commit now only has partial history (because the history of client1 was incomplete at the time of fetching)
-      // - client2 pushed the consolidated commit, and now the remote will also only have partial history
-      // - At a later point, client2 or any other client might fetch the commits that had been missing before. When pushing, we would ideally want to push those to the remote as well
-      // - Note: This is probably moot because if it is truly the case that said client was able to fetch the missing commits at some point, it must be because those commits made it to the remote, hence the remote isn't shallow anymore.
-      // 
-      // Therefore, it seems indeed safe to leave this as false. Hmmm.
-      attemptDeepen: false,
     },
   };
   return await syncRef(src, dst, ref, syncRefOptions);

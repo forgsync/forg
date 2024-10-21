@@ -41,7 +41,7 @@ export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, optio
 
   let syncedCommitHash: Hash | undefined = undefined;
   const oldDstRefCommitHash = await dst.getRef(ref);
-  if (options.commitSyncOptions.topCommitConsistency === SyncConsistency.AssumeConnectivity && oldDstRefCommitHash === srcRefCommitHash) {
+  if (options.commitSyncOptions.topCommitConsistency === SyncConsistency.AssumeTotalConnectivity && oldDstRefCommitHash === srcRefCommitHash) {
     // No-op: Destination is already here and we assume it to be fully connected
     return srcRefCommitHash;
   }
@@ -59,7 +59,7 @@ export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, optio
       for (let i = remoteReflog.length - 1; i >= 0; i--) {
         const reflogEntry = remoteReflog[i];
 
-        if (options.commitSyncOptions.topCommitConsistency === SyncConsistency.AssumeConnectivity && oldDstRefCommitHash === reflogEntry.newCommit) {
+        if (options.commitSyncOptions.topCommitConsistency === SyncConsistency.AssumeTotalConnectivity && oldDstRefCommitHash === reflogEntry.newCommit) {
           // No-op: Destination is already here and we assume it to be fully connected
           return reflogEntry.newCommit;
         }
