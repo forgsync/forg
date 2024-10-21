@@ -37,7 +37,7 @@ export enum PushMode {
   Default = Fast,
 }
 
-export async function forcePush(src: IReadOnlyRepo, dst: IRepo, ref: string, mode: PushMode): Promise<Hash> {
+export async function forcePushRef(src: IReadOnlyRepo, dst: IRepo, ref: string, mode: PushMode): Promise<Hash> {
   //console.log(`Pushing ref '${ref}'`);
 
   let topCommitConsistency: SyncConsistency;
