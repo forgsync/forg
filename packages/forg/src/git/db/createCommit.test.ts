@@ -1,6 +1,6 @@
-import { createCommit, updateRef } from './commits';
+import { createCommit } from './createCommit';
 import { Repo } from './Repo';
-import { Mode, ReflogEntry } from './model';
+import { Mode } from './model';
 import { CommitBody, loadBlobObject, loadCommitObject, loadTreeObject, TreeBody } from './objects';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -67,70 +67,5 @@ describe('createCommit', () => {
 
     const aBlobObject = await loadBlobObject(repo, '2e65efe2a145dda7ee51d1741299f848e5bf752e');
     expect(decoder.decode(aBlobObject.body)).toBe('a');
-  });
-});
-
-describe('updateRef', () => {
-  let repo: Repo;
-  beforeEach(async () => {
-    const fs = new InMemoryFS();
-    repo = new Repo(fs);
-    await repo.init();
-  });
-
-  test('initial commit', async () => {
-    expect(await repo.getRef('refs/main')).toBe(undefined);
-
-    await updateRef(
-      repo,
-      'refs/main',
-      '0000000000000000000000000000000000000001',
-      dummyPerson(),
-      'test reflog message',
-    );
-    expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000001');
-    expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([
-      {
-        previousCommit: undefined,
-        newCommit: '0000000000000000000000000000000000000001',
-        person: dummyPerson(),
-        description: 'test reflog message',
-      },
-    ]);
-  });
-
-  test('second commit', async () => {
-    expect(await repo.getRef('refs/main')).toBe(undefined);
-
-    await updateRef(
-      repo,
-      'refs/main',
-      '0000000000000000000000000000000000000001',
-      dummyPerson(),
-      'test reflog message 1',
-    );
-    await updateRef(
-      repo,
-      'refs/main',
-      '0000000000000000000000000000000000000002',
-      dummyPerson(),
-      'test reflog message 2',
-    );
-
-    expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000002');
-    expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([
-      {
-        previousCommit: undefined,
-        newCommit: '0000000000000000000000000000000000000001',
-        person: dummyPerson(),
-        description: 'test reflog message 1',
-      },
-      {
-        previousCommit: '0000000000000000000000000000000000000001',
-        newCommit: '0000000000000000000000000000000000000002',
-        person: dummyPerson(),
-        description: 'test reflog message 2',
-      },
-    ]);
   });
 });

@@ -4,7 +4,7 @@ import {
 } from '../git';
 import { ForgClientInfo } from "./model";
 import { tryParseForgRemoteRef } from './internal/tryParseForgRef';
-import { FetchMode, fetchRef } from './fetchRef';
+import { fetchRef, FetchMode } from '../git';
 
 /**
  * Fetches forg heads from the provided `remote` to the `local` repo.

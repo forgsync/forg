@@ -1,5 +1,5 @@
-import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../git';
-import { dummyPerson } from '../__testHelpers__/dummyPerson';
+import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../db';
+import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { FetchMode, fetchRef } from './fetchRef';
 import { InMemoryFS } from '@forgsync/simplefs';
 

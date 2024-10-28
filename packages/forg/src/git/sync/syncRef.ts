@@ -5,7 +5,7 @@ import {
   loadCommitObject,
   MissingObjectError,
   updateRef,
-} from '../git';
+} from '../db';
 import { syncCommit } from './syncCommit';
 import { SyncConsistency, SyncOptions } from "./model";
 

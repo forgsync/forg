@@ -2,7 +2,7 @@ import {
   Hash,
   IReadOnlyRepo,
   IRepo,
-} from '../git';
+} from '../db';
 import { SyncConsistency } from './model';
 import { syncRef, SyncRefOptions } from './syncRef';
 

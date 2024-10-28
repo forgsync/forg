@@ -7,8 +7,8 @@ import {
   loadTreeObject,
   MissingObjectError,
   Mode,
-} from '../git';
-import { SyncOptions, SyncConsistency } from "./model";
+} from '../db';
+import { SyncConsistency, SyncOptions } from "./model";
 
 /**
  * Low level primitive used to sync a commit and its dependencies between repo's.

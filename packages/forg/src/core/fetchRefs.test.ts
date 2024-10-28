@@ -1,7 +1,7 @@
 import { Hash, Repo, createCommit, updateRef } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { fetchRefs } from './fetchRefs';
-import { FetchMode } from './fetchRef';
+import { FetchMode } from '../git';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 const MY_CLIENT_UUID = 'client1';

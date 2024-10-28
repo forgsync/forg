@@ -1,5 +1,5 @@
-import { Hash, Repo, createCommit, loadCommitObject, loadTreeObject } from '../git';
-import { dummyPerson } from '../__testHelpers__/dummyPerson';
+import { Hash, Repo, createCommit, loadCommitObject, loadTreeObject } from '../db';
+import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { syncCommit } from './syncCommit';
 import { InMemoryFS } from '@forgsync/simplefs';
 import { SyncConsistency } from './model';
