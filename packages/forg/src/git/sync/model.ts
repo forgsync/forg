@@ -22,8 +22,9 @@ export enum SyncConsistency {
    * 
    * This mode is useful to achieve eventual consistency when fetching from a remote that had files written to out of order.
    * The first fetch attempts might result in a shallow git history, and a later fetch would then sync the remainder of the history that had been skipped the first time.
+   * NOTE: The term connectivity refers to the graph being connected, and has nothing to do with network connection conditions.
    */
-  AssumeCommitConnectivity = 2,
+  AssumeCommitTreeConnectivity = 2,
 
   /**
    * If an object exists in the destination repo, assume that it is well-formed, but not that its dependencies are as well.

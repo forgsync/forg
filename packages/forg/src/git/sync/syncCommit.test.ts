@@ -146,8 +146,8 @@ describe('syncCommit', () => {
     await origin.deleteObject(fileHash);
 
     await syncCommit(origin, local, commits.E, {
-      topCommitConsistency: SyncConsistency.AssumeCommitConnectivity,
-      otherCommitsConsistency: SyncConsistency.AssumeCommitConnectivity,
+      topCommitConsistency: SyncConsistency.AssumeCommitTreeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeCommitTreeConnectivity,
       allowShallow: true,
     });
     expect(await local.hasObject(commits.E)).toBe(true);
@@ -157,12 +157,12 @@ describe('syncCommit', () => {
     // Now make the origin complete again
     await origin.saveRawObject(fileHash, originalContent);
     await syncCommit(origin, local, commits.E, {
-      topCommitConsistency: SyncConsistency.AssumeCommitConnectivity,
-      otherCommitsConsistency: SyncConsistency.AssumeCommitConnectivity,
+      topCommitConsistency: SyncConsistency.AssumeCommitTreeConnectivity,
+      otherCommitsConsistency: SyncConsistency.AssumeCommitTreeConnectivity,
       allowShallow: true,
     });
     expect(await local.hasObject(commits.E)).toBe(true);
-    expect(await local.hasObject(commits.C)).toBe(true); // Now this should sync, even though commit E was already synced (thanks to us using AssumeCommitConnectivity instead of AssumeTotalConnectivity)
+    expect(await local.hasObject(commits.C)).toBe(true); // Now this should sync, even though commit E was already synced (thanks to us using AssumeCommitTreeConnectivity instead of AssumeTotalConnectivity)
     expect(await local.hasObject(commits.A)).toBe(true);
   });
 });

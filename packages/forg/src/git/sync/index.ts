@@ -1,2 +1,2 @@
-export { fetchRef, FetchMode } from './fetchRef';
+export { forceFetchRef, FetchMode } from './forceFetchRef';
 export { forcePushRef, PushMode } from './forcePushRef';

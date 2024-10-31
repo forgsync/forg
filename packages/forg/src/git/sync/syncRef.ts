@@ -20,7 +20,7 @@ export interface SyncRefOptions {
    * The prefix that will accompany reflog entries generated at the destination repo by this operation.
    * The reflog message will be formatted as `${reflogOperationName}: ${firstLine(commit.body.message)}`.
    */
-  reflogOperationName: 'fetch' | 'push (force)';
+  reflogOperationName: 'fetch (force)' | 'push (force)';
 
   /**
    * Options for syncing individual commits and associated objects.

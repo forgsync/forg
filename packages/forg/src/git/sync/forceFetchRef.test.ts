@@ -1,11 +1,11 @@
 import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../db';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
-import { FetchMode, fetchRef } from './fetchRef';
+import { FetchMode, forceFetchRef } from './forceFetchRef';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 const MY_CLIENT_UUID = 'client1';
 const TEST_REF = `refs/remotes/${MY_CLIENT_UUID}/main`;
-describe('fetchRef', () => {
+describe('forceFetchRef', () => {
   let origin: Repo;
   let commits: { [key: string]: Hash };
   beforeEach(async () => {
@@ -39,13 +39,13 @@ describe('fetchRef', () => {
     await local.init();
 
     for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
-      const result = await fetchRef(origin, local, TEST_REF, FetchMode.FastEventualConsistent);
+      const result = await forceFetchRef(origin, local, TEST_REF, FetchMode.FastEventualConsistent);
       expect(result).toBe(commits.E);
       expect(await local.getReflog(TEST_REF)).toEqual<ReflogEntry[]>([
         {
           previousCommit: undefined,
           newCommit: commits.E,
-          description: 'fetch: E',
+          description: 'fetch (force): E',
           person: dummyPerson(),
         },
       ]);

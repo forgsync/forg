@@ -4,7 +4,7 @@ import {
 } from '../git';
 import { ForgClientInfo } from "./model";
 import { tryParseForgRemoteRef } from './internal/tryParseForgRef';
-import { fetchRef, FetchMode } from '../git';
+import { forceFetchRef, FetchMode } from '../git';
 
 /**
  * Fetches forg heads from the provided `remote` to the `local` repo.
@@ -16,13 +16,13 @@ export async function fetchRefs(origin: IReadOnlyRepo, local: IRepo, client: For
     // Fetch all remote refs except for ours. Nobody else should touch our remote branch anyway in the remote repo (see The Rules of Forg)
     const refInfo = tryParseForgRemoteRef(ref);
     if (refInfo !== undefined && refInfo.client.uuid !== client.uuid) {
-      await fetchRef(origin, local, ref, mode);
+      await forceFetchRef(origin, local, ref, mode);
     }
   }
 
   // Fetch all head refs
   const headRefs = await origin.listRefs('refs/heads');
   for (const ref of headRefs) {
-    await fetchRef(origin, local, ref, mode);
+    await forceFetchRef(origin, local, ref, mode);
   }
 }

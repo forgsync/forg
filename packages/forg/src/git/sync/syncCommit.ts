@@ -83,7 +83,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
             dstCommit = await loadCommitObject(src, head);
           }
 
-          // Only sync the commit tree if we have to. For example, when using consistency mode `AssumeCommitConnectivity`, we can often skip this.
+          // Only sync the commit tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
           //
           // NOTE: This may leave orphaned files in the destination repo (in case we fail before all commit objects have been written, or if we encounter a tree with missing objects).
           // Such orphaned files are harmless (and deleting them could be catastrophic in case another client had also just written them and expects them to stay. Since we cannot be sure nobody else relies on these files, we cannot delete).
@@ -110,7 +110,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
 
 async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: SyncConsistency): Promise<void> {
   //console.log(`Syncing tree ${treeHash}`);
-  if (consistency <= SyncConsistency.AssumeCommitConnectivity) {
+  if (consistency <= SyncConsistency.AssumeCommitTreeConnectivity) {
     if (await dst.hasObject(treeHash)) {
       // Tree already exists in the destination and we are assuming connectivity, so all of its dependencies (other trees, blobs) are assumed to also exist in the destination.
       // We can stop this traversal...

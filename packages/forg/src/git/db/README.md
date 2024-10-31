@@ -1,4 +1,4 @@
-The low-level git implementation takes inspiration from and leverages
+The low-level git database implementation takes inspiration from and leverages
 parts of the open-source project es-git, available at https://github.com/es-git/es-git@5939f07143e0b8aa67d7464e6ec47754bebab347.
 
 A copy of the license is preserved below.
