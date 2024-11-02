@@ -117,16 +117,22 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
         continue;
       }
 
-      let dstCommit: CommitObject | undefined;
-      try {
-        dstCommit = await loadCommitObject(dst, head);
-      }
-      catch (error) {
-        if (error instanceof MissingObjectError) {
-          dstCommit = undefined;
+      let dstCommit: CommitObject | undefined = undefined;
+
+      // If we cannot assume object integrity, then we should not rely on anything about the destination, and we MUST use the src commit instead.
+      // But when we *do* trust object integrity on the destination, this is an efficient way to check for the obkject existence and to read it in one go.
+      // Since commit objects are small, this makes it conveniente to do.
+      if (consistency <= SyncConsistency.AssumeObjectIntegrity) {
+        try {
+          dstCommit = await loadCommitObject(dst, head);
         }
-        else {
-          throw error;
+        catch (error) {
+          if (error instanceof MissingObjectError) {
+            dstCommit = undefined;
+          }
+          else {
+            throw error;
+          }
         }
       }
 
@@ -136,6 +142,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
         continue;
       }
 
+      // Only sync the commit tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
       if (consistency >= SyncConsistency.AssumeObjectIntegrity || dstCommit === undefined) {
         const skipOnError = options.allowShallow && !isTop;
         try {
@@ -143,8 +150,6 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
             dstCommit = await loadCommitObject(src, head);
           }
 
-          // Only sync the commit tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
-          //
           // NOTE: This may leave orphaned files in the destination repo (in case we fail before all commit objects have been written, or if we encounter a tree with missing objects).
           // Such orphaned files are harmless (and deleting them could be catastrophic in case another client had also just written them and expects them to stay. Since we cannot be sure nobody else relies on these files, we cannot delete).
           // Deletion would only be possible from a separate, explicit and potentially destructive method to garbage-collect the destination repo.
