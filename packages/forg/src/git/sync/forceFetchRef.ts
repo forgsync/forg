@@ -5,9 +5,14 @@ import {
 } from '../db';
 import { syncRef, SyncRefOptions, SyncStrategy } from './syncRef';
 
-
 export type FetchStrategy = SyncStrategy.Fast | SyncStrategy.FastAndDeepen | SyncStrategy.FullSyncTopCommit | SyncStrategy.FullSyncAll | SyncStrategy.OverwriteAll;
-
+export const FetchStrategy: Record<string, FetchStrategy> = {
+  Fast: SyncStrategy.Fast,
+  FastAndDeepen: SyncStrategy.FastAndDeepen,
+  FullSyncTopCommit: SyncStrategy.FullSyncTopCommit,
+  FullSyncAll: SyncStrategy.FullSyncAll,
+  OverwriteAll: SyncStrategy.OverwriteAll,
+};
 /**
  * @returns the commit hash that was successfully fetched, if any. This method will first try to fetch the commit that the ref actually points to if it is a valid and complete commit,
  * but if that fails, falls back to using the remote reflog instead.

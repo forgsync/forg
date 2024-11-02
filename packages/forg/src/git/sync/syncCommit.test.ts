@@ -1,8 +1,7 @@
 import { Hash, Repo, createCommit, loadCommitObject, loadTreeObject } from '../db';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
-import { syncCommit } from './syncCommit';
+import { syncCommit, SyncConsistency } from './syncCommit';
 import { InMemoryFS } from '@forgsync/simplefs';
-import { SyncConsistency } from './model';
 
 const encoder = new TextEncoder();
 describe('syncCommit', () => {
