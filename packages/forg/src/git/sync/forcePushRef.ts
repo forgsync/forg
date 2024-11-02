@@ -3,7 +3,7 @@ import {
   IReadOnlyRepo,
   IRepo,
 } from '../db';
-import { SyncConsistency } from './model';
+import { SyncConsistency } from './syncCommit';
 import { syncRef, SyncRefOptions } from './syncRef';
 
 export enum PushMode {

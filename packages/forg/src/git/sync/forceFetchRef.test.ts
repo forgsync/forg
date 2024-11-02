@@ -39,7 +39,7 @@ describe('forceFetchRef', () => {
     await local.init();
 
     for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
-      const result = await forceFetchRef(origin, local, TEST_REF, FetchMode.FastEventualConsistent);
+      const result = await forceFetchRef(origin, local, TEST_REF, FetchMode.FastAndDeepen);
       expect(result).toBe(commits.E);
       expect(await local.getReflog(TEST_REF)).toEqual<ReflogEntry[]>([
         {

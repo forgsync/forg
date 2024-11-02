@@ -40,7 +40,7 @@ describe('fetchRefs', () => {
     const local = new Repo(fs);
     await local.init();
 
-    await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchMode.FastEventualConsistent);
+    await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchMode.FastAndDeepen);
     expect(await local.getRef(TEST_REF)).toBe(commits.E);
     expect(await local.hasObject(commits.E)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(true);
@@ -54,7 +54,7 @@ describe('fetchRefs', () => {
     const local = new Repo(fs);
     await local.init();
 
-    await fetchRefs(origin, local, { uuid: MY_CLIENT_UUID }, FetchMode.FastEventualConsistent);
+    await fetchRefs(origin, local, { uuid: MY_CLIENT_UUID }, FetchMode.FastAndDeepen);
     expect(await local.getRef(TEST_REF)).toBeUndefined();
   });
 
@@ -65,7 +65,7 @@ describe('fetchRefs', () => {
 
     await origin.deleteObject(commits.E); // ref still points here, but we delete the object (e.g. simulate that this wasn't uploaded yet to the remote)
 
-    await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchMode.FastEventualConsistent); // would attempt to sync commit E, which would fail, and then falls back to reflog -- the next entry would be commit D
+    await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID }, FetchMode.FastAndDeepen); // would attempt to sync commit E, which would fail, and then falls back to reflog -- the next entry would be commit D
     expect(await local.getRef(TEST_REF)).toBe(commits.D);
     expect(await local.hasObject(commits.D)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(true);

@@ -6,8 +6,7 @@ import {
   MissingObjectError,
   updateRef,
 } from '../db';
-import { syncCommit } from './syncCommit';
-import { SyncConsistency, SyncOptions } from "./model";
+import { syncCommit, SyncConsistency, SyncOptions } from './syncCommit';
 
 export interface SyncRefOptions {
   /**

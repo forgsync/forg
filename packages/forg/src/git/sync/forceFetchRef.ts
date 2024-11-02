@@ -3,7 +3,7 @@ import {
   IReadOnlyRepo,
   IRepo,
 } from '../db';
-import { SyncConsistency } from "./model";
+import { SyncConsistency } from "./syncCommit";
 import { syncRef, SyncRefOptions } from './syncRef';
 
 export enum FetchMode {
@@ -22,18 +22,33 @@ export enum FetchMode {
    * (e.g. perhaps because during a previous fetch the remote was missing some objects).
    * This is the recommended default.
    */
-  FastEventualConsistent,
+  FastAndDeepen,
+
+  /**
+   * Ensures that the top commit's tree and the tree's dependencies actually exist in the local repo,
+   * but assumes a connected graph for other commits. This means that if files were randomly deleted locally,
+   * we guarantee that the top commit contents will be complete after this (but not necessarily its history).
+   * This is mostly useless in a `fetch` scenario, since we can make stronger guarantees about the local filesystem integrity (e.g. no out-of-order writes).
+   */
+  FullSyncTopCommit,
+
+  /**
+   * Ensures that every referenced object actually exists in the local repo.
+   * This is mostly useless in a `fetch` scenario, since we can make stronger guarantees about the local filesystem integrity (e.g. no out-of-order writes).
+   */
+  FullSyncAll,
 
   /**
    * Overwrites every object in the local repo.
-   * This is only useful to recover if objects are tampered in the local repo (i.e. the contents of some objects would have to be invalid).
+   * This is mostly useless in a `fetch` scenario, since we can make stronger guarantees about the local filesystem integrity (e.g. no out-of-order writes),
+   * but it can be useful to recover if objects are tampered in the local repo (i.e. the contents of some objects would have to be invalid).
    */
   OverwriteAll,
 
   /**
-   * Recommended default, equals to `FastEventualConsistent`.
+   * Recommended default, equals to `FastAndDeepen`.
    */
-  Default = FastEventualConsistent,
+  Default = FastAndDeepen,
 }
 
 /**
@@ -43,17 +58,25 @@ export enum FetchMode {
 export async function forceFetchRef(remote: IReadOnlyRepo, local: IRepo, ref: string, mode: FetchMode): Promise<Hash> {
   //console.log(`Fetching ref '${ref}'`);
 
-  let consistency: SyncConsistency;
+  let topCommitConsistency: SyncConsistency;
+  let otherCommitsConsistency: SyncConsistency;
   switch (mode) {
     default:
     case FetchMode.Fast:
-      consistency = SyncConsistency.AssumeTotalConnectivity;
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.AssumeTotalConnectivity;
       break;
-    case FetchMode.FastEventualConsistent:
-      consistency = SyncConsistency.AssumeCommitTreeConnectivity;
+    case FetchMode.FastAndDeepen:
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.AssumeCommitTreeConnectivity;
+      break;
+    case FetchMode.FullSyncTopCommit:
+      topCommitConsistency = SyncConsistency.AssumeObjectIntegrity;
+      otherCommitsConsistency = SyncConsistency.AssumeTotalConnectivity;
+      break;
+    case FetchMode.FullSyncAll:
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.AssumeObjectIntegrity;
       break;
     case FetchMode.OverwriteAll:
-      consistency = SyncConsistency.AssumeObjectIntegrity;
+      topCommitConsistency = otherCommitsConsistency = SyncConsistency.Pessimistic;
       break;
   }
 
@@ -61,8 +84,8 @@ export async function forceFetchRef(remote: IReadOnlyRepo, local: IRepo, ref: st
     attemptRecoveryFromSrcReflog: true, // Remote repo may not be consistent (e.g. another party could have deleted objects that we care about, or objects may still be uploading out of order), and using reflog may allow us to fully get at least a previous commit tree even if it is not precisely the latest
     reflogOperationName: 'fetch (force)',
     commitSyncOptions: {
-      topCommitConsistency: consistency,
-      otherCommitsConsistency: consistency,
+      topCommitConsistency,
+      otherCommitsConsistency,
 
       // If some objects are missing in the remote, still attempt to sync as much as we can
       // TODO: Should this be an option? It may be non-obvious to the caller that a shallow history could ensue (though arguably they should know better, since this is integral to the functioning of Forg)
