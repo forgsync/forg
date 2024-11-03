@@ -122,7 +122,9 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
         // | /
         // A 
         //
-        // In this case we would traverse the graph as E, C, D, A, B, A. Notice A was done twice.
+        // In this case, when attempting to sync E, we would traverse the graph as E, C, D, A, B, A. Notice A was done twice.
+        // It is important that we end up with sequence E, C, D, B, A (A must come last, otherwise we would end up storing commits out of order before all dependencies have been stored).
+        //
         const existing = commits.get(head);
         if (existing !== undefined) {
           // Re-add it at the end since we now learned of another route that depends on this commit. But we don't need to sync it again...

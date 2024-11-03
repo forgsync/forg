@@ -71,6 +71,57 @@ export enum SyncStrategy {
    * This is only useful to recover if objects are tampered in the destination (i.e. the contents of some objects would have to be invalid). Otherwise, prefer `FullSyncAll` which does the same, but assumes object integrity and is therefore faster.
    */
   OverwriteAll,
+
+  ///////////////////////////////////
+  ///////////////////////////////////
+
+  /**
+   * The recommended default for `fetch` operations. This is equivalent to `FastAndDeepen`.
+   * This achieves eventual consistency, but requires traversing the entire commit history in the local repo (to check if the history is shallow and can be deepened from the destination).
+   * To optimize sync speed, you can use `DefaultForFetchFasterButRisky` some of the times, but it is still recommended to use `DefaultForFetch` at least every so often (e.g. once per day).
+   * See more in the comments for `Fastest`.
+   */
+  DefaultForFetch,
+
+  /**
+   * A faster option that is also recommended for `fetch` operations, but which does not achieve eventual consistency in all cases.
+   * This is equivalent to `Fastest`.
+   * If you use this, it is recommended that you still use `DefaultForFetch` periodically (for example, once a day) to ensure eventual consistency.
+   * See more in the comments for `Fastest`.
+   */
+  DefaultForFetchFasterButRisky,
+
+  ///////////////////////////////////
+  ///////////////////////////////////
+
+  /**
+   * The recommended default for `push` operations. This is equivalent to `FullSyncTopCommit`.
+   * This achieves a relaxed definition of eventual consistency, where we ensure that the `top` commit is synced fully (all blobs and trees are guaranteed to be synced),
+   * and commit history is partially synced (i.e. commit objects are synced, but not necessarily every blob and tree object of parent commits).
+   * The situations where commit history isn't fully synced are very rare and unlikely, but possible.
+   * For that reason, this is a reasonable choice in most practical scenarios.
+   * This can get very slow if the top commit has lots of objects (trees / blobs).
+   * 
+   * It is a good practice for consuming applications to allow the user to trigger a complete sync to recover under very specific situations.
+   * In those cases, `DefaultForPushSlowButSafe` is recommended.
+   * See more in the comments for `Fastest`.
+   */
+  DefaultForPush,
+
+  /**
+   * A faster option that is also recommended for `push` operations, but which does not achieve eventual consistency in important cases and could lead to an incomplete `top` commit
+   * (i.e. some blobs and/or trees could be missing in the destination repo even after a successful sync). That would only happen under unlikely (but possible) circumstances.
+   * If you use this, it is recommended that you still use `DefaultForPush` periodically (for example, once a day) to ensure eventual consistency.
+   * This is equivalent to `Fastest`. See more in the comments for `Fastest`.
+   */
+  DefaultForPushFasterButRisky,
+
+  /**
+   * This achieves eventual consistency for `push` operations, but at the cost of ensuring that every single object referenced in the src repo actually exists in the destination.
+   * This can get very slow for long commit histories and/or repo's with lots of objects.
+   * This is equivalent to `FullSyncAll`. See more in the comments for `Fastest`.
+   */
+  DefaultForPushSlowerButSafe,
 }
 
 export interface SyncRefOptions {
@@ -93,7 +144,7 @@ export interface SyncRefOptions {
 }
 
 /**
- * @returns the commit hash that was successfully synced, if any.
+ * @returns the commit hash that was successfully synced.
  * This method will attempt to sync commits in the following order:
  * 1. If the ref points to a valid and complete (*) commit in the src repo, then that commit;
  * 2. If not AND `options.attemptRecoveryFromSrcReflog` is set, then it iterates backwards over the reflog in the src repo, and uses the first valid and complete (*) commit.
@@ -107,20 +158,19 @@ export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, optio
     throw new Error(`Ref '${ref}' does not exist in the src repo`);
   }
 
-  const { topCommitConsistency, otherCommitsConsistency } = getConsistency(options.strategy);
-  const syncOptions: SyncOptions = {
-    allowShallow: true,
-    topCommitConsistency,
-    otherCommitsConsistency,
-  };
-
   let syncedCommitHash: Hash | undefined = undefined;
+  const { topCommitConsistency, otherCommitsConsistency } = getConsistency(options.strategy);
   const oldDstRefCommitHash = await dst.getRef(ref);
   if (topCommitConsistency === SyncConsistency.AssumeTotalConnectivity && oldDstRefCommitHash === srcRefCommitHash) {
     // No-op: Destination is already here and we assume it to be fully connected
     return srcRefCommitHash;
   }
 
+  const syncOptions: SyncOptions = {
+    allowShallow: true,
+    topCommitConsistency,
+    otherCommitsConsistency,
+  };
   if (await trySyncCommit(src, dst, srcRefCommitHash, syncOptions)) {
     syncedCommitHash = srcRefCommitHash;
   }
@@ -179,21 +229,26 @@ function getConsistency(strategy: SyncStrategy): {
 } {
   switch (strategy) {
     case SyncStrategy.Fastest:
+    case SyncStrategy.DefaultForFetchFasterButRisky:
+    case SyncStrategy.DefaultForPushFasterButRisky:
       return {
         topCommitConsistency: SyncConsistency.AssumeTotalConnectivity,
         otherCommitsConsistency: SyncConsistency.AssumeTotalConnectivity,
       };
     case SyncStrategy.FastAndDeepen:
+    case SyncStrategy.DefaultForFetch:
       return {
         topCommitConsistency: SyncConsistency.AssumeCommitTreeConnectivity,
         otherCommitsConsistency: SyncConsistency.AssumeCommitTreeConnectivity,
       };
     case SyncStrategy.FullSyncTopCommit:
+    case SyncStrategy.DefaultForPush:
       return {
         topCommitConsistency: SyncConsistency.AssumeObjectIntegrity,
         otherCommitsConsistency: SyncConsistency.AssumeTotalConnectivity,
       };
     case SyncStrategy.FullSyncAll:
+    case SyncStrategy.DefaultForPushSlowerButSafe:
       return {
         topCommitConsistency: SyncConsistency.AssumeObjectIntegrity,
         otherCommitsConsistency: SyncConsistency.AssumeObjectIntegrity,

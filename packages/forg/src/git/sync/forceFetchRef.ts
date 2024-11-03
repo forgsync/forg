@@ -5,19 +5,35 @@ import {
 } from '../db';
 import { syncRef, SyncRefOptions, SyncStrategy } from './syncRef';
 
-export type FetchStrategy = SyncStrategy.Fastest | SyncStrategy.FastAndDeepen | SyncStrategy.FullSyncTopCommit | SyncStrategy.FullSyncAll | SyncStrategy.OverwriteAll;
-export const FetchStrategy: Record<string, FetchStrategy> = {
+// Subset of sync strategies that make sense for fetch:
+export type FetchStrategy =
+  | SyncStrategy.Fastest
+  | SyncStrategy.FastAndDeepen
+  | SyncStrategy.FullSyncTopCommit
+  | SyncStrategy.FullSyncAll
+  | SyncStrategy.OverwriteAll
+  | SyncStrategy.DefaultForFetch
+  | SyncStrategy.DefaultForFetchFasterButRisky
+  ;
+export const FetchStrategy = {
   Fastest: SyncStrategy.Fastest,
   FastAndDeepen: SyncStrategy.FastAndDeepen,
   FullSyncTopCommit: SyncStrategy.FullSyncTopCommit,
   FullSyncAll: SyncStrategy.FullSyncAll,
   OverwriteAll: SyncStrategy.OverwriteAll,
-};
+  DefaultForFetch: SyncStrategy.DefaultForFetch,
+  DefaultForFetchFasterButRisky: SyncStrategy.DefaultForFetchFasterButRisky,
+} as const satisfies Record<string, FetchStrategy>;
+
 /**
- * @returns the commit hash that was successfully fetched, if any. This method will first try to fetch the commit that the ref actually points to if it is a valid and complete commit,
- * but if that fails, falls back to using the remote reflog instead.
+ * @returns the commit hash that was successfully synced.
+ * This method will attempt to sync commits in the following order:
+ * 1. If the ref points to a valid and complete (*) commit in the src repo, then that commit;
+ * 2. If not, then it iterates backwards over the reflog in the src repo, and uses the first valid and complete (*) commit.
+ * 
+ * (*) a commit is determined to be valid and complete when it can be fully synced from the source to the destination according to the specified sync strategy.
  */
-export async function forceFetchRef(remote: IReadOnlyRepo, local: IRepo, ref: string, strategy: FetchStrategy): Promise<Hash> {
+export async function forceFetchRef(local: IRepo, remote: IReadOnlyRepo, ref: string, strategy: FetchStrategy = FetchStrategy.DefaultForFetch): Promise<Hash> {
   //console.log(`Fetching ref '${ref}'`);
 
   const syncRefOptions: SyncRefOptions = {

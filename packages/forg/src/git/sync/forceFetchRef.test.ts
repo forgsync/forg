@@ -1,6 +1,6 @@
 import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../db';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
-import { FetchStrategy, forceFetchRef } from './forceFetchRef';
+import { forceFetchRef } from './forceFetchRef';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 const MY_CLIENT_UUID = 'client1';
@@ -39,7 +39,7 @@ describe('forceFetchRef', () => {
     await local.init();
 
     for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
-      const result = await forceFetchRef(origin, local, TEST_REF, FetchStrategy.FastAndDeepen);
+      const result = await forceFetchRef(local, origin, TEST_REF);
       expect(result).toBe(commits.E);
       expect(await local.getReflog(TEST_REF)).toEqual<ReflogEntry[]>([
         {
