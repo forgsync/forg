@@ -151,31 +151,33 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
         }
       }
 
-      const rawSrcCommit = await src.loadRawObject(head);
-      const srcCommit = decodeCommitObject(rawSrcCommit, head);
+      const skipOnError = options.allowShallow && !isTop;
+      try {
+        // NOTE: From this point on, any MissingObjectError would indicate an incomplete commit on the source.
+        // Such commits can be safely ignored when we aren't syncing the top commit and we allow shallow syncs
+        const rawSrcCommit = await src.loadRawObject(head);
+        const srcCommit = decodeCommitObject(rawSrcCommit, head);
 
-      // Only sync the commit and its tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
-      if (consistency >= SyncConsistency.AssumeObjectIntegrity || !dstHasIt) {
-        const skipOnError = options.allowShallow && !isTop;
-        try {
+        // Only sync the commit and its tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
+        if (consistency >= SyncConsistency.AssumeObjectIntegrity || !dstHasIt) {
           // NOTE: This may leave orphaned files in the destination repo (in case we fail before all commit objects have been written, or if we encounter a tree with missing objects).
           // Such orphaned files are harmless (and deleting them could be catastrophic in case another client had also just written them and expects them to stay. Since we cannot be sure nobody else relies on these files, we cannot delete).
           // Deletion would only be possible from a separate, explicit and potentially destructive method to garbage-collect the destination repo.
           await syncTree(src, dst, srcCommit.body.tree, consistency);
-        } catch (error) {
-          if (skipOnError && error instanceof MissingObjectError) {
-            commits.set(head, null);
-            continue;
-          }
 
-          throw error;
+          // If we get here, then syncTree succeeded!
+          commits.set(head, rawSrcCommit);
         }
 
-        // If we get here, then syncTree succeeded!
-        commits.set(head, rawSrcCommit);
-      }
+        nextHeads.push(...srcCommit.body.parents);
+      } catch (error) {
+        if (skipOnError && error instanceof MissingObjectError) {
+          commits.set(head, null);
+          continue;
+        }
 
-      nextHeads.push(...srcCommit.body.parents);
+        throw error;
+      }
     }
 
     heads = nextHeads;
