@@ -5,9 +5,9 @@ import {
 } from '../db';
 import { syncRef, SyncRefOptions, SyncStrategy } from './syncRef';
 
-export type FetchStrategy = SyncStrategy.Fast | SyncStrategy.FastAndDeepen | SyncStrategy.FullSyncTopCommit | SyncStrategy.FullSyncAll | SyncStrategy.OverwriteAll;
+export type FetchStrategy = SyncStrategy.Fastest | SyncStrategy.FastAndDeepen | SyncStrategy.FullSyncTopCommit | SyncStrategy.FullSyncAll | SyncStrategy.OverwriteAll;
 export const FetchStrategy: Record<string, FetchStrategy> = {
-  Fast: SyncStrategy.Fast,
+  Fastest: SyncStrategy.Fastest,
   FastAndDeepen: SyncStrategy.FastAndDeepen,
   FullSyncTopCommit: SyncStrategy.FullSyncTopCommit,
   FullSyncAll: SyncStrategy.FullSyncAll,

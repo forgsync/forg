@@ -1,13 +1,12 @@
 import {
-  CommitObject,
   Hash,
   IReadOnlyRepo,
   IRepo,
-  loadCommitObject,
   loadTreeObject,
   MissingObjectError,
   Mode,
 } from '../db';
+import { decodeCommitObject } from '../db/objects';
 
 export enum SyncConsistency {
   /**
@@ -93,84 +92,96 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
 
   // Step 2: Sync commit objects backwards. It is important to go backwards (older ones first) so that the git graph remains connected at all times,
   // (i.e. we never store an object until all dependencies are stored, including in case of an unexpected exit)
-  for (const curCommitHash of commitsToSync.reverse()) {
+  for (const [curCommitHash, rawCommit] of commitsToSync.reverse()) {
     const isTop = curCommitHash === commitHash;
     const consistency = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
-    await syncObject(src, dst, curCommitHash, consistency);
+    await syncObject2(dst, curCommitHash, rawCommit, consistency);
   }
 }
 
 /**
  * Walks the history starting from `commitHash`, syncs each tree found along the way, and keeps going until we are done or,
  * if `options.allowShallow` is true, until we cannot go further (e.g. because some objects are missing in src, possibly as a result of a deliberate history truncation).
+ * @returns an array of tuples, where each element in the array indicates a commit and the corresponding raw commit object contents that should be synced by the caller.
  */
-async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions): Promise<Hash[]> {
-  const allCommits: Hash[] = [];
-
+async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions): Promise<[Hash, Uint8Array][]> {
+  const commits = new Map<Hash, Uint8Array | null>();
   let heads: Hash[] = [commitHash];
   while (heads.length > 0) {
     const nextHeads: Hash[] = [];
     for (const head of heads) {
+      {
+        // Handle cases where forks and merges lead to the same commit appearing multiple times as we go through the commit history...
+        // Example:
+        //
+        // E
+        // | \
+        // C  D
+        // |  |
+        // |  B
+        // | /
+        // A 
+        //
+        // In this case we would traverse the graph as E, C, D, A, B, A. Notice A was done twice.
+        const existing = commits.get(head);
+        if (existing !== undefined) {
+          // Re-add it at the end since we now learned of another route that depends on this commit. But we don't need to sync it again...
+          commits.delete(head);
+          commits.set(head, existing);
+          continue;
+        }
+      }
+
       const isTop = head === commitHash;
       const consistency = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
       if (consistency === SyncConsistency.Skip) {
         continue;
       }
 
-      let dstCommit: CommitObject | undefined = undefined;
+      let dstHasIt = false;
 
-      // If we cannot assume object integrity, then we should not rely on anything about the destination, and we MUST use the src commit instead.
-      // But when we *do* trust object integrity on the destination, this is an efficient way to check for the obkject existence and to read it in one go.
-      // Since commit objects are small, this makes it conveniente to do.
+      // If we can at least assume object integrity, then checking if the object exists in the destination is useful, as we may be able to skip syncing it.
       if (consistency <= SyncConsistency.AssumeObjectIntegrity) {
-        try {
-          dstCommit = await loadCommitObject(dst, head);
-        }
-        catch (error) {
-          if (error instanceof MissingObjectError) {
-            dstCommit = undefined;
-          }
-          else {
-            throw error;
-          }
+        dstHasIt = await dst.hasObject(head);
+
+        if (consistency === SyncConsistency.AssumeTotalConnectivity && dstHasIt) {
+          // If commit already exists in the destination and we are assuming connectivity, then we can assume that all of its dependencies (parent commits, trees, blobs) already exist in the destination.
+          // So we are done...
+          continue;
         }
       }
 
-      if (consistency === SyncConsistency.AssumeTotalConnectivity && dstCommit !== undefined) {
-        // If commit already exists in the destination and we are assuming connectivity, then we can assume that all of its dependencies (parent commits, trees, blobs) already exist in the destination.
-        // So we are done...
-        continue;
-      }
+      const rawSrcCommit = await src.loadRawObject(head);
+      const srcCommit = decodeCommitObject(rawSrcCommit, head);
 
-      // Only sync the commit tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
-      if (consistency >= SyncConsistency.AssumeObjectIntegrity || dstCommit === undefined) {
+      // Only sync the commit and its tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
+      if (consistency >= SyncConsistency.AssumeObjectIntegrity || !dstHasIt) {
         const skipOnError = options.allowShallow && !isTop;
         try {
-          if (dstCommit === undefined) {
-            dstCommit = await loadCommitObject(src, head);
-          }
-
           // NOTE: This may leave orphaned files in the destination repo (in case we fail before all commit objects have been written, or if we encounter a tree with missing objects).
           // Such orphaned files are harmless (and deleting them could be catastrophic in case another client had also just written them and expects them to stay. Since we cannot be sure nobody else relies on these files, we cannot delete).
           // Deletion would only be possible from a separate, explicit and potentially destructive method to garbage-collect the destination repo.
-          await syncTree(src, dst, dstCommit.body.tree, consistency);
+          await syncTree(src, dst, srcCommit.body.tree, consistency);
         } catch (error) {
           if (skipOnError && error instanceof MissingObjectError) {
+            commits.set(head, null);
             continue;
           }
 
           throw error;
         }
+
+        // If we get here, then syncTree succeeded!
+        commits.set(head, rawSrcCommit);
       }
 
-      nextHeads.push(...dstCommit.body.parents);
-      allCommits.push(head);
+      nextHeads.push(...srcCommit.body.parents);
     }
 
     heads = nextHeads;
   }
 
-  return allCommits;
+  return Array.from(commits).filter(a => a[1] !== null) as [Hash, Uint8Array][];
 }
 
 async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: SyncConsistency): Promise<void> {
@@ -207,5 +218,16 @@ async function syncObject(src: IReadOnlyRepo, dst: IRepo, hash: Hash, consistenc
   }
 
   const raw = await src.loadRawObject(hash);
+  await dst.saveRawObject(hash, raw);
+}
+
+async function syncObject2(dst: IRepo, hash: Hash, raw: Uint8Array, consistency: SyncConsistency): Promise<void> {
+  //console.log(`Syncing object ${hash}`);
+  if (consistency <= SyncConsistency.AssumeObjectIntegrity) {
+    if (await dst.hasObject(hash)) {
+      return;
+    }
+  }
+
   await dst.saveRawObject(hash, raw);
 }
