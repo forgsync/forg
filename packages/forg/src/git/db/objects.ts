@@ -26,10 +26,10 @@ export async function loadCommitObject(repo: IReadOnlyRepo, hash: Hash): Promise
   return object;
 }
 
-export function decodeCommitObject(raw: Uint8Array, hash: Hash): CommitObject {
+export function decodeCommitObject(raw: Uint8Array): CommitObject {
   const object = decodeObject(raw);
   if (object.type !== 'commit') {
-    throw new ObjectTypeMismatchError(hash, Type.commit, object.type);
+    throw new ObjectTypeMismatchError(sha1(raw), Type.commit, object.type);
   }
 
   return object;

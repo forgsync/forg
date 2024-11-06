@@ -209,9 +209,9 @@ export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, optio
   return syncedCommitHash;
 }
 
-async function trySyncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: Hash, options: SyncOptions): Promise<boolean> {
+async function trySyncCommit(src: IReadOnlyRepo, dst: IRepo, commitId: Hash, options: SyncOptions): Promise<boolean> {
   try {
-    await syncCommit(src, dst, commitHash, options);
+    await syncCommit(src, dst, commitId, options);
     return true;
   }
   catch (error) {

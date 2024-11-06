@@ -144,7 +144,7 @@ export class Repo implements IRepo {
   async saveRawObject(hash: string, raw: Uint8Array): Promise<void> {
     this._ensureInitialized();
 
-    const compressed = fflate.deflateSync(raw);
+    const compressed = fflate.zlibSync(raw);
     const path = computeObjectPath(hash);
     await this._fs.write(path, compressed);
   }
@@ -181,7 +181,7 @@ export class Repo implements IRepo {
       throw error;
     }
 
-    return fflate.inflateSync(rawContent);
+    return fflate.unzlibSync(rawContent);
   }
 
   async hasObject(hash: string): Promise<boolean> {

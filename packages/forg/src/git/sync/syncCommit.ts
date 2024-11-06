@@ -71,10 +71,10 @@ export interface SyncOptions {
 
 /**
  * Low level primitive used to sync a commit and its dependencies between repo's.
- * This implementation is symmetric regardless of whether `src` / `dst` are local / remote repo's, and as such this is used for both `fetch` and `forcePush`.
+ * This implementation is symmetric regardless of whether `src` / `dst` are local / remote repo's, and as such this is used for both `fetch` and `push`.
  */
-export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions): Promise<void> {
-  //console.log(`Syncing commit ${commitHash}`);
+export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitId: string, options: SyncOptions): Promise<void> {
+  //console.log(`Syncing commit ${commitId}`);
   if (options.topCommitConsistency === SyncConsistency.Skip) {
     throw new Error(`Invalid headCommitConsistency (${SyncConsistency[options.topCommitConsistency]})`);
   }
@@ -88,42 +88,37 @@ export async function syncCommit(src: IReadOnlyRepo, dst: IRepo, commitHash: str
   // Step 1: Walk the commit history and sync all the trees that we find along the way, but do not sync the commit objects yet. We will do that in step 2.
   // This sequence ensures that we will know precisely how far down the git history we are going before we write even a single commit object in step 2 (relevant when `options.allowShallow` is true),
   // and guarantees that we will never write an object before all of its dependencies are written (the only exception being a shallow sync, where deliberately we will skip some parent commits).
-  const commitsToSync = await syncTrees(src, dst, commitHash, options);
+  const commitsToSync = await syncTrees(src, dst, commitId, options);
 
   // Step 2: Sync commit objects backwards. It is important to go backwards (older ones first) so that the git graph remains connected at all times,
   // (i.e. we never store an object until all dependencies are stored, including in case of an unexpected exit)
-  for (const [curCommitHash, rawCommit] of commitsToSync.reverse()) {
-    const isTop = curCommitHash === commitHash;
+  for (const [curCommitId, rawCommit] of commitsToSync.reverse()) {
+    const isTop = curCommitId === commitId;
     const consistency = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
-    await syncObject2(dst, curCommitHash, rawCommit, consistency);
+    await syncObject2(dst, curCommitId, rawCommit, consistency);
   }
 }
 
 /**
- * Walks the history starting from `commitHash`, syncs each tree found along the way, and keeps going until we are done or,
+ * Walks the history starting from `commitId`, syncs each tree found along the way, and keeps going until we are done or,
  * if `options.allowShallow` is true, until we cannot go further (e.g. because some objects are missing in src, possibly as a result of a deliberate history truncation).
  * @returns an array of tuples, where each element in the array indicates a commit and the corresponding raw commit object contents that should be synced by the caller.
  */
-async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, options: SyncOptions): Promise<[Hash, Uint8Array][]> {
+async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitId: string, options: SyncOptions): Promise<[Hash, Uint8Array][]> {
   const commits = new Map<Hash, Uint8Array | null>();
-  let heads: Hash[] = [commitHash];
+  let heads: Hash[] = [commitId];
   while (heads.length > 0) {
     const nextHeads: Hash[] = [];
     for (const head of heads) {
       {
         // Handle cases where forks and merges lead to the same commit appearing multiple times as we go through the commit history...
         // Example:
+        // A ------- C
+        //  \         \
+        //   B -- D -- E (`commitId`)
         //
-        // E
-        // | \
-        // C  D
-        // |  |
-        // |  B
-        // | /
-        // A 
-        //
-        // In this case, when attempting to sync E, we would traverse the graph as E, C, D, A, B, A. Notice A was done twice.
-        // It is important that we end up with sequence E, C, D, B, A (A must come last, otherwise we would end up storing commits out of order before all dependencies have been stored).
+        // In this case, when attempting to sync E, we would traverse the graph as E, C, D, A, B, A. Notice A would be synced twice.
+        // It is important that, in the array we return, we end up with sequence E, C, D, B, A (A must appear only once and must come last, otherwise we would end up storing commits out of order before all dependencies have been stored).
         //
         const existing = commits.get(head);
         if (existing !== undefined) {
@@ -134,7 +129,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
         }
       }
 
-      const isTop = head === commitHash;
+      const isTop = head === commitId;
       const consistency = isTop ? options.topCommitConsistency : options.otherCommitsConsistency;
       if (consistency === SyncConsistency.Skip) {
         continue;
@@ -158,7 +153,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitHash: string, opt
         // NOTE: From this point on, any MissingObjectError would indicate an incomplete commit on the source.
         // Such commits can be safely ignored when we aren't syncing the top commit and we allow shallow syncs
         const rawSrcCommit = await src.loadRawObject(head);
-        const srcCommit = decodeCommitObject(rawSrcCommit, head);
+        const srcCommit = decodeCommitObject(rawSrcCommit);
 
         // Only sync the commit and its tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
         if (consistency >= SyncConsistency.AssumeObjectIntegrity || !dstHasIt) {
