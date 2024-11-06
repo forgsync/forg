@@ -52,10 +52,10 @@ export async function myFunc(): Promise<void> {
     'Initial commit',
     person,
   );
-  await updateRef(repo, 'refs/main', hash, person, 'commit (initial): Initial commit');
+  await updateRef(repo, 'refs/heads/main', hash, person, 'commit (initial): Initial commit');
 
   console.log('Reading reflog...');
-  const reflog = await repo.getReflog('refs/main');
+  const reflog = await repo.getReflog('refs/heads/main');
   console.log(reflog);
   console.log();
 
