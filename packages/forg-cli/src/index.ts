@@ -3,11 +3,15 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { myFunc } from './myFunc';
+import { InitCommand } from './commands/init';
+import { CommitCommand } from './commands/commit';
+import { CheckoutCommand } from './commands/checkout';
+import { FetchCommand } from './commands/fetch';
 
 //console.log(chalk.green('forg-cli'));
 
 const parser = yargs(hideBin(process.argv))
-  .showHelpOnFail(true)
+  .showHelpOnFail(false)
   .demandCommand()
   .recommendCommands()
   .help()
@@ -26,7 +30,12 @@ const parser = yargs(hideBin(process.argv))
       console.log(`Running command abc with ${argv.aaa}`);
       await myFunc();
     },
-  );
+  )
+  .command(new InitCommand())
+  .command(new CommitCommand())
+  .command(new CheckoutCommand())
+  .command(new FetchCommand())
+  ;
 
 (async () => {
   // Already takes care of exit codes on failure...
