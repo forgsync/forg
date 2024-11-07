@@ -8,6 +8,10 @@ import { Path } from '../model/Path';
 export class NodeFS implements ISimpleFS {
   private readonly _basePath: string;
 
+  get physicalRoot(): string {
+    return path.resolve(this._basePath);
+  }
+
   constructor(basePath: string) {
     if (!basePath.endsWith('/')) {
       basePath = basePath + '/';
@@ -111,21 +115,26 @@ export class NodeFS implements ISimpleFS {
 
   async list(path: Path, options?: ListOptions): Promise<ListEntry[]> {
     const physicalPath = this._basePath + path.value;
-    const entries = await fs.readdir(physicalPath, {
-      recursive: options?.recursive,
-    });
-
-    const result: ListEntry[] = [];
-    for (const entry of entries) {
-      const entryPath = Path.join(path, new Path(normalizeSlashes(entry)));
-      const entryStat = await fs.stat(this._basePath + entryPath.value);
-      result.push({
-        path: entryPath,
-        kind: entryStat.isFile() ? 'file' : 'dir',
+    try {
+      const entries = await fs.readdir(physicalPath, {
+        recursive: options?.recursive,
       });
-    }
 
-    return result;
+      const result: ListEntry[] = [];
+      for (const entry of entries) {
+        const entryPath = Path.join(path, new Path(normalizeSlashes(entry)));
+        const entryStat = await fs.stat(this._basePath + entryPath.value);
+        result.push({
+          path: entryPath,
+          kind: entryStat.isFile() ? 'file' : 'dir',
+        });
+      }
+
+      return result;
+    }
+    catch (error) {
+      throw wrapFsError(error, physicalPath);
+    }
   }
 }
 
