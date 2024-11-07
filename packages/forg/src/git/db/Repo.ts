@@ -23,6 +23,11 @@ interface IWriteOnlyRepo {
   saveMetadata(name: string, value: Uint8Array | undefined): Promise<void>;
 }
 
+export enum InitMode {
+  Open,
+  CreateIfNotExists,
+}
+
 export class Repo implements IRepo {
   private readonly _fs: ISimpleFS;
   private _initialized: boolean = false;
@@ -31,7 +36,7 @@ export class Repo implements IRepo {
     this._fs = fs;
   }
 
-  async init() {
+  async init(mode: InitMode = InitMode.Open): Promise<'init' | 'reInit'> {
     const hasHeadFile = await this._fs.fileExists(new Path('HEAD'));
     const hasObjectsDir = await this._fs.directoryExists(new Path('objects'));
     const hasRefsDir = await this._fs.directoryExists(new Path('refs'));
@@ -42,13 +47,20 @@ export class Repo implements IRepo {
 
       // All good!
       this._initialized = true;
-      return;
-    } else if (!hasHeadFile && !hasObjectsDir && !hasRefsDir && !hasConfigFile) {
+      return 'reInit';
+    }
+
+    if (mode !== InitMode.CreateIfNotExists) {
+      throw new Error('Repo is not initialized. Call init with mode CreateIfNotExists to create.');
+    }
+
+    if (!hasHeadFile && !hasObjectsDir && !hasRefsDir && !hasConfigFile) {
       await this._fs.write(new Path('HEAD'), encode('ref: refs/heads/main')); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
       await this._fs.createDirectory(new Path('objects'));
       await this._fs.createDirectory(new Path('refs'));
       await this._fs.write(new Path('config'), encode(getDefaultConfig()));
       this._initialized = true;
+      return 'init';
     }
     else {
       // TODO: Make repo init idempotent in case a previous attempt failed halfway through and no other changes were made since.
