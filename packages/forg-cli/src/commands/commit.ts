@@ -15,7 +15,7 @@ interface CommitOptions extends Options {
 }
 
 export class CommitCommand<U extends CommitOptions> implements CommandModule<{}, U> {
-  readonly command = 'commit [workingTreePath]';
+  readonly command = 'commit <workingTreePath>';
   readonly describe = 'Commits the provided working tree and updates the provided ref'
 
   builder(args: Argv): Argv<U> {

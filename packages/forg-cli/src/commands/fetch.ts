@@ -11,7 +11,7 @@ interface FetchOptions extends Options {
 }
 
 export class FetchCommand<U extends FetchOptions> implements CommandModule<{}, U> {
-  readonly command = 'fetch [remote]';
+  readonly command = 'fetch <remote>';
   readonly describe = 'Fetches from a remote forg repo'
 
   builder(args: Argv): Argv<U> {

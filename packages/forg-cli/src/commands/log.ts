@@ -8,7 +8,7 @@ interface LogOptions extends Options {
 }
 
 export class LogCommand<U extends LogOptions> implements CommandModule<{}, U> {
-  readonly command = 'log [ref]';
+  readonly command = 'log <ref>';
   readonly describe = 'Prints the commit history of the specified ref'
 
   builder(args: Argv): Argv<U> {
