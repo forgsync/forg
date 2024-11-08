@@ -7,6 +7,7 @@ import { InitCommand } from './commands/init';
 import { CommitCommand } from './commands/commit';
 import { CheckoutCommand } from './commands/checkout';
 import { FetchCommand } from './commands/fetch';
+import { LogCommand } from './commands/log';
 
 //console.log(chalk.green('forg-cli'));
 
@@ -35,6 +36,7 @@ const parser = yargs(hideBin(process.argv))
   .command(new CommitCommand())
   .command(new CheckoutCommand())
   .command(new FetchCommand())
+  .command(new LogCommand())
   ;
 
 (async () => {
