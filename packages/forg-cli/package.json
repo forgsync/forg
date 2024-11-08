@@ -5,7 +5,9 @@
   "author": "David Nissimoff",
   "license": "MPL-2.0",
   "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "bin": {
+    "forg": "dist/index.js"
+  },
   "files": [
     "dist/"
   ],

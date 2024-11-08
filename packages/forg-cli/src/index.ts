@@ -12,6 +12,7 @@ import { LogCommand } from './commands/log';
 //console.log(chalk.green('forg-cli'));
 
 const parser = yargs(hideBin(process.argv))
+  .scriptName('forg')
   .showHelpOnFail(false)
   .demandCommand()
   .recommendCommands()
