@@ -1,25 +1,31 @@
-import { CommandModule, Argv, Options, ArgumentsCamelCase } from 'yargs';
+import { Argv, Options, ArgumentsCamelCase } from 'yargs';
 
 import { NodeFS } from '@forgsync/simplefs';
 import { loadCommitObject, Repo } from '@forgsync/forg/dist/git';
+
+import { CommandBase } from './util/CommandBase';
 
 interface LogOptions extends Options {
   ref: string;
 }
 
-export class LogCommand<U extends LogOptions> implements CommandModule<{}, U> {
+export class LogCommand extends CommandBase<LogOptions> {
   readonly command = 'log <ref>';
   readonly describe = 'Prints the commit history of the specified ref';
 
-  builder(args: Argv): Argv<U> {
+  override builder(args: Argv): Argv<LogOptions> {
     args.positional('ref', { type: 'string', demandOption: true });
-    return args as unknown as Argv<U>;
+    return args as unknown as Argv<LogOptions>;
   }
 
-  async handler(args: ArgumentsCamelCase<U>) {
+  override async handlerCore(args: ArgumentsCamelCase<LogOptions>) {
     const localFs = new NodeFS('.');
     const local = new Repo(localFs);
-    await local.init();
+    try {
+      await local.init();
+    } catch (error) {
+      throw new Error(`Failed to open repo: ${error}`);
+    }
 
     let commitId = await local.getRef(args.ref);
     if (commitId === undefined) {

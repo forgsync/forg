@@ -1,8 +1,10 @@
-import { CommandModule, Argv, Options, ArgumentsCamelCase } from 'yargs';
+import { Argv, Options, ArgumentsCamelCase } from 'yargs';
 
 import { NodeFS, Path } from '@forgsync/simplefs';
 import { loadCommitObject, loadTreeObject, Repo } from '@forgsync/forg/dist/git';
 import { GitTreeFS } from '@forgsync/forg/dist/treefs';
+
+import { CommandBase } from './util/CommandBase';
 import { recursiveCopy } from './util/cp';
 
 interface CheckoutOptions extends Options {
@@ -10,17 +12,17 @@ interface CheckoutOptions extends Options {
   workingTreePath: string;
 }
 
-export class CheckoutCommand<U extends CheckoutOptions> implements CommandModule<{}, U> {
+export class CheckoutCommand extends CommandBase<CheckoutOptions> {
   readonly command = 'checkout <ref> <workingTreePath>';
   readonly describe = 'Checks-out the working tree of the commit at the provided ref to the specified output path';
 
-  builder(args: Argv): Argv<U> {
+  override builder(args: Argv): Argv<CheckoutOptions> {
     args.positional('ref', { type: 'string', demandOption: true });
     args.positional('workingTreePath', { type: 'string', demandOption: true });
-    return args as unknown as Argv<U>;
+    return args as unknown as Argv<CheckoutOptions>;
   }
 
-  async handler(args: ArgumentsCamelCase<U>) {
+  override async handlerCore(args: ArgumentsCamelCase<CheckoutOptions>) {
     const localFs = new NodeFS('.');
     const local = new Repo(localFs);
     await local.init();

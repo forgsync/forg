@@ -98,7 +98,7 @@ export class Repo implements IRepo {
       rawContent = await this._fs.read(path);
     } catch (error) {
       if (error instanceof FSError) {
-        if (error.errno === Errno.ENOENT) {
+        if (error.errno === Errno.ENOENT || error.errno === Errno.EISDIR) {
           return undefined;
         }
       }

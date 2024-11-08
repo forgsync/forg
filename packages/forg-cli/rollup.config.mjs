@@ -18,7 +18,9 @@ export default defineConfig({
     commonjs(),
     json(),
     typescript(),
-    terser(),
+    terser({
+      keep_classnames: true,
+    }),
     visualizer({
       emitFile: true,
       gzipSize: true,

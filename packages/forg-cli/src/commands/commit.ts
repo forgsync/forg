@@ -1,9 +1,11 @@
-import { CommandModule, Argv, Options, ArgumentsCamelCase } from 'yargs';
+import { Argv, Options, ArgumentsCamelCase } from 'yargs';
 
 import { NodeFS, Path } from '@forgsync/simplefs';
 import { loadCommitObject, Repo, saveWorkingTree } from '@forgsync/forg/dist/git';
 import { GitTreeFS } from '@forgsync/forg/dist/treefs';
 import { commit } from '@forgsync/forg/dist/core/commit';
+
+import { CommandBase } from './util/CommandBase';
 import { recursiveCopy } from './util/cp';
 
 interface CommitOptions extends Options {
@@ -14,23 +16,27 @@ interface CommitOptions extends Options {
   allowDuplicate: boolean;
 }
 
-export class CommitCommand<U extends CommitOptions> implements CommandModule<{}, U> {
+export class CommitCommand extends CommandBase<CommitOptions> {
   readonly command = 'commit <workingTreePath>';
   readonly describe = 'Commits the provided working tree and updates the provided ref';
 
-  builder(args: Argv): Argv<U> {
+  override builder(args: Argv): Argv<CommitOptions> {
     args.positional('workingTreePath', { type: 'string', demandOption: true });
     args.option('message', { type: 'string', demandOption: true, alias: 'm' });
     args.option('clientId', { type: 'string', demandOption: true, alias: 'c' });
     args.option('branchName', { type: 'string', demandOption: true, alias: 'b' });
     args.option('allowDuplicate', { type: 'boolean', default: false });
-    return args as unknown as Argv<U>;
+    return args as unknown as Argv<CommitOptions>;
   }
 
-  async handler(args: ArgumentsCamelCase<U>) {
+  override async handlerCore(args: ArgumentsCamelCase<CommitOptions>) {
     const localFs = new NodeFS('.');
     const local = new Repo(localFs);
-    await local.init();
+    try {
+      await local.init();
+    } catch (error) {
+      throw new Error(`Failed to open repo: ${error}`);
+    }
 
     const inputFS = new NodeFS(args.workingTreePath);
     const newTree = GitTreeFS.fromWorkingTree(local, { type: 'tree', entries: {} });
