@@ -1,7 +1,7 @@
-import { Hash, Mode, Type } from "./model";
-import { saveObject, TreeBody } from "./objects";
-import { IRepo } from "./Repo";
-import { isFile } from "./util";
+import { Hash, Mode, Type } from './model';
+import { saveObject, TreeBody } from './objects';
+import { IRepo } from './Repo';
+import { isFile } from './util';
 
 /**
  * Describes a folder that may or may not already exist in git.
@@ -13,7 +13,7 @@ export interface ExpandedTree {
   entries: {
     [key: string]: WorkingTreeEntry;
   };
-};
+}
 /**
  * Describes an existing tree in git, indicated by its hash.
  */
@@ -32,12 +32,12 @@ export interface ExpandedFile {
   type: 'file';
   readonly isExecutable?: boolean;
   readonly body: Uint8Array;
-};
+}
 export interface ExistingFile {
-  type: 'file'
+  type: 'file';
   readonly isExecutable?: boolean;
   readonly hash: Hash;
-};
+}
 export type WorkingTreeFile = ExpandedFile | ExistingFile;
 
 export type WorkingTreeEntry = WorkingTreeFolder | WorkingTreeFile;

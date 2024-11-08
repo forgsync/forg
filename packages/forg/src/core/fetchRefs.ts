@@ -1,8 +1,5 @@
-import {
-  IReadOnlyRepo,
-  IRepo,
-} from '../git';
-import { ForgClientInfo } from "./model";
+import { IReadOnlyRepo, IRepo } from '../git';
+import { ForgClientInfo } from './model';
 import { tryParseForgRemoteRef } from './internal/tryParseForgRef';
 import { forceFetchRef, FetchStrategy } from '../git';
 

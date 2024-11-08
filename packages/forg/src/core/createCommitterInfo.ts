@@ -1,5 +1,5 @@
-import { Person } from "../git";
-import { ForgClientInfo } from "./model";
+import { Person } from '../git';
+import { ForgClientInfo } from './model';
 
 export default function createCommitterInfo(forgClient: ForgClientInfo): Person {
   const now = new Date();

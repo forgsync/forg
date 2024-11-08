@@ -40,7 +40,8 @@ describe('forcePushRef', () => {
     const remote = new Repo(fs);
     await remote.init();
 
-    for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
+    for (let i = 0; i < 2; i++) {
+      // Do this twice since it should be idempotent
       await forcePushRef(local, remote, TEST_REF);
       expect(await remote.getRef(TEST_REF)).toBe(commits.E);
       expect(await remote.hasObject(commits.E)).toBe(true);

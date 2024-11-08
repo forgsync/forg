@@ -9,10 +9,7 @@ export function encodeReflog(reflog: ReflogEntry[]) {
 const NULL_COMMIT_ID = '0'.repeat(40);
 function encodeReflogEntry(entry: ReflogEntry) {
   const descriptionLineBreak = entry.description.indexOf('\n');
-  const firstLine =
-    descriptionLineBreak >= 0
-      ? entry.description.substring(0, descriptionLineBreak)
-      : entry.description;
+  const firstLine = descriptionLineBreak >= 0 ? entry.description.substring(0, descriptionLineBreak) : entry.description;
   return `${entry.previousCommit ?? NULL_COMMIT_ID} ${entry.newCommit} ${encodePerson(entry.person)}\t${firstLine}\n`;
 }
 

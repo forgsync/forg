@@ -1,11 +1,4 @@
-import {
-  Hash,
-  IReadOnlyRepo,
-  IRepo,
-  loadTreeObject,
-  MissingObjectError,
-  Mode,
-} from '../db';
+import { Hash, IReadOnlyRepo, IRepo, loadTreeObject, MissingObjectError, Mode } from '../db';
 import { decodeCommitObject } from '../db/objects';
 
 export enum SyncConsistency {
@@ -29,7 +22,7 @@ export enum SyncConsistency {
    * Different assumptions for different object types:
    * - Commit objects: If a commit object exists in the destination repo, assume that it is well-formed and that its tree and the tree's dependencies are as well (but makes no assumptions about the parents' integrity);
    * - Everything else (trees, blobs): If a non-commit object exists in the destination repo, assume that it is well-formed and that all of its dependencies are as well.
-   * 
+   *
    * This mode is useful to achieve eventual consistency when fetching from a remote that had files written to out of order.
    * The first fetch attempts might result in a shallow git history, and a later fetch would then sync the remainder of the history that had been skipped the first time.
    * NOTE: The term connectivity refers to the graph being connected, and has nothing to do with network connection conditions.
@@ -47,7 +40,7 @@ export enum SyncConsistency {
    * Can be useful to recover after catastrophic data loss at the destination.
    * This is the highest consistency mode, but also the slowest (analogous to a clone from scratch).
    */
-  Pessimistic = 4
+  Pessimistic = 4,
 }
 
 export interface SyncOptions {
@@ -180,7 +173,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitId: string, optio
     heads = nextHeads;
   }
 
-  return Array.from(commits).filter(a => a[1] !== null) as [Hash, Uint8Array][];
+  return Array.from(commits).filter((a) => a[1] !== null) as [Hash, Uint8Array][];
 }
 
 async function syncTree(src: IReadOnlyRepo, dst: IRepo, treeHash: string, consistency: SyncConsistency): Promise<void> {

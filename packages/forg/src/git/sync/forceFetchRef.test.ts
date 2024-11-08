@@ -38,7 +38,8 @@ describe('forceFetchRef', () => {
     const local = new Repo(fs);
     await local.init();
 
-    for (let i = 0; i < 2; i++) { // Do this twice since it should be idempotent
+    for (let i = 0; i < 2; i++) {
+      // Do this twice since it should be idempotent
       const result = await forceFetchRef(local, origin, TEST_REF);
       expect(result).toBe(commits.E);
       expect(await local.getReflog(TEST_REF)).toEqual<ReflogEntry[]>([

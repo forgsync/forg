@@ -15,13 +15,7 @@ export function decodePerson(string: string): Person {
 }
 
 export function encodePerson(person: Person) {
-  return (
-    sanitizeString(person.name) +
-    ' <' +
-    sanitizeString(person.email) +
-    '> ' +
-    formatDate(person.date)
-  );
+  return sanitizeString(person.name) + ' <' + sanitizeString(person.email) + '> ' + formatDate(person.date);
 }
 
 function two(num: number) {

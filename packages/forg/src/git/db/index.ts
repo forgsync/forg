@@ -1,5 +1,5 @@
 export type { Hash, ModeHash, Person, SecondsWithOffset, ReflogEntry } from './model';
-export { Mode, Type } from './model'
+export { Mode, Type } from './model';
 
 export { Repo } from './Repo';
 export type { IRepo, IReadOnlyRepo } from './Repo';

@@ -13,7 +13,7 @@ describe('Repo basics', () => {
     await repo.init();
   });
 
-  test('just init', () => { });
+  test('just init', () => {});
 
   test('trivial commit', async () => {
     const hash = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
@@ -48,11 +48,11 @@ describe('Repo basics', () => {
       {
         type: 'tree',
         entries: {
-          'a.txt': { type: 'file', body: encoder.encode('aa'), },
+          'a.txt': { type: 'file', body: encoder.encode('aa') },
           b: {
             type: 'tree',
             entries: {
-              'c.txt': { type: 'file', body: encoder.encode('cc'), },
+              'c.txt': { type: 'file', body: encoder.encode('cc') },
             },
           },
         },
@@ -66,8 +66,8 @@ describe('Repo basics', () => {
     const commitObject = await loadCommitObject(repo, hash);
     const rootTreeObject = await loadTreeObject(repo, commitObject.body.tree);
     expect(rootTreeObject.body).toEqual<TreeBody>({
-      'a.txt': { mode: Mode.blob, hash: '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e', },
-      b: { mode: Mode.tree, hash: 'bc3aa3eb92286b2ddaab0bef7564f25098f8fbdc', },
+      'a.txt': { mode: Mode.blob, hash: '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e' },
+      b: { mode: Mode.tree, hash: 'bc3aa3eb92286b2ddaab0bef7564f25098f8fbdc' },
     });
 
     const aBlobObject = await loadBlobObject(repo, '7ec9a4b774e2472d8e38bc18a3aa1912bacf483e');
@@ -75,7 +75,7 @@ describe('Repo basics', () => {
 
     const bTreeObject = await loadTreeObject(repo, rootTreeObject.body['b'].hash);
     expect(bTreeObject.body).toEqual<TreeBody>({
-      'c.txt': { mode: Mode.blob, hash: '2652f5f42c003f125212dd61f95a3a8a37cb45d5', },
+      'c.txt': { mode: Mode.blob, hash: '2652f5f42c003f125212dd61f95a3a8a37cb45d5' },
     });
 
     const cBlobObject = await loadBlobObject(repo, '2652f5f42c003f125212dd61f95a3a8a37cb45d5');
@@ -91,7 +91,7 @@ describe('Repo basics', () => {
       {
         type: 'tree',
         entries: {
-          'a.txt': { type: 'file', body: encoder.encode('a'), },
+          'a.txt': { type: 'file', body: encoder.encode('a') },
         },
       },
       [hash1],

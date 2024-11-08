@@ -1,6 +1,6 @@
-import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from "@forgsync/simplefs";
-import { Hash, IRepo, loadBlobObject, loadTreeObject, MissingObjectError, saveObject, TreeObject, Type } from "../../git";
-import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from "../../git";
+import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from '@forgsync/simplefs';
+import { Hash, IRepo, loadBlobObject, loadTreeObject, MissingObjectError, saveObject, TreeObject, Type } from '../../git';
+import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from '../../git';
 
 export class GitTreeFS implements ISimpleFS {
   private _modified: boolean = false;
@@ -8,10 +8,14 @@ export class GitTreeFS implements ISimpleFS {
   private constructor(
     private readonly _repo: IRepo,
     private readonly _root: ExpandedTree,
-  ) { }
+  ) {}
 
-  get modified() { return this._modified; }
-  get root() { return this._root; }
+  get modified() {
+    return this._modified;
+  }
+  get root() {
+    return this._root;
+  }
 
   /**
    * Initializes a GitTreeFS from a git Tree object.
@@ -131,8 +135,7 @@ export class GitTreeFS implements ISimpleFS {
     const entry = parentTree.entries[path.leafName];
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
-    }
-    else if (entry.type !== 'file') {
+    } else if (entry.type !== 'file') {
       throw new FSError(Errno.EISDIR, path.value);
     }
 
@@ -159,8 +162,7 @@ export class GitTreeFS implements ISimpleFS {
     const entry = parentTree.entries[path.leafName];
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
-    }
-    else if (entry.type !== 'tree') {
+    } else if (entry.type !== 'tree') {
       throw new FSError(Errno.ENOTDIR, path.value);
     }
 
@@ -185,8 +187,7 @@ export class GitTreeFS implements ISimpleFS {
     const entry = tree.entries[path.leafName];
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
-    }
-    else if (entry.type !== 'tree') {
+    } else if (entry.type !== 'tree') {
       throw new FSError(Errno.ENOTDIR, path.value);
     }
 
@@ -223,8 +224,7 @@ export class GitTreeFS implements ISimpleFS {
         folder.entries[childName] = newItem;
         this._modified = true;
         return newItem;
-      }
-      else {
+      } else {
         throw new FSError(Errno.ENOENT, path.value);
       }
     } else if (item.type !== 'tree') {
@@ -246,8 +246,7 @@ export class GitTreeFS implements ISimpleFS {
       const expandedFolder = treeToWorkingTree(treeObject.body);
       folder.entries[childName] = expandedFolder;
       return expandedFolder;
-    }
-    else {
+    } else {
       return item;
     }
   }

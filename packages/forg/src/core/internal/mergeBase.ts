@@ -77,12 +77,8 @@ export async function mergeBase(repo: IRepo, commitIds: Hash[]): Promise<MergeBa
   }
 
   if (errors.length > 0) {
-    const details = errors.map((e) =>
-      e instanceof Error ? `  Error ${e.name}, details: ${e.message}` : `  ${e}`,
-    );
-    throw new Error(
-      `Unable to find merge base, and errors occurred during traversal\n${details.join('\n')}`,
-    );
+    const details = errors.map((e) => (e instanceof Error ? `  Error ${e.name}, details: ${e.message}` : `  ${e}`));
+    throw new Error(`Unable to find merge base, and errors occurred during traversal\n${details.join('\n')}`);
   }
 
   return {
@@ -91,11 +87,7 @@ export async function mergeBase(repo: IRepo, commitIds: Hash[]): Promise<MergeBa
   };
 }
 
-function markVisited(
-  visited: Map<Hash, Set<number>>,
-  commitId: Hash,
-  headIndex: number,
-): Set<number> {
+function markVisited(visited: Map<Hash, Set<number>>, commitId: Hash, headIndex: number): Set<number> {
   let set = visited.get(commitId);
   if (!set) {
     set = new Set<number>();

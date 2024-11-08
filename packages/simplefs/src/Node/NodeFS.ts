@@ -1,5 +1,5 @@
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'fs/promises';
+import path from 'path';
 
 import { Errno, FSError } from '../model/FSError';
 import { ISimpleFS, ListEntry, ListOptions } from '../model/ISimpleFS';
@@ -24,8 +24,7 @@ export class NodeFS implements ISimpleFS {
     try {
       const stat = await fs.stat(this._basePath + path.value);
       return stat.isFile();
-    }
-    catch (error) {
+    } catch (error) {
       if (isErrnoException(error) && error.code === 'ENOENT') {
         return false;
       }
@@ -38,8 +37,7 @@ export class NodeFS implements ISimpleFS {
     try {
       const stat = await fs.stat(this._basePath + path.value);
       return stat.isDirectory();
-    }
-    catch (error) {
+    } catch (error) {
       if (isErrnoException(error) && error.code === 'ENOENT') {
         return false;
       }
@@ -53,8 +51,7 @@ export class NodeFS implements ISimpleFS {
     try {
       const data = await fs.readFile(physicalPath);
       return new Uint8Array(data.buffer);
-    }
-    catch (error) {
+    } catch (error) {
       throw wrapFsError(error, physicalPath);
     }
   }
@@ -68,8 +65,7 @@ export class NodeFS implements ISimpleFS {
       }
 
       await fs.writeFile(physicalPath, data);
-    }
-    catch (error) {
+    } catch (error) {
       throw wrapFsError(error, physicalPath);
     }
   }
@@ -78,8 +74,7 @@ export class NodeFS implements ISimpleFS {
     const physicalPath = this._basePath + path.value;
     try {
       await fs.unlink(physicalPath);
-    }
-    catch (error) {
+    } catch (error) {
       throw wrapFsError(error, physicalPath);
     }
   }
@@ -97,8 +92,7 @@ export class NodeFS implements ISimpleFS {
 
     try {
       await fs.rm(physicalPath, { recursive: true });
-    }
-    catch (error) {
+    } catch (error) {
       throw wrapFsError(error, physicalPath);
     }
   }
@@ -107,8 +101,7 @@ export class NodeFS implements ISimpleFS {
     const physicalPath = this._basePath + path.value;
     try {
       await fs.mkdir(this._basePath + path.value, { recursive: true });
-    }
-    catch (error) {
+    } catch (error) {
       throw wrapFsError(error, physicalPath);
     }
   }
@@ -131,8 +124,7 @@ export class NodeFS implements ISimpleFS {
       }
 
       return result;
-    }
-    catch (error) {
+    } catch (error) {
       throw wrapFsError(error, physicalPath);
     }
   }

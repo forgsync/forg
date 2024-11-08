@@ -61,8 +61,7 @@ export class Repo implements IRepo {
       await this._fs.write(new Path('config'), encode(getDefaultConfig()));
       this._initialized = true;
       return 'init';
-    }
-    else {
+    } else {
       // TODO: Make repo init idempotent in case a previous attempt failed halfway through and no other changes were made since.
       throw new Error('Repo is partially initialized. Delete first and try again or fix manually');
     }
@@ -78,8 +77,7 @@ export class Repo implements IRepo {
           refs.push(node.path.value);
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof FSError && error.errno === Errno.ENOENT) {
         return [];
       }
@@ -279,7 +277,7 @@ function getRefPath(ref: string): Path {
   let path: Path | undefined = undefined;
   try {
     path = new Path(ref);
-  } catch { }
+  } catch {}
 
   if (path === undefined || !path.startsWith(new Path('refs'))) {
     throw new Error(`Invalid ref '${ref}'`);

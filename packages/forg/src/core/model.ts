@@ -11,5 +11,5 @@ export interface ForgRemoteBranch extends ForgBranchBase {
   client: ForgClientInfo;
 }
 export interface ForgHeadBranch extends ForgBranchBase {
-  kind: 'head',
+  kind: 'head';
 }

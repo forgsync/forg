@@ -16,7 +16,7 @@ interface CommitOptions extends Options {
 
 export class CommitCommand<U extends CommitOptions> implements CommandModule<{}, U> {
   readonly command = 'commit <workingTreePath>';
-  readonly describe = 'Commits the provided working tree and updates the provided ref'
+  readonly describe = 'Commits the provided working tree and updates the provided ref';
 
   builder(args: Argv): Argv<U> {
     args.positional('workingTreePath', { type: 'string', demandOption: true });
@@ -24,7 +24,7 @@ export class CommitCommand<U extends CommitOptions> implements CommandModule<{},
     args.option('clientId', { type: 'string', demandOption: true, alias: 'c' });
     args.option('branchName', { type: 'string', demandOption: true, alias: 'b' });
     args.option('allowDuplicate', { type: 'boolean', default: false });
-    return args as unknown as Argv<U>
+    return args as unknown as Argv<U>;
   }
 
   async handler(args: ArgumentsCamelCase<U>) {

@@ -1,15 +1,6 @@
 import { decodePerson } from './person';
 import { Hash, Person, Type } from '../model';
-import {
-  GitObject,
-  BlobObject,
-  TreeObject,
-  CommitObject,
-  TagObject,
-  TreeBody,
-  CommitBody,
-  TagBody,
-} from '../objects';
+import { GitObject, BlobObject, TreeObject, CommitObject, TagObject, TreeBody, CommitBody, TagBody } from '../objects';
 import { decode, fromDec, fromOct, unpackHash } from './util';
 
 export default function decodeObject(buffer: Uint8Array): GitObject {

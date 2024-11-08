@@ -6,10 +6,7 @@ export interface HeadInfo {
   commit: CommitObject;
 }
 
-export async function tryFindAvailableHead(
-  repo: IRepo,
-  ref: string,
-): Promise<HeadInfo | undefined> {
+export async function tryFindAvailableHead(repo: IRepo, ref: string): Promise<HeadInfo | undefined> {
   const commitId = await repo.getRef(ref);
   if (commitId !== undefined) {
     // Option 1: Use the actual ref and its git history
@@ -33,10 +30,7 @@ export async function tryFindAvailableHead(
  * If any objects are missing in a given commit, try the parent commit instead.
  * Keep going until we find one commit for which we have the entire tree, otherwise return null.
  */
-async function tryFindAvailableCommitFromHead(
-  repo: IRepo,
-  commitId: Hash,
-): Promise<HeadInfo | undefined> {
+async function tryFindAvailableCommitFromHead(repo: IRepo, commitId: Hash): Promise<HeadInfo | undefined> {
   let nextCommitIdToTry: string | undefined = commitId;
   while (nextCommitIdToTry !== undefined) {
     let commit: CommitObject;
@@ -63,10 +57,7 @@ async function tryFindAvailableCommitFromHead(
 /**
  * Strategy: use the reflog backwards, and find the most recent entry for which we have a complete commit.
  */
-async function tryFindAvailableCommitFromReflog(
-  repo: IRepo,
-  ref: string,
-): Promise<HeadInfo | undefined> {
+async function tryFindAvailableCommitFromReflog(repo: IRepo, ref: string): Promise<HeadInfo | undefined> {
   const reflog = await repo.getReflog(ref);
   for (let i = reflog.length - 1; i >= 0; i--) {
     const entry = reflog[i];

@@ -12,12 +12,12 @@ interface CheckoutOptions extends Options {
 
 export class CheckoutCommand<U extends CheckoutOptions> implements CommandModule<{}, U> {
   readonly command = 'checkout <ref> <workingTreePath>';
-  readonly describe = 'Checks-out the working tree of the commit at the provided ref to the specified output path'
+  readonly describe = 'Checks-out the working tree of the commit at the provided ref to the specified output path';
 
   builder(args: Argv): Argv<U> {
     args.positional('ref', { type: 'string', demandOption: true });
     args.positional('workingTreePath', { type: 'string', demandOption: true });
-    return args as unknown as Argv<U>
+    return args as unknown as Argv<U>;
   }
 
   async handler(args: ArgumentsCamelCase<U>) {

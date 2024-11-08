@@ -6,7 +6,7 @@ import { ListEntry } from '../model/ISimpleFS';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-const BASE_PATH = './.test_tmp_out'
+const BASE_PATH = './.test_tmp_out';
 describe('NodeFS', () => {
   let sut: NodeFS;
 
@@ -55,7 +55,7 @@ describe('NodeFS', () => {
 
   test('read_write', async () => {
     const path = new Path('a.txt');
-    await sut.write(path, encoder.encode('some \0contents'))
+    await sut.write(path, encoder.encode('some \0contents'));
     const actual = await sut.read(path);
     expect(decoder.decode(actual)).toBe('some \0contents');
   });

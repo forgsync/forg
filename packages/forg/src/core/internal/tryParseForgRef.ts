@@ -1,4 +1,4 @@
-import { ForgBranch, ForgHeadBranch, ForgRemoteBranch } from "../model";
+import { ForgBranch, ForgHeadBranch, ForgRemoteBranch } from '../model';
 
 /**
  * Tries to parse refs formatted as `refs/remotes/<clientUuid>/<branchName>` or `refs/heads/<branchName>`
@@ -32,7 +32,7 @@ export function tryParseForgHeadRef(ref: string): ForgHeadBranch | undefined {
     return {
       kind: 'head',
       branchName: headMatch[1],
-    }
+    };
   }
 
   return undefined;

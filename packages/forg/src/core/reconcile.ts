@@ -1,11 +1,4 @@
-import {
-  createCommit,
-  Hash,
-  IRepo,
-  loadCommitObject,
-  loadTreeObject,
-  updateRef,
-} from '../git';
+import { createCommit, Hash, IRepo, loadCommitObject, loadTreeObject, updateRef } from '../git';
 import { GitTreeFS } from '../treefs';
 import createCommitterInfo from './createCommitterInfo';
 import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
@@ -14,12 +7,7 @@ import { mergeBase } from './internal/mergeBase';
 import { ForgClientInfo } from './model';
 
 type MergeFunc = (a: GitTreeFS, b: GitTreeFS, base: GitTreeFS | undefined) => Promise<GitTreeFS>;
-export async function reconcile(
-  repo: IRepo,
-  forgClient: ForgClientInfo,
-  branchName: string,
-  merge: MergeFunc,
-): Promise<Hash> {
+export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchName: string, merge: MergeFunc): Promise<Hash> {
   const heads = await listForgHeads(repo, branchName);
   const myHead = heads.find((h) => h.clientUuid === forgClient.uuid);
   const myRef = `refs/remotes/${forgClient.uuid}/${branchName}`;

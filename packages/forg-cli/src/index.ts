@@ -37,8 +37,7 @@ const parser = yargs(hideBin(process.argv))
   .command(new CommitCommand())
   .command(new CheckoutCommand())
   .command(new FetchCommand())
-  .command(new LogCommand())
-  ;
+  .command(new LogCommand());
 
 (async () => {
   // Already takes care of exit codes on failure...

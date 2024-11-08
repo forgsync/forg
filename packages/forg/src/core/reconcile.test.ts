@@ -115,9 +115,7 @@ describe('reconcile', () => {
     expect(await repo.getRef('refs/remotes/client3/main')).toBe(commits.I); // unchanged
     expect(commitsReverseMap.get(newCommitHash)).toBeUndefined();
     const newCommit2 = await loadCommitObject(repo, newCommitHash);
-    const knownParentIndex = newCommit2.body.parents.findIndex((hash) =>
-      commitsReverseMap.has(hash),
-    );
+    const knownParentIndex = newCommit2.body.parents.findIndex((hash) => commitsReverseMap.has(hash));
     const knownParentHash = newCommit2.body.parents[knownParentIndex];
     const otherParentHash = newCommit2.body.parents[1 - knownParentIndex];
     expect(toCommitNames([knownParentHash])).toEqual(['I']);

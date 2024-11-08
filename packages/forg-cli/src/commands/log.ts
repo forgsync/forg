@@ -9,11 +9,11 @@ interface LogOptions extends Options {
 
 export class LogCommand<U extends LogOptions> implements CommandModule<{}, U> {
   readonly command = 'log <ref>';
-  readonly describe = 'Prints the commit history of the specified ref'
+  readonly describe = 'Prints the commit history of the specified ref';
 
   builder(args: Argv): Argv<U> {
-    args.positional('ref', { type: 'string',  demandOption: true });
-    return args as unknown as Argv<U>
+    args.positional('ref', { type: 'string', demandOption: true });
+    return args as unknown as Argv<U>;
   }
 
   async handler(args: ArgumentsCamelCase<U>) {
@@ -34,7 +34,6 @@ export class LogCommand<U extends LogOptions> implements CommandModule<{}, U> {
       console.log();
       console.log(`    ${commit.body.message}`);
       console.log();
-
 
       // TODO: Handle merge commits, for now we only follow the first parent
       commitId = commit.body.parents.length > 0 ? commit.body.parents[0] : undefined;

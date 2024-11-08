@@ -14,10 +14,7 @@ export type HashModePath = {
   readonly path: string[];
 };
 
-export async function* walkCommits(
-  repo: IRepo,
-  ...hash: Hash[]
-): AsyncGenerator<HashAndCommitBody, void, boolean | undefined> {
+export async function* walkCommits(repo: IRepo, ...hash: Hash[]): AsyncGenerator<HashAndCommitBody, void, boolean | undefined> {
   const queue = hash;
   const visited = new Set<Hash>(queue);
   while (queue.length > 0) {
@@ -40,11 +37,7 @@ export async function* walkCommits(
   }
 }
 
-export async function* walkTree(
-  repo: IRepo,
-  hash: Hash,
-  parentPath: string[] = [],
-): AsyncGenerator<HashModePath> {
+export async function* walkTree(repo: IRepo, hash: Hash, parentPath: string[] = []): AsyncGenerator<HashModePath> {
   const tree = await loadTreeObject(repo, hash);
   for (const name of Object.keys(tree.body)) {
     const { mode, hash } = tree.body[name];

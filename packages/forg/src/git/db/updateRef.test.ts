@@ -15,13 +15,7 @@ describe('updateRef', () => {
   test('initial commit', async () => {
     expect(await repo.getRef('refs/main')).toBe(undefined);
 
-    await updateRef(
-      repo,
-      'refs/main',
-      '0000000000000000000000000000000000000001',
-      dummyPerson(),
-      'test reflog message',
-    );
+    await updateRef(repo, 'refs/main', '0000000000000000000000000000000000000001', dummyPerson(), 'test reflog message');
     expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000001');
     expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([
       {
@@ -36,20 +30,8 @@ describe('updateRef', () => {
   test('second commit', async () => {
     expect(await repo.getRef('refs/main')).toBe(undefined);
 
-    await updateRef(
-      repo,
-      'refs/main',
-      '0000000000000000000000000000000000000001',
-      dummyPerson(),
-      'test reflog message 1',
-    );
-    await updateRef(
-      repo,
-      'refs/main',
-      '0000000000000000000000000000000000000002',
-      dummyPerson(),
-      'test reflog message 2',
-    );
+    await updateRef(repo, 'refs/main', '0000000000000000000000000000000000000001', dummyPerson(), 'test reflog message 1');
+    await updateRef(repo, 'refs/main', '0000000000000000000000000000000000000002', dummyPerson(), 'test reflog message 2');
 
     expect(await repo.getRef('refs/main')).toBe('0000000000000000000000000000000000000002');
     expect(await repo.getReflog('refs/main')).toEqual<ReflogEntry[]>([

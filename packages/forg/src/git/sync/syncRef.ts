@@ -1,20 +1,13 @@
-import {
-  Hash,
-  IReadOnlyRepo,
-  IRepo,
-  loadCommitObject,
-  MissingObjectError,
-  updateRef,
-} from '../db';
+import { Hash, IReadOnlyRepo, IRepo, loadCommitObject, MissingObjectError, updateRef } from '../db';
 import { syncCommit, SyncConsistency, SyncOptions } from './syncCommit';
 
 export enum SyncStrategy {
   /**
    * Assumes a fully connected graph for all objects that exist in the destination.
    * This has potential issues both during `fetch` and `push`, and is NOT recommended as the default strategy at all times.
-   * 
+   *
    * ### Issues during `push`:
-   * 
+   *
    * A potential issue with this mode is that another client may have uploaded objects out of order and could potentially die before uploading the remaining objects,
    * leading to an incomplete destination that would not self-heal.
    * For example:
@@ -25,18 +18,18 @@ export enum SyncStrategy {
    * 5. Because of `Fastest` mode, the current client would notice that the destination already has the tree object corresponding to the folder that contains the file (see step 2).
    *    HOWEVER, because we assumed graph connectivity, we assume that the blob referenced from the tree must  already exist in the destination, so we will not sync it.
    *    The outcome is that the blob for file `abc` will never be uploaded to the destination (violation of eventual consistency).
-   * 
+   *
    * Alternatives to this:
    *   - `FullSyncTopCommit` still does not guarantee eventual consistency in a broad sense, but at least ensures that the *top* commit is complete in the destination,
    *     though potentially at great impact to sync speed: O(n) with number of objects in the *top* commit (trees, blobs), regardless of whether they changed or not.
    *   - `FullSyncAll` completely addresses this concern, but at great impact to sync speed: O(n) with number of objects in the entire commit history (commits, trees, blobs), regardless of whether they changed or not.
-   * 
+   *
    * It can be a good idea to use a combination approach. For example, use `FullSyncTopCommit` or `FullSyncAll` at least once per day, but `Fastest` all the other times.
    * This would ensure the destination is made whole again in at most 1 day, even after the unlikely event of missing objects described above.
-   * 
-   * 
+   *
+   *
    * ### Issues during `fetch`:
-   * 
+   *
    * This is not recommended as it does not achieve eventual consistency when shallow histories are involved.
    * For example, one fetch attempt may succeed partially with a shallow commit history.
    * When using `Fastest` mode, a subsequent fetch attempt will not attempt to deepen the shallow history,
@@ -101,7 +94,7 @@ export enum SyncStrategy {
    * The situations where commit history isn't fully synced are very rare and unlikely, but possible.
    * For that reason, this is a reasonable choice in most practical scenarios.
    * This can get very slow if the top commit has lots of objects (trees / blobs).
-   * 
+   *
    * It is a good practice for consuming applications to allow the user to trigger a complete sync to recover under very specific situations.
    * In those cases, `DefaultForPushSlowButSafe` is recommended.
    * See more in the comments for `Fastest`.
@@ -148,7 +141,7 @@ export interface SyncRefOptions {
  * This method will attempt to sync commits in the following order:
  * 1. If the ref points to a valid and complete (*) commit in the src repo, then that commit;
  * 2. If not AND `options.attemptRecoveryFromSrcReflog` is set, then it iterates backwards over the reflog in the src repo, and uses the first valid and complete (*) commit.
- * 
+ *
  * (*) a commit is determined to be valid and complete when it can be fully synced from the source to the destination according to the specified sync strategy in `options.strategy`.
  */
 export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, options: SyncRefOptions): Promise<Hash> {
@@ -173,8 +166,7 @@ export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, optio
   };
   if (await trySyncCommit(src, dst, srcRefCommitHash, syncOptions)) {
     syncedCommitHash = srcRefCommitHash;
-  }
-  else {
+  } else {
     // If we couldn't fetch the commit in its entirety (e.g. perhaps we are missing one blob from one of the parent commits, but also possibly because even the commit object is missing)
     // we can still try other commits based on the reflog. This can help in cases where another client pushed their changes out-of-order such that some files were uploaded to the destination, but not all.
     // Note that using the reflog for this is only acceptable because of the Rules of Forg, specifically that clients MUST NOT rewrite history, ever.
@@ -213,8 +205,7 @@ async function trySyncCommit(src: IReadOnlyRepo, dst: IRepo, commitId: Hash, opt
   try {
     await syncCommit(src, dst, commitId, options);
     return true;
-  }
-  catch (error) {
+  } catch (error) {
     if (error instanceof MissingObjectError) {
       return false;
     } else {

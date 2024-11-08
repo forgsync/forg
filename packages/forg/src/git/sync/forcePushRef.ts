@@ -1,8 +1,4 @@
-import {
-  Hash,
-  IReadOnlyRepo,
-  IRepo,
-} from '../db';
+import { Hash, IReadOnlyRepo, IRepo } from '../db';
 import { syncRef, SyncRefOptions, SyncStrategy } from './syncRef';
 
 // Subset of sync strategies that make sense for push:
@@ -30,7 +26,7 @@ export const PushStrategy = {
 /**
  * @returns the commit hash that was successfully synced.
  * If the ref doesn't point to a valid and complete (*) commit in the src repo, an error is thrown.
- * 
+ *
  * (*) a commit is determined to be valid and complete when it can be fully synced from the source to the destination according to the specified sync strategy.
  */
 export async function forcePushRef(local: IReadOnlyRepo, remote: IRepo, ref: string, strategy: PushStrategy = PushStrategy.DefaultForPush): Promise<Hash> {

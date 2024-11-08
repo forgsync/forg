@@ -19,9 +19,7 @@ describe('Encode', () => {
           description: 'something\nweird',
         },
       ]),
-    ).toBe(
-      '0000000000000000000000000000000000000000 eaef5b6f452335fad4dd280a113d81e82a3acaca Test Name <test@example.com> 2272247100 -0300\tsomething\n',
-    );
+    ).toBe('0000000000000000000000000000000000000000 eaef5b6f452335fad4dd280a113d81e82a3acaca Test Name <test@example.com> 2272247100 -0300\tsomething\n');
   });
 
   test('two', () => {
@@ -46,7 +44,7 @@ describe('Encode', () => {
       ]),
     ).toBe(
       '0000000000000000000000000000000000000000 0000000000000000000000000000000000000001 Test Name <test@example.com> 2272247100 -0300\tdescription 1\n' +
-      '0000000000000000000000000000000000000001 0000000000000000000000000000000000000002 Ãb c"Def"G\'hi <ab+c:1234@def.example.com/ghi> 2272247100 -0300\tdescription 2\n',
+        '0000000000000000000000000000000000000001 0000000000000000000000000000000000000002 Ãb c"Def"G\'hi <ab+c:1234@def.example.com/ghi> 2272247100 -0300\tdescription 2\n',
     );
   });
 });
@@ -59,9 +57,7 @@ describe('Decode', () => {
   });
 
   test('one', () => {
-    const input = encoder.encode(
-      '0000000000000000000000000000000000000000 eaef5b6f452335fad4dd280a113d81e82a3acaca Test Name <test@example.com> 2272247100 -0300\tsomething weird\n',
-    );
+    const input = encoder.encode('0000000000000000000000000000000000000000 eaef5b6f452335fad4dd280a113d81e82a3acaca Test Name <test@example.com> 2272247100 -0300\tsomething weird\n');
     const actual = decodeReflog(input);
     expect(actual).toEqual<ReflogEntry[]>([
       {
@@ -76,8 +72,8 @@ describe('Decode', () => {
   test('two', () => {
     const input = encoder.encode(
       '0000000000000000000000000000000000000000 eaef5b6f452335fad4dd280a113d81e82a3acaca Test Name <test@example.com> 2272247100 -0300\tcommit (initial): Initial commit\n' +
-      'eaef5b6f452335fad4dd280a113d81e82a3acaca 9254379c365d23429f0fff266834bdc853c35fe1 Test Name <test@example.com> 2272247100 -0300\tcommit: Added a.txt\n' +
-      '9254379c365d23429f0fff266834bdc853c35fe1 0000000000000000000000000000000000000002 Ãb c"Def"G\'hi <ab+c:1234@def.example.com/ghi> 2272247100 -0300\tdescription 3\n'
+        'eaef5b6f452335fad4dd280a113d81e82a3acaca 9254379c365d23429f0fff266834bdc853c35fe1 Test Name <test@example.com> 2272247100 -0300\tcommit: Added a.txt\n' +
+        '9254379c365d23429f0fff266834bdc853c35fe1 0000000000000000000000000000000000000002 Ãb c"Def"G\'hi <ab+c:1234@def.example.com/ghi> 2272247100 -0300\tdescription 3\n',
     );
     const actual = decodeReflog(input);
     expect(actual).toEqual<ReflogEntry[]>([

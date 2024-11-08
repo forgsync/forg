@@ -10,11 +10,11 @@ interface InitOptions extends Options {
 
 export class InitCommand<U extends InitOptions> implements CommandModule<{}, U> {
   readonly command = 'init [path]';
-  readonly describe = 'Initializes a forg repo'
+  readonly describe = 'Initializes a forg repo';
 
   builder(args: Argv): Argv<U> {
     args.positional('path', { type: 'string', default: './' });
-    return args as unknown as Argv<U>
+    return args as unknown as Argv<U>;
   }
 
   async handler(args: ArgumentsCamelCase<U>) {
@@ -24,8 +24,7 @@ export class InitCommand<U extends InitOptions> implements CommandModule<{}, U> 
 
     if (result === 'init') {
       console.log(`Initialized empty Forg repository in ${fs.physicalRoot}`);
-    }
-    else {
+    } else {
       console.log(`Reinitialized existing Forg repository in ${fs.physicalRoot}`);
     }
   }

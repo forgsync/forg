@@ -1,12 +1,4 @@
-import {
-  createCommit,
-  loadCommitObject,
-  loadTreeObject,
-  Person,
-  Repo,
-  updateRef,
-  walkTree,
-} from '@forgsync/forg/dist/git';
+import { createCommit, loadCommitObject, loadTreeObject, Person, Repo, updateRef, walkTree } from '@forgsync/forg/dist/git';
 import { encode } from '@forgsync/forg/dist/git/internal/encoding/util';
 import { isFile } from '@forgsync/forg/dist/git/internal/util';
 import { GitTreeFS } from '@forgsync/forg/dist/treefs';
