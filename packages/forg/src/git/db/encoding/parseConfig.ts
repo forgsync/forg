@@ -19,13 +19,7 @@ const LF = '\n'.charCodeAt(0);
 const EQUAL = '='.charCodeAt(0);
 const EOF = -1;
 
-export function decodeConfig(binary: Uint8Array): Map<string, string[]> {
-  const config = parseConfig(binary);
-  // TODO: Where do we handle the simple transformations such as that a boolean can be specified as `1`, `true`, `on`, etc.?
-  return config;
-}
-
-function parseConfig(binary: Uint8Array): Map<string, string[]> {
+export function parseConfig(binary: Uint8Array): Map<string, string[]> {
   const result = new Map<string, string[]>();
 
   let curSection: string | undefined = undefined;

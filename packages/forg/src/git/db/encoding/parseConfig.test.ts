@@ -1,7 +1,7 @@
-import { decodeConfig } from './config';
+import { parseConfig } from './parseConfig';
 
 const encoder = new TextEncoder();
-describe('decodeConfig', () => {
+describe('parseConfig', () => {
   test('example1', () => {
     const binary = encoder.encode([
       '# This is a comment',
@@ -14,7 +14,7 @@ describe('decodeConfig', () => {
       '   var3   =\t  some value  \n'
     ].join('\n'));
 
-    expect(Array.from(decodeConfig(binary))).toEqual<[name: string, value: string[]][]>([
+    expect(Array.from(parseConfig(binary))).toEqual<[name: string, value: string[]][]>([
       ['section1.var1', ['1']],
       ['section2.var2', ['quoted value with " double-quotes and backslash \\ and weird escape inside 0']],
       ['section2.sub-section.3.var3', ['some value']],
@@ -52,7 +52,7 @@ describe('decodeConfig', () => {
       '\tcookieFile = /tmp/cookie.txt',
     ].join('\n'));
 
-    expect(Array.from(decodeConfig(binary))).toEqual<[name: string, value: string[]][]>([
+    expect(Array.from(parseConfig(binary))).toEqual<[name: string, value: string[]][]>([
       ['core.filemode', ['false']],
       ['diff.external', ['/usr/local/bin/diff-wrapper']],
       ['diff.renames', ['true']],
@@ -135,7 +135,7 @@ describe('decodeConfig', () => {
     const allLines = input.join('\n');
     //console.log(allLines);
     const binary = encoder.encode(allLines);
-    expect(Array.from(decodeConfig(binary))).toEqual<[name: string, value: string[]][]>(expectedOutput);
+    expect(Array.from(parseConfig(binary))).toEqual<[name: string, value: string[]][]>(expectedOutput);
   });
 
   test.each<[string[], RegExp]>([
@@ -174,6 +174,6 @@ describe('decodeConfig', () => {
     const allLines = input.join('\n');
     //console.log(allLines);
     const binary = encoder.encode(allLines);
-    expect(() => decodeConfig(binary)).toThrow(errorMatcher);
+    expect(() => parseConfig(binary)).toThrow(errorMatcher);
   });
 });

@@ -5,8 +5,8 @@ import { Hash, ReflogEntry } from './model';
 import { decode, encode, validateHash } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
 import { MissingObjectError } from './errors';
-import { decodeConfig } from './encoding/config';
-import { GitConfig, loadConfig } from './config';
+import { loadConfig } from './config';
+import { decodeConfig, GitConfig } from './encoding/decodeConfig';
 
 export interface IReadOnlyRepo {
   listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
@@ -80,7 +80,7 @@ export class Repo implements IRepo {
 
       const newBinConfig = encode(getDefaultConfig());
       await this._fs.write(new Path('config'), newBinConfig);
-      this._config = new GitConfig(decodeConfig(newBinConfig));
+      this._config = decodeConfig(newBinConfig);
       this._initialized = true;
       return 'init';
     } else {
