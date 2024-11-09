@@ -19,10 +19,10 @@ const LF = '\n'.charCodeAt(0);
 const EQUAL = '='.charCodeAt(0);
 const EOF = -1;
 
-export function decodeConfig(binary: Uint8Array): Map<string, string> {
-  const result = new Map<string, string>();
+export function decodeConfig(binary: Uint8Array): Map<string, string[]> {
+  const result = new Map<string, string[]>();
 
-  let curSection: string = '';
+  let curSection: string | undefined = undefined;
   let i = 0;
   let lineCounter = 1;
   let columnCounter = 1;
@@ -34,8 +34,21 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
       columnCounter = 1;
     }
   } catch (error) {
-    const message = error instanceof Error ? `${error.message}\n${error.stack}` : String(error);
-    throw new Error(`Parsing failed at index ${i} (${lineCounter}:${columnCounter}): ${message}.`);
+    let message: string;
+    let stack: string | undefined;
+    if (error instanceof Error) {
+      message = error.message;
+      stack = error.stack;
+    }
+    else {
+      message = String(error);
+    }
+
+    const newError = new Error(`Parsing failed at index ${i} (${formatCharForErrorMessage(binary[i])}) (${lineCounter}:${columnCounter}): ${message}.`);
+    if (stack) {
+      newError.stack = `${String(newError)}\n${stack}`;
+    }
+    throw newError;
   }
 
   function peek() {
@@ -55,7 +68,6 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
     consumeWhitespace();
 
     const c = peek();
-
     if (c === POUND || c === SEMICOLON || c === CR || c === LF || c === EOF) {
       // Nothing...
     }
@@ -63,11 +75,14 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
       curSection = parseSection();
     } else {
       const [name, value] = parseVariable();
-      const fullName = `${curSection}.${name}`;
-      if (result.has(fullName)) {
-        throw new Error(`Reassignment of variable ${fullName}`);
+      if (curSection === undefined) {
+        throw new Error(`Found variable defined outside of a section: '${name}'`);
       }
-      result.set(fullName, value);
+
+      const fullName = `${curSection}.${name}`;
+      const values = result.get(fullName) ?? [];
+      values.push(value);
+      result.set(fullName, values);
     }
 
     consumeLineTrailer();
@@ -115,7 +130,7 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
         pop();
       }
       else {
-        throw new Error(`Expected alphanumeric, hyphen, dot, space, or close-bracket, found ${p}`);
+        throw new Error(`Expected alphanumeric, hyphen, dot, space, or close-bracket, found ${formatCharForErrorMessage(p)}`);
       }
     } while (true);
 
@@ -132,13 +147,33 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
     let value = '';
     do {
       let p = peek();
-      if (p === DOUBLE_QUOTE || p === EOF) {
+      if (p === CR || p === LF || p === EOF) {
+        throw new Error(`Unexpected ${formatCharForErrorMessage(p)}`);
+      }
+      if (p === DOUBLE_QUOTE) {
         break;
       }
       if (p === BACKSLASH) {
         pop();
         p = pop();
         switch (p) {
+          case CR:
+          case LF:
+            // Backslash at end of line in a value should mean the next line continues the value.
+            // From Git docs:
+            // "A line that defines a value can be continued to the next line by ending it with a backslash (\); the backslash and the end-of-line characters are discarded."
+            //
+            // Example:
+            //
+            // ```
+            // [core]
+            //   abc = ab\
+            // c
+            // ```
+            //
+            // ==> Expectation would be to end up with `core.abc=abc`
+            // We don't support this today out of laziness
+            throw new Error('Values continued on the next line are not supported');
           case DOUBLE_QUOTE: value += '"'; break;
           case BACKSLASH: value += '\\'; break;
           default: value += String.fromCharCode(p); break;
@@ -157,9 +192,16 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
   function parseVariable(): [name: string, value: string] {
     const name = parseVariableName();
     consumeWhitespace();
-    consumeOne(EQUAL);
-    consumeWhitespace();
-    const value = parseValueOrQuotedValue();
+
+    let value: string;
+    if (peek() === EQUAL) {
+      consumeOne(EQUAL);
+      consumeWhitespace();
+      value = parseValueOrQuotedValue();
+    }
+    else {
+      value = 'true';
+    }
 
     return [name, value];
   }
@@ -168,9 +210,6 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
     let value = '';
     do {
       let p = peek();
-      if (p === SP || p === TAB || p === EQUAL) {
-        break;
-      }
       if ((p >= UPPERCASE_A && p <= UPPERCASE_Z) ||
         (p >= LOWERCASE_A && p <= LOWERCASE_Z) ||
         (p >= NUM_0 && p <= NUM_9) ||
@@ -179,7 +218,7 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
         pop();
       }
       else {
-        throw new Error(`Expected alphanumeric, hyphen, dot, or close-bracket, found ${p}`);
+        break;
       }
     } while (true);
 
@@ -243,7 +282,7 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
   function consumeOne(charCode: number) {
     const p = peek();
     if (p !== charCode) {
-      throw new Error(`Unexpected byte ${p} ('${String.fromCharCode(p)}'), expected ${charCode} ('${String.fromCharCode(charCode)}')`)
+      throw new Error(`Unexpected ${formatCharForErrorMessage(p)}, expected ${formatCharForErrorMessage(charCode)}`)
     }
     pop();
   }
@@ -251,7 +290,7 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
   function consumeOneOf(...charCodes: number[]) {
     const p = peek();
     if (!charCodes.includes(p)) {
-      throw new Error(`Unexpected byte ${p}, expected one of ${charCodes.map(c => `${c} ('${String.fromCharCode(c)}')`).join(', ')}`)
+      throw new Error(`Unexpected ${formatCharForErrorMessage(p)}, expected one of ${charCodes.map(formatCharForErrorMessage).join(', ')}`)
     }
     if (p !== EOF) {
       pop();
@@ -259,4 +298,20 @@ export function decodeConfig(binary: Uint8Array): Map<string, string> {
   }
 
   return result;
+}
+
+function formatCharForErrorMessage(charCode: number) {
+  if (charCode >= 0x20 && charCode <= 0x7e) {
+    return `'${String.fromCharCode(charCode)}'`;
+  } else if (charCode === TAB) {
+    return "'\\t'";
+  } else if (charCode === LF) {
+    return "'\\n'";
+  } else if (charCode === CR) {
+    return "'\\r'";
+  } else if (charCode === EOF) {
+    return 'EOF';
+  } else {
+    return `char ${charCode}`;
+  }
 }
