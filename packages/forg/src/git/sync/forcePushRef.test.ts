@@ -1,4 +1,4 @@
-import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../db';
+import { Hash, InitMode, ReflogEntry, Repo, createCommit, updateRef } from '../db';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { forcePushRef } from './forcePushRef';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -19,7 +19,7 @@ describe('forcePushRef', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
     commits = {};
 
     // A -- B
@@ -38,7 +38,7 @@ describe('forcePushRef', () => {
   test('Basics', async () => {
     const fs = new InMemoryFS();
     const remote = new Repo(fs);
-    await remote.init();
+    await remote.init(InitMode.CreateIfNotExists);
 
     for (let i = 0; i < 2; i++) {
       // Do this twice since it should be idempotent

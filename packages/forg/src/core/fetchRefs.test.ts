@@ -1,4 +1,4 @@
-import { Hash, Repo, createCommit, updateRef } from '../git';
+import { Hash, InitMode, Repo, createCommit, updateRef } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { fetchRefs } from './fetchRefs';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -12,7 +12,7 @@ describe('fetchRefs', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     origin = new Repo(fs);
-    await origin.init();
+    await origin.init(InitMode.CreateIfNotExists);
 
     async function trackCommit(name: string, parents: Hash[]) {
       const hash = await createCommit(origin, { type: 'tree', entries: {} }, parents, name, dummyPerson());
@@ -37,7 +37,7 @@ describe('fetchRefs', () => {
   test('Fetches remote branches other than our own remote', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     await fetchRefs(origin, local, { uuid: OTHER_CLIENT_UUID });
     expect(await local.getRef(TEST_REF)).toBe(commits.E);
@@ -51,7 +51,7 @@ describe('fetchRefs', () => {
   test('Skips our own remote', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     await fetchRefs(origin, local, { uuid: MY_CLIENT_UUID });
     expect(await local.getRef(TEST_REF)).toBeUndefined();
@@ -60,7 +60,7 @@ describe('fetchRefs', () => {
   test('Uses reflog if top commit is malformed', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     await origin.deleteObject(commits.E); // ref still points here, but we delete the object (e.g. simulate that this wasn't uploaded yet to the remote)
 

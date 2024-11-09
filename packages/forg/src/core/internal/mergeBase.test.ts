@@ -1,4 +1,4 @@
-import { Hash, Repo, createCommit } from '../../git';
+import { Hash, InitMode, Repo, createCommit } from '../../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { mergeBase } from './mergeBase';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -10,7 +10,7 @@ describe('mergeBase', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
 
     async function trackCommit(name: string, parents: Hash[]) {
       const hash = await createCommit(repo, { type: 'tree', entries: {} }, parents, name, dummyPerson());

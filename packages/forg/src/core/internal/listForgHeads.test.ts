@@ -1,6 +1,6 @@
 import { InMemoryFS } from '@forgsync/simplefs';
 
-import { Repo, createCommit } from '../../git';
+import { InitMode, Repo, createCommit } from '../../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { ForgClientHead, listForgHeads } from './listForgHeads';
 
@@ -11,7 +11,7 @@ describe('listForgHeads', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
   });
 
   test('Empty', async () => {

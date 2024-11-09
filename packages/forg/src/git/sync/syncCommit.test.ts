@@ -1,4 +1,4 @@
-import { Hash, Repo, createCommit, loadCommitObject, loadTreeObject } from '../db';
+import { Hash, InitMode, Repo, createCommit, loadCommitObject, loadTreeObject } from '../db';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { syncCommit, SyncConsistency } from './syncCommit';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -10,7 +10,7 @@ describe('syncCommit', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     origin = new Repo(fs);
-    await origin.init();
+    await origin.init(InitMode.CreateIfNotExists);
 
     async function trackCommit(name: string, parents: Hash[]) {
       const hash = await createCommit(origin, {
@@ -39,7 +39,7 @@ describe('syncCommit', () => {
   test('Basics', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     await syncCommit(origin, local, commits.E, {
       topCommitConsistency: SyncConsistency.AssumeTotalConnectivity,
@@ -56,7 +56,7 @@ describe('syncCommit', () => {
   test('Consistency modes', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     await syncCommit(origin, local, commits.E, {
       topCommitConsistency: SyncConsistency.AssumeTotalConnectivity,
@@ -85,7 +85,7 @@ describe('syncCommit', () => {
   test('shallow stops at missing commit', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     await origin.deleteObject(commits.A);
 
@@ -102,7 +102,7 @@ describe('syncCommit', () => {
   test('shallow stops at partial commit', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     const commitE = await loadCommitObject(origin, commits.C);
     const treeE = await loadTreeObject(origin, commitE.body.tree);
@@ -122,7 +122,7 @@ describe('syncCommit', () => {
   test('not shallow explodes', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     await origin.deleteObject(commits.A);
 
@@ -136,7 +136,7 @@ describe('syncCommit', () => {
   test('shallow stops at partial commit then completes eventually consistent', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     const commitE = await loadCommitObject(origin, commits.C);
     const treeE = await loadTreeObject(origin, commitE.body.tree);

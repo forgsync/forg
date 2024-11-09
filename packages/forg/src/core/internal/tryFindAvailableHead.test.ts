@@ -1,4 +1,4 @@
-import { Repo, createCommit, updateRef } from '../../git';
+import { InitMode, Repo, createCommit, updateRef } from '../../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { tryFindAvailableHead } from './tryFindAvailableHead';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -10,7 +10,7 @@ describe('tryFindAvailableHead', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
   });
 
   test('If ref does not exist', async () => {

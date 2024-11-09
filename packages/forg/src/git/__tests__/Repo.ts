@@ -1,5 +1,5 @@
 import { InMemoryFS } from '@forgsync/simplefs';
-import { createCommit, updateRef, CommitBody, Mode, ReflogEntry, Repo, TreeBody, loadCommitObject, loadTreeObject, loadBlobObject } from '../';
+import { createCommit, updateRef, CommitBody, Mode, ReflogEntry, Repo, TreeBody, loadCommitObject, loadTreeObject, loadBlobObject, InitMode } from '../';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 
 const encoder = new TextEncoder();
@@ -10,7 +10,7 @@ describe('Repo basics', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
   });
 
   test('just init', () => {});

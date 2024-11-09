@@ -1,4 +1,4 @@
-import { Hash, ReflogEntry, Repo, createCommit, updateRef } from '../db';
+import { Hash, InitMode, ReflogEntry, Repo, createCommit, updateRef } from '../db';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { forceFetchRef } from './forceFetchRef';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -11,7 +11,7 @@ describe('forceFetchRef', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     origin = new Repo(fs);
-    await origin.init();
+    await origin.init(InitMode.CreateIfNotExists);
 
     async function trackCommit(name: string, parents: Hash[]) {
       const hash = await createCommit(origin, { type: 'tree', entries: {} }, parents, name, dummyPerson());
@@ -36,7 +36,7 @@ describe('forceFetchRef', () => {
   test('Basics', async () => {
     const fs = new InMemoryFS();
     const local = new Repo(fs);
-    await local.init();
+    await local.init(InitMode.CreateIfNotExists);
 
     for (let i = 0; i < 2; i++) {
       // Do this twice since it should be idempotent

@@ -1,5 +1,5 @@
 import { InMemoryFS, ListEntry, Path } from '@forgsync/simplefs';
-import { Repo } from '../../git';
+import { InitMode, Repo } from '../../git';
 import { GitTreeFS } from './GitTreeFS';
 import { ExpandedTree, saveWorkingTree } from '../../git';
 
@@ -13,7 +13,7 @@ describe('GitTreeFS', () => {
   beforeEach(async () => {
     const repofs = new InMemoryFS();
     repo = new Repo(repofs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
     workingTree = {
       type: 'tree',
       entries: {

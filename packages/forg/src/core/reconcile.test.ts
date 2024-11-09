@@ -1,4 +1,4 @@
-import { Hash, Repo, createCommit, loadCommitObject } from '../git';
+import { Hash, InitMode, Repo, createCommit, loadCommitObject } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { reconcile } from './reconcile';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -12,7 +12,7 @@ describe('reconcile', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
 
     async function trackCommit(name: string, parents: Hash[]) {
       const hash = await createCommit(repo, { type: 'tree', entries: {} }, parents, name, dummyPerson());

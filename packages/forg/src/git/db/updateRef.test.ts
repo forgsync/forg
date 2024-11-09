@@ -1,5 +1,5 @@
 import { updateRef } from './updateRef';
-import { Repo } from './Repo';
+import { InitMode, Repo } from './Repo';
 import { ReflogEntry } from './model';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { InMemoryFS } from '@forgsync/simplefs';
@@ -9,7 +9,7 @@ describe('updateRef', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
   });
 
   test('initial commit', async () => {

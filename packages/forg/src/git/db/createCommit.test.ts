@@ -1,5 +1,5 @@
 import { createCommit } from './createCommit';
-import { Repo } from './Repo';
+import { InitMode, Repo } from './Repo';
 import { Mode } from './model';
 import { CommitBody, loadBlobObject, loadCommitObject, loadTreeObject, TreeBody } from './objects';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
@@ -13,7 +13,7 @@ describe('createCommit', () => {
   beforeEach(async () => {
     const fs = new InMemoryFS();
     repo = new Repo(fs);
-    await repo.init();
+    await repo.init(InitMode.CreateIfNotExists);
   });
 
   test('initial commit', async () => {
