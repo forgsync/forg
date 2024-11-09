@@ -5,6 +5,8 @@ import { Hash, ReflogEntry } from './model';
 import { decode, encode, validateHash } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
 import { MissingObjectError } from './errors';
+import { decodeConfig } from './encoding/config';
+import { GitConfig, loadConfig } from './config';
 
 export interface IReadOnlyRepo {
   listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
@@ -30,22 +32,39 @@ export enum InitMode {
 export class Repo implements IRepo {
   private readonly _fs: ISimpleFS;
   private _initialized: boolean = false;
+  private _config: GitConfig | undefined;
 
   constructor(fs: ISimpleFS) {
     this._fs = fs;
+  }
+
+  get config(): GitConfig {
+    this._ensureInitialized();
+    if (this._config === undefined) {
+      throw new Error();
+    }
+
+    return this._config;
   }
 
   async init(mode: InitMode = InitMode.Open): Promise<'init' | 'reInit'> {
     const hasHeadFile = await this._fs.fileExists(new Path('HEAD'));
     const hasObjectsDir = await this._fs.directoryExists(new Path('objects'));
     const hasRefsDir = await this._fs.directoryExists(new Path('refs'));
-    const hasConfigFile = await this._fs.fileExists(new Path('config'));
+    const config = await loadConfig(this);
 
-    if (hasHeadFile && hasObjectsDir && hasRefsDir && hasConfigFile) {
-      // TODO: Check that config file specifies `forg.version` === 1
+    if (hasHeadFile && hasObjectsDir && hasRefsDir) {
+      const forgVersion = config.getString('forg.version');
+      if (forgVersion === undefined) {
+        throw new Error("Repo is not a valid forg repo. Missing config variable 'forg.version'");
+      }
+      if (forgVersion !== '1') {
+        throw new Error(`Repo is not a valid forg repo. Expected config variable 'forg.version' == 1, found '${forgVersion}'`);
+      }
 
       // All good!
       this._initialized = true;
+      this._config = config;
       return 'reInit';
     }
 
@@ -53,11 +72,15 @@ export class Repo implements IRepo {
       throw new Error('Repo is not initialized. Call init with mode CreateIfNotExists to create.');
     }
 
-    if (!hasHeadFile && !hasObjectsDir && !hasRefsDir && !hasConfigFile) {
+    const hasConfig = await this._fs.fileExists(new Path('config'));
+    if (!hasHeadFile && !hasObjectsDir && !hasRefsDir && !hasConfig) {
       await this._fs.write(new Path('HEAD'), encode('ref: refs/heads/main')); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
       await this._fs.createDirectory(new Path('objects'));
       await this._fs.createDirectory(new Path('refs'));
-      await this._fs.write(new Path('config'), encode(getDefaultConfig()));
+
+      const newBinConfig = encode(getDefaultConfig());
+      await this._fs.write(new Path('config'), newBinConfig);
+      this._config = new GitConfig(decodeConfig(newBinConfig));
       this._initialized = true;
       return 'init';
     } else {
@@ -236,8 +259,7 @@ export class Repo implements IRepo {
   }
 
   async loadMetadata(name: string): Promise<Uint8Array | undefined> {
-    this._ensureInitialized();
-
+    // NOTE: We deliberately do not check if the repo is initialized here, this is necessary because we need to be able to read config *before* init.
     const path = new Path(name);
     if (path.numSegments !== 1) {
       throw new Error(`Metadata files are only allowed at the root`);

@@ -21,6 +21,7 @@ export type {
   CommitBody,
   TagBody,
 } from './objects';
+export { loadConfig, GitConfig } from './config';
 
 export { createCommit } from './createCommit';
 export { updateRef } from './updateRef';

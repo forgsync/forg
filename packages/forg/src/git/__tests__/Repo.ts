@@ -1,4 +1,4 @@
-import { InMemoryFS } from '@forgsync/simplefs';
+import { InMemoryFS, Path } from '@forgsync/simplefs';
 import { createCommit, updateRef, CommitBody, Mode, ReflogEntry, Repo, TreeBody, loadCommitObject, loadTreeObject, loadBlobObject, InitMode } from '../';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 
@@ -13,7 +13,7 @@ describe('Repo basics', () => {
     await repo.init(InitMode.CreateIfNotExists);
   });
 
-  test('just init', () => {});
+  test('just init', () => { });
 
   test('trivial commit', async () => {
     const hash = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
@@ -129,5 +129,19 @@ describe('Repo basics', () => {
   test('listRefs with missing ref parent folder', async () => {
     const remoteRefs = await repo.listRefs('refs/remotes');
     expect(remoteRefs).toEqual([]);
+  });
+
+  test('init rejects non-forg repo', async () => {
+    const fs = new InMemoryFS();
+    await new Repo(fs).init(InitMode.CreateIfNotExists);
+    await fs.write(new Path('config'), new Uint8Array());
+    await expect(() => new Repo(fs).init()).rejects.toThrow(/Repo is not a valid forg repo. Missing config variable 'forg\.version'/);
+  });
+
+  test('init rejects bad forg version', async () => {
+    const fs = new InMemoryFS();
+    await new Repo(fs).init(InitMode.CreateIfNotExists);
+    await fs.write(new Path('config'), encoder.encode('[forg]\nversion=2'));
+    await expect(() => new Repo(fs).init()).rejects.toThrow(/Repo is not a valid forg repo. Expected config variable 'forg\.version' == 1, found '2'/);
   });
 });
