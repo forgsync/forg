@@ -6,7 +6,6 @@ import { decode, encode } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
 import { MissingObjectError } from './errors';
 
-export type IRepo = IReadOnlyRepo & IWriteOnlyRepo;
 export interface IReadOnlyRepo {
   listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
   getRef(ref: string): Promise<Hash | undefined>;
@@ -15,7 +14,7 @@ export interface IReadOnlyRepo {
   hasObject(hash: Hash): Promise<boolean>;
   loadMetadata(name: string): Promise<Uint8Array | undefined>;
 }
-interface IWriteOnlyRepo {
+export interface IRepo extends IReadOnlyRepo {
   setRef(ref: string, hash: Hash | undefined): Promise<void>;
   setReflog(ref: string, reflog: ReflogEntry[]): Promise<void>;
   saveRawObject(hash: Hash, raw: Uint8Array): Promise<void>;
