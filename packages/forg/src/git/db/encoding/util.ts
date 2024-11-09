@@ -55,17 +55,29 @@ export function fromOct(buffer: Uint8Array, start: number, end: number) {
 }
 
 export function packHash(hex: string) {
+  if (!validateHash(hex)) {
+    throw new Error(`Invalid hash '${hex}'`);
+  }
+
   var raw = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; ) {
+  for (let i = 0; i < hex.length;) {
     raw[i / 2] = (fromHexChar(hex.charCodeAt(i++)) << 4) | fromHexChar(hex.charCodeAt(i++));
   }
   return raw;
 }
 
 export function unpackHash(binary: Uint8Array, start = 0, end = binary.length) {
+  if (end - start !== 20) {
+    throw new Error(`Invalid hash length ${end - start}, expected 20`);
+  }
+
+  if (start < 0 || start >= binary.length || end > binary.length) {
+    throw new Error(`Out of bounds: (${start}..${end}) and buffer length ${binary.length}`);
+  }
+
   var hex = '';
   for (var i = start; i < end; i++) {
-    var byte = binary[i];
+    const byte = binary[i];
     hex += String.fromCharCode(toHexChar(byte >> 4)) + String.fromCharCode(toHexChar(byte & 0xf));
   }
   return hex;
@@ -77,4 +89,9 @@ export function toHexChar(val: number) {
 
 export function sanitizeString(string: string) {
   return string.replace(/(?:^[\.,:;<>"']+|[\0\n\t<>]+|[\.,:;<>"']+$)/g, '');
+}
+
+const commitHashRegex = /^[0-9a-f]{40}$/;
+export function validateHash(hash: string) {
+  return hash.match(commitHashRegex) !== null;
 }

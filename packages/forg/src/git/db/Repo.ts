@@ -2,7 +2,7 @@ import * as fflate from 'fflate';
 import { Errno, FSError, ISimpleFS, Path } from '@forgsync/simplefs';
 
 import { Hash, ReflogEntry } from './model';
-import { decode, encode } from './encoding/util';
+import { decode, encode, validateHash } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
 import { MissingObjectError } from './errors';
 
@@ -105,12 +105,19 @@ export class Repo implements IRepo {
       throw error;
     }
 
-    const content = decode(rawContent);
-    return content.trim();
+    const content = decode(rawContent).trim();
+    if (!validateHash(content)) {
+      throw new Error(`Ref ${ref} invalid hash '${content}'`);
+    }
+
+    return content;
   }
 
   async setRef(ref: string, hash: string | undefined): Promise<void> {
     this._ensureInitialized();
+    if (hash !== undefined && !validateHash(hash)) {
+      throw new Error(`Invalid hash '${hash}'`);
+    }
 
     const path = getRefPath(ref);
     if (hash !== undefined) {
@@ -152,6 +159,9 @@ export class Repo implements IRepo {
 
   async saveRawObject(hash: string, raw: Uint8Array): Promise<void> {
     this._ensureInitialized();
+    if (!validateHash(hash)) {
+      throw new Error(`Invalid hash '${hash}'`);
+    }
 
     const compressed = fflate.zlibSync(raw);
     const path = computeObjectPath(hash);
@@ -159,6 +169,11 @@ export class Repo implements IRepo {
   }
 
   async deleteObject(hash: string): Promise<void> {
+    this._ensureInitialized();
+    if (!validateHash(hash)) {
+      throw new Error(`Invalid hash '${hash}'`);
+    }
+
     const path = computeObjectPath(hash);
     try {
       await this._fs.deleteFile(path);
@@ -175,6 +190,9 @@ export class Repo implements IRepo {
 
   async loadRawObject(hash: string): Promise<Uint8Array> {
     this._ensureInitialized();
+    if (!validateHash(hash)) {
+      throw new Error(`Invalid hash '${hash}'`);
+    }
 
     const path = computeObjectPath(hash);
     let rawContent: Uint8Array;
@@ -195,6 +213,10 @@ export class Repo implements IRepo {
 
   async hasObject(hash: string): Promise<boolean> {
     this._ensureInitialized();
+    if (!validateHash(hash)) {
+      throw new Error(`Invalid hash '${hash}'`);
+    }
+
     return await this._fs.fileExists(computeObjectPath(hash));
   }
 
@@ -276,7 +298,7 @@ function getRefPath(ref: string): Path {
   let path: Path | undefined = undefined;
   try {
     path = new Path(ref);
-  } catch {}
+  } catch { }
 
   if (path === undefined || !path.startsWith(new Path('refs'))) {
     throw new Error(`Invalid ref '${ref}'`);

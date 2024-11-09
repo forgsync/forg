@@ -1,7 +1,7 @@
 import { encodePerson } from './person';
 import { Mode, Type } from '../model';
 import { CommitBody, GitObject, TagBody, TreeBody } from '../objects';
-import { NEWLINE, concat, encode, flatten, packHash } from './util';
+import { NEWLINE, concat, encode, flatten, packHash, validateHash } from './util';
 
 export default function encodeObject(object: GitObject): Uint8Array {
   const bytes = getBytes(object);
@@ -55,6 +55,10 @@ export function encodeTree(body: TreeBody) {
 }
 
 export function encodeTag(body: TagBody) {
+  if (!validateHash(body.object)) {
+    throw new Error(`Invalid tag object ${body.object}`);
+  }
+
   return joinWithNewline(
     `object ${body.object}`,
     `type ${body.type}`,
@@ -66,6 +70,16 @@ export function encodeTag(body: TagBody) {
 }
 
 export function encodeCommit(body: CommitBody) {
+  if (!validateHash(body.tree)) {
+    throw new Error(`Invalid tree hash ${body.tree}`);
+  }
+
+  for (const parent of body.parents) {
+    if (!validateHash(parent)) {
+      throw new Error(`Invalid parent hash ${parent}`);
+    }
+  }
+
   return joinWithNewline(
     `tree ${body.tree}`,
     ...body.parents.map((p) => `parent ${p}`),
