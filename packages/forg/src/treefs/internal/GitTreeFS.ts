@@ -114,6 +114,7 @@ export class GitTreeFS implements ISimpleFS {
 
     let fileHash: Hash;
     try {
+      // TODO: Check if file exists first, then we wouldn't need to overwrite (depending on something analogous to consistency mode when syncing)
       fileHash = await saveObject(this._repo, {
         type: Type.blob,
         body: data,

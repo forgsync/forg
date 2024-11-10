@@ -148,6 +148,8 @@ describe('parseConfig', () => {
         '[core]',
         '  a b=1',
       ],
+      // This is not an ideal error message, other characters would also be valid here (e.g. '=', '#', ';').
+      // This happens because the parser peeked for an EQUAL sign or a comment start etc. and found none, so it thinks really only end of line is plausible now...
       /Unexpected 'b', expected one of '\\n', EOF/
     ],
     [
