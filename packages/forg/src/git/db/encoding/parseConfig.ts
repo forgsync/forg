@@ -103,6 +103,10 @@ export function parseConfig(binary: Uint8Array): Map<string, string[]> {
   function parseSection(): string {
     consumeOne(OPEN_BRACKET);
     const sectionName = parseSectionName();
+    if (sectionName.toLowerCase() === 'include' || sectionName.toLowerCase() === 'includeif') {
+      throw new Error(`Includes and conditional includes are not supported (section '${sectionName}')`);
+    }
+
     let subSectionName: string | undefined = undefined;
     if (peek() === SP) {
       pop();

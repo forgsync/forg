@@ -170,6 +170,36 @@ describe('parseConfig', () => {
       ['[core'],
       /found EOF/
     ],
+    [
+      [
+        '[include]',
+        '\tpath=example.config',
+      ],
+      /Includes and conditional includes are not supported/
+    ],
+    [
+      [
+        '[INCLUDE]',
+        '\tpath=example.config',
+      ],
+      /Includes and conditional includes are not supported/
+    ],
+    [
+      [
+        '[includeIf]',
+        '\tonbranch=main',
+        '\tpath=example.config',
+      ],
+      /Includes and conditional includes are not supported/
+    ],
+    [
+      [
+        '[IncludeIF]',
+        '\tonbranch=main',
+        '\tpath=example.config',
+      ],
+      /Includes and conditional includes are not supported/
+    ],
   ])('error cases', (input, errorMatcher) => {
     const allLines = input.join('\n');
     //console.log(allLines);
