@@ -5,21 +5,24 @@ import { forceFetchRef, FetchStrategy } from '../git';
 
 /**
  * Fetches forg heads from the provided `remote` to the `local` repo.
- * The predicate selects which heads should be fetched. In most cases, a fetch would apply to all branches except for those of the current forg client uuid.
+ * This method will force-fetch all refs managed by other forg clients.
+ * Optionally, if `branchName` is specified, only that branch (but still from every other client) will be fetched.
  */
-export async function fetchRefs(origin: IReadOnlyRepo, local: IRepo, client: ForgClientInfo, strategy: FetchStrategy = FetchStrategy.DefaultForFetch): Promise<void> {
-  const remoteRefs = await origin.listRefs('refs/remotes');
+export async function fetchRefs(local: IRepo, remote: IReadOnlyRepo, client: ForgClientInfo, strategy: FetchStrategy = FetchStrategy.DefaultForFetch, branchName?: string): Promise<void> {
+  const remoteRefs = await remote.listRefs('refs/remotes');
   for (const ref of remoteRefs) {
     // Fetch all remote refs except for ours. Nobody else should touch our remote branch anyway in the remote repo (see The Rules of Forg)
     const refInfo = tryParseForgRemoteRef(ref);
-    if (refInfo !== undefined && refInfo.client.uuid !== client.uuid) {
-      await forceFetchRef(local, origin, ref, strategy);
+    if (refInfo !== undefined &&
+      refInfo.client.uuid !== client.uuid && // Only fetch remotes from other clients
+      (branchName === undefined || refInfo.branchName === branchName)) {
+      await forceFetchRef(local, remote, ref, strategy);
     }
   }
 
   // Fetch all head refs
-  const headRefs = await origin.listRefs('refs/heads');
+  const headRefs = await remote.listRefs('refs/heads');
   for (const ref of headRefs) {
-    await forceFetchRef(local, origin, ref, strategy);
+    await forceFetchRef(local, remote, ref, strategy);
   }
 }

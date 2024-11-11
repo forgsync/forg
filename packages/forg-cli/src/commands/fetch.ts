@@ -39,6 +39,6 @@ export class FetchCommand extends CommandBase<FetchOptions> {
       throw new Error(`Failed to open remote repo: ${error}`);
     }
 
-    await fetchRefs(remote, local, { uuid: args.clientId }, SyncStrategy.DefaultForFetch);
+    await fetchRefs(local, remote, { uuid: args.clientId }, SyncStrategy.DefaultForFetch);
   }
 }
