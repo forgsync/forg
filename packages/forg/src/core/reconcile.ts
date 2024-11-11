@@ -8,7 +8,7 @@ import { ForgClientInfo } from './model';
 
 type MergeFunc = (a: GitTreeFS, b: GitTreeFS, base: GitTreeFS | undefined) => Promise<GitTreeFS>;
 export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchName: string, merge: MergeFunc): Promise<Hash> {
-  const heads = await listForgHeads(repo, branchName);
+  const heads = await listForgHeads(repo, branchName); // TODO: This method deals with repo inconsistencies and includes things like reflog fallback etc. Do we really need that, or can we assume the local repo is always well-formed thanks to the logic already in `syncRef` and friends?
   const myHead = heads.find((h) => h.clientUuid === forgClient.uuid);
   const myRef = `refs/remotes/${forgClient.uuid}/${branchName}`;
 
@@ -32,12 +32,13 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
   } else if (leafHeads.length === 1) {
     if (myHead === undefined || myHead.head.hash !== leafHeads[0].head.hash) {
       // Trivial case -- just set our head to the only available possibility
+      const kind = myHead === undefined ? 'initial' : 'fast-forward';
       await updateRef(
         repo,
         myRef,
         mergeResults.leafCommitIds[0],
         createCommitterInfo(forgClient),
-        `reconcile (fast-forward): ${leafHeads[0].clientUuid}`,
+        `reconcile (${kind}): ${leafHeads[0].clientUuid}`,
       );
     }
 
@@ -51,18 +52,6 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
     let v = authorA.date.seconds - authorB.date.seconds;
     if (v !== 0) {
       return v;
-    }
-
-    if (authorA.name < authorB.name) {
-      return -1;
-    } else if (authorA.name > authorB.name) {
-      return 1;
-    }
-
-    if (a.head.commit.body.message < b.head.commit.body.message) {
-      return -1;
-    } else if (a.head.commit.body.message > b.head.commit.body.message) {
-      return 1;
     }
 
     if (a.head.hash < b.head.hash) {

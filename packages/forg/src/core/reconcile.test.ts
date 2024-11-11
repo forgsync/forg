@@ -15,7 +15,7 @@ describe('reconcile', () => {
     await repo.init(InitMode.CreateIfNotExists);
 
     async function trackCommit(name: string, parents: Hash[]) {
-      const hash = await createCommit(repo, { type: 'tree', entries: {} }, parents, name, dummyPerson());
+      const hash = await createCommit(repo, { type: 'tree', entries: {} }, parents, name, dummyPerson(Object.keys(commits).length));
       commits[name] = hash;
       commitsReverseMap.set(hash, name);
     }
