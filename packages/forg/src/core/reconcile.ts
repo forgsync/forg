@@ -1,6 +1,7 @@
 import { CommitObject, createCommit, Hash, IRepo, loadCommitObject, loadTreeObject, MissingObjectError, updateRef } from '../git';
 import { GitTreeFS } from '../treefs';
 import createCommitterInfo from './createCommitterInfo';
+import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
 import { listForgRefs } from './internal/listForgRefs';
 import { mergeBase } from './internal/mergeBase';
 import { ForgClientInfo } from './model';
@@ -26,7 +27,7 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
     heads.map((h) => h.commitId),
   );
   const commitsToReconcile: {
-    clientUuid: string;
+    clientUuid: string | undefined;
     commitId: string;
     commit: CommitObject;
   }[] = [];
@@ -97,7 +98,7 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
 
     const treeA = await getWorkingTree(repo, commitIdA);
     const treeB = await getWorkingTree(repo, commitIdB);
-    const baseTree = await tryGetBaseWorkingTree(repo, commitIdA, commitIdB);
+    const baseTree = await tryGetBaseWorkingTree(repo, commitIdA, commitIdB, assumeConsistentRepo);
 
     const newTree = await merge(treeA, treeB, baseTree);
     prev = await createCommit(
@@ -129,19 +130,30 @@ async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<GitTreeFS> {
   return GitTreeFS.fromTree(repo, tree);
 }
 
-async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: string): Promise<GitTreeFS | undefined> {
+async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: string, assumeConsistentRepo: boolean): Promise<GitTreeFS | undefined> {
   const { bestAncestorCommitIds } = await mergeBase(repo, [commitIdA, commitIdB]);
   let baseTree: GitTreeFS | undefined = undefined;
   if (bestAncestorCommitIds.length > 0) {
     // If there is more than one, pick one arbitrarily...
     const baseCommitId = bestAncestorCommitIds[0];
+
     try {
-      baseTree = await getWorkingTree(repo, baseCommitId);
-    } catch (error) {
+      const baseCommit = await loadCommitObject(repo, baseCommitId);
+      if (assumeConsistentRepo || await isTreeFullyReachable(repo, baseCommit.body.tree)) {
+        // TODO: Avoid reloading the same objects so many times, we already loaded the tree above
+        const tree = await loadTreeObject(repo, baseCommit.body.tree);
+        baseTree = GitTreeFS.fromTree(repo, tree);
+      }
+      else {
+        // Try to keep going, if merge func can work without a base, let it try its thing...
+      }
+    }
+    catch (error) {
       if (error instanceof MissingObjectError) {
-        // This can happen if we ended up with shallow history and the base commit is gone (or if the heads never had a common ancestor,
-        // though that wouldn't happen if the Rules of Forg were followed.
-        // In any case, we can try to keep going. If merge func can work without a base, let it try its thing...
+        // Try to keep going, if merge func can work without a base, let it try its thing...
+      }
+      else {
+        throw error;
       }
     }
   }
