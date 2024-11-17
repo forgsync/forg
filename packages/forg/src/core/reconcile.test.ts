@@ -42,13 +42,19 @@ describe('reconcile', () => {
     await trackCommit('J', [commits.F, commits.I]);
     await trackCommit('K', [commits.J]);
     await trackCommit('Z', []);
+
+    //console.log(`Setup: ${JSON.stringify({ commits }, undefined, 2)}`);
   });
 
-  function toCommitNames(hashes: Hash[]): string[] {
+  function toCommitNames(...hashes: (Hash | undefined)[]): string[] {
     return hashes.map((h) => {
+      if (h === undefined) {
+        return '<undefined>';
+      }
+
       const name = commitsReverseMap.get(h);
       if (name === undefined) {
-        throw new Error(`Unknown commit hash ${h}`);
+        return `<unknown commit hash ${h}>`;
       }
 
       return name;
@@ -63,10 +69,11 @@ describe('reconcile', () => {
 
     const newCommitHash = await reconcile(repo, me, 'main', dummyMergeFunc);
 
-    expect(await repo.getRef('refs/remotes/client1/main')).toBe(commits.A); // unchanged
-    expect(await repo.getRef('refs/remotes/client3/main')).toBe(commits.C); // unchanged
-    expect(await repo.getRef('refs/remotes/client2/main')).toBe(newCommitHash);
-    expect(toCommitNames([newCommitHash])).toEqual(['C']);
+    expect(toCommitNames(await repo.getRef('refs/remotes/client1/main'))).toEqual(['A']); // unchanged
+    expect(toCommitNames(await repo.getRef('refs/remotes/client3/main'))).toEqual(['C']); // unchanged
+
+    expect(newCommitHash).toBe(commits.C);
+    expect(toCommitNames(await repo.getRef('refs/remotes/client2/main'))).toEqual(['C']);
   });
 
   test('Reconciles two heads into one merge commit', async () => {
@@ -82,7 +89,7 @@ describe('reconcile', () => {
     expect(await repo.getRef('refs/remotes/client3/main')).toBe(commits.E); // unchanged
     expect(commitsReverseMap.get(newCommitHash)).toBeUndefined();
     const newCommit = await loadCommitObject(repo, newCommitHash);
-    expect(toCommitNames(newCommit.body.parents)).toEqual(['B', 'E']);
+    expect(toCommitNames(...newCommit.body.parents)).toEqual(['B', 'E']);
   });
 
   test('Reconciles three heads into two merge commits', async () => {
@@ -118,10 +125,10 @@ describe('reconcile', () => {
     const knownParentIndex = newCommit2.body.parents.findIndex((hash) => commitsReverseMap.has(hash));
     const knownParentHash = newCommit2.body.parents[knownParentIndex];
     const otherParentHash = newCommit2.body.parents[1 - knownParentIndex];
-    expect(toCommitNames([knownParentHash])).toEqual(['I']);
+    expect(toCommitNames(knownParentHash)).toEqual(['I']);
 
     const newCommit1 = await loadCommitObject(repo, otherParentHash);
-    expect(toCommitNames(newCommit1.body.parents)).toEqual(['B', 'E']);
+    expect(toCommitNames(...newCommit1.body.parents)).toEqual(['B', 'E']);
   });
 });
 
