@@ -41,6 +41,7 @@ export enum SyncStrategy {
    * Similar to `Fastest`, but will always traverse the source repo commits to ensure all parents also exists in the destination.
    * This is important during `fetch` to achieve eventual consistency in case the source repo had a shallow history that we can now deepen
    * (e.g. perhaps because during a previous fetch the destination was missing some objects that by now have been uploaded).
+   * 
    * This is the recommended default for `fetch` in most cases.
    */
   FastAndDeepen,
@@ -48,14 +49,25 @@ export enum SyncStrategy {
   /**
    * Ensures that the top commit's tree and the tree's dependencies actually exist in the destination,
    * but assumes a connected graph for other commits. This means that if files were randomly deleted in the destination or uploaded out of order and/or failed to upload,
-   * we guarantee that the top commit contents will be complete after this (but not necessarily its history).
-   * This is the recommended default for `push` in most cases (`Fastest` can also be used as long as there is a way for a user to optionally request a more thorough push to recover from common problems. See more in the comments for `Fastest`).
+   * we guarantee that the top commit contents will be complete after this (but not necessarily its history -- objects [including commit objects] may be missing at the destination after a successful sync).
+   * 
+   * This is the recommended default for `push` in most cases. Other options to consider:
+   *  - `Fastest` can be used sometimes as long as a more thorough mode is also used other times (e.g. use `FullSyncTopCommit` at least once a day, or allow the user to optionally request a more thorough push to recover from common problems);
+   *  - `FullSyncAll` can be used to ensure that all objects are propagated to the remote, including objects that weren't synced before (e.g. because another client who would have uploaded those objects died while uploading them out of order).
+   * 
+   * See more in the comments for `Fastest`.
+   * 
+   * NOTE: This mode assumes object integrity at the destination (i.e. if an object file exists, it is assumed to be well formed). This is generally a reasonable assumption, unless files were corrupted by a malicious or uncompatible participant.
+   * To recover from file corruption at the destination and forcefully re-upload all objects, use mode `OverwriteAll` instead.
    */
   FullSyncTopCommit,
 
   /**
    * Ensures that every referenced object actually exists in the destination.
    * This can be very slow, but it is useful to restore a bad destination after files were catastrophically deleted and/or failed to be uploaded by some client.
+   * 
+   * NOTE: This mode assumes object integrity at the destination (i.e. if an object file exists, it is assumed to be well formed). This is generally a reasonable assumption, unless files were corrupted by a malicious or uncompatible participant.
+   * To recover from file corruption at the destination and forcefully re-upload all objects, use mode `OverwriteAll` instead.
    */
   FullSyncAll,
 
