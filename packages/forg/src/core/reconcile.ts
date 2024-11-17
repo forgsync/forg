@@ -1,72 +1,99 @@
-import { createCommit, Hash, IRepo, loadCommitObject, loadTreeObject, updateRef } from '../git';
+import { CommitObject, createCommit, Hash, IRepo, loadCommitObject, loadTreeObject, MissingObjectError, updateRef } from '../git';
 import { GitTreeFS } from '../treefs';
 import createCommitterInfo from './createCommitterInfo';
-import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
-import { ForgClientHead, listForgHeads } from './internal/listForgHeads';
+import { listForgRefs } from './internal/listForgRefs';
 import { mergeBase } from './internal/mergeBase';
 import { ForgClientInfo } from './model';
 
+interface ReconcileOptions {
+  /**
+   * Whether to assume that the repo is well formed, in which case we can speed things up and skipping connectivity checks
+   * (i.e. we can assume that the commit pointed to by a ref is available in the repo, and that all of its dependencies (trees, blobs, parent commits) are as well.
+   */
+  assumeConsistentRepo?: boolean;
+}
+
 type MergeFunc = (a: GitTreeFS, b: GitTreeFS, base: GitTreeFS | undefined) => Promise<GitTreeFS>;
-export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchName: string, merge: MergeFunc): Promise<Hash> {
-  const heads = await listForgHeads(repo, branchName); // TODO: This method deals with repo inconsistencies and includes things like reflog fallback etc. Do we really need that, or can we assume the local repo is always well-formed thanks to the logic already in `syncRef` and friends?
+export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchName: string, merge: MergeFunc, options: ReconcileOptions): Promise<Hash> {
+  const assumeConsistentRepo = options?.assumeConsistentRepo ?? false;
+
+  const heads = await listForgRefs(repo, branchName, assumeConsistentRepo);
   const myHead = heads.find((h) => h.clientUuid === forgClient.uuid);
   const myRef = `refs/remotes/${forgClient.uuid}/${branchName}`;
 
-  const mergeResults = await mergeBase(
+  const { leafCommitIds } = await mergeBase(
     repo,
-    heads.map((h) => h.head.hash),
+    heads.map((h) => h.commitId),
   );
-  const leafHeads: ForgClientHead[] = [];
-  for (const leafCommitId of mergeResults.leafCommitIds) {
-    const head = heads.find((h) => h.head.hash === leafCommitId);
+  const commitsToReconcile: {
+    clientUuid: string;
+    commitId: string;
+    commit: CommitObject;
+  }[] = [];
+  for (const leafCommitId of leafCommitIds) {
+    const commit = await loadCommitObject(repo, leafCommitId);
+
+    // Try to pick the correct head, not just the first one that matches the commit id
+    // (a remote's commit could appear in another's after that remote did reconciliation).
+    // We try to extract clientUuid from the author name, but that has not been standardized yet,
+    // so we still fallback to first match by commit id if we don't get a perfect match.
+    // In any case, this only matters for the resulting reconciliation commit message, and not for correctness.
+    let head = heads.find((h) => h.commitId === leafCommitId && h.clientUuid === commit.body.author.name);
     if (head === undefined) {
-      throw new Error(); // coding defect
+      head = heads.find((h) => h.commitId === leafCommitId);
+      if (head === undefined) {
+        throw new Error(); // coding defect
+      }
     }
 
-    leafHeads.push(head);
+    commitsToReconcile.push({
+      clientUuid: head.clientUuid,
+      commitId: head.commitId,
+      commit: commit,
+    });
   }
 
-  if (leafHeads.length === 0) {
+  if (commitsToReconcile.length === 0) {
     // Nothing in the repo, reconciliation doesn't make sense yet...
     throw new Error(`Repo has no root commits for forg branch ${branchName}`);
-  } else if (leafHeads.length === 1) {
-    if (myHead === undefined || myHead.head.hash !== leafHeads[0].head.hash) {
+  } else if (commitsToReconcile.length === 1) {
+    if (myHead === undefined || myHead.commitId !== commitsToReconcile[0].commitId) {
       // Trivial case -- just set our head to the only available possibility
       const kind = myHead === undefined ? 'initial' : 'fast-forward';
       await updateRef(
         repo,
         myRef,
-        mergeResults.leafCommitIds[0],
+        commitsToReconcile[0].commitId,
         createCommitterInfo(forgClient),
-        `reconcile (${kind}): ${leafHeads[0].clientUuid}`,
+        `reconcile (${kind}): ${commitsToReconcile[0].clientUuid}`,
       );
     }
 
-    return leafHeads[0].head.hash;
+    return commitsToReconcile[0].commitId;
   }
 
   // Reconcile older commits first
-  leafHeads.sort((a, b) => {
-    const authorA = a.head.commit.body.author;
-    const authorB = b.head.commit.body.author;
+  commitsToReconcile.sort((a, b) => {
+    const authorA = a.commit.body.author;
+    const authorB = b.commit.body.author;
     let v = authorA.date.seconds - authorB.date.seconds;
     if (v !== 0) {
       return v;
     }
 
-    if (a.head.hash < b.head.hash) {
+    if (a.commitId < b.commitId) {
       return -1;
-    } else if (a.head.hash > b.head.hash) {
+    } else if (a.commitId > b.commitId) {
       return 1;
     }
 
     return 0;
   });
 
-  let prev: Hash = leafHeads[0].head.hash;
-  for (let i = 1; i < leafHeads.length; i++) {
+  let prev: Hash = commitsToReconcile[0].commitId;
+  for (let i = 1; i < commitsToReconcile.length; i++) {
     const commitIdA = prev;
-    const commitIdB = leafHeads[i].head.hash;
+    const commitIdB = commitsToReconcile[i].commitId;
 
     const treeA = await getWorkingTree(repo, commitIdA);
     const treeB = await getWorkingTree(repo, commitIdB);
@@ -77,7 +104,7 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
       repo,
       newTree.root,
       [commitIdA, commitIdB],
-      `Reconcile forg clients ${leafHeads
+      `Reconcile forg clients ${commitsToReconcile
         .slice(0, i + 1)
         .map((h) => h.clientUuid)
         .join(', ')}`,
@@ -90,7 +117,7 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
     myRef,
     prev,
     createCommitterInfo(forgClient),
-    `reconcile: ${leafHeads.map((h) => h.clientUuid).join(', ')}`,
+    `reconcile: ${commitsToReconcile.map((h) => h.clientUuid).join(', ')}`,
   );
 
   return prev;
@@ -103,18 +130,21 @@ async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<GitTreeFS> {
 }
 
 async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: string): Promise<GitTreeFS | undefined> {
-  const mergeBaseResult = await mergeBase(repo, [commitIdA, commitIdB]);
+  const { bestAncestorCommitIds } = await mergeBase(repo, [commitIdA, commitIdB]);
   let baseTree: GitTreeFS | undefined = undefined;
-  if (mergeBaseResult.bestAncestorCommitIds.length > 0) {
-    const baseCommitId = mergeBaseResult.bestAncestorCommitIds[0];
-    const baseCommit = await loadCommitObject(repo, baseCommitId);
-    if (await isTreeFullyReachable(repo, baseCommit.body.tree)) {
-      // TODO: Avoid reloading the same objects so many times.
-      const tree = await loadTreeObject(repo, baseCommit.body.tree);
-      baseTree = GitTreeFS.fromTree(repo, tree);
-    } else {
-      // Try to keep going, if merge func can work without a base, let it try its thing...
+  if (bestAncestorCommitIds.length > 0) {
+    // If there is more than one, pick one arbitrarily...
+    const baseCommitId = bestAncestorCommitIds[0];
+    try {
+      baseTree = await getWorkingTree(repo, baseCommitId);
+    } catch (error) {
+      if (error instanceof MissingObjectError) {
+        // This can happen if we ended up with shallow history and the base commit is gone (or if the heads never had a common ancestor,
+        // though that wouldn't happen if the Rules of Forg were followed.
+        // In any case, we can try to keep going. If merge func can work without a base, let it try its thing...
+      }
     }
   }
+
   return baseTree;
 }
