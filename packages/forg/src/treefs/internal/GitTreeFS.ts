@@ -3,15 +3,19 @@ import { Hash, IRepo, loadBlobObject, loadTreeObject, MissingObjectError, saveOb
 import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from '../../git';
 
 export class GitTreeFS implements ISimpleFS {
-  private _modified: boolean = false;
+  private _isModified = false;
+  private _isMissingObjects = false;
 
   private constructor(
     private readonly _repo: IRepo,
     private readonly _root: ExpandedTree,
-  ) {}
+  ) { }
 
-  get modified() {
-    return this._modified;
+  get isModified() {
+    return this._isModified;
+  }
+  get isMissingObjects() {
+    return this._isMissingObjects;
   }
   get root() {
     return this._root;
@@ -75,6 +79,7 @@ export class GitTreeFS implements ISimpleFS {
         return result.body;
       } catch (error) {
         if (error instanceof MissingObjectError) {
+          this._isMissingObjects = true;
           throw new FSError(Errno.EIO, path.value, `Unable to find blob object '${entry.hash}' corresponding to working tree path '${path.value}'`);
         }
 
@@ -128,7 +133,7 @@ export class GitTreeFS implements ISimpleFS {
       type: 'file',
       hash: fileHash,
     };
-    this._modified = true;
+    this._isModified = true;
   }
 
   async deleteFile(path: Path): Promise<void> {
@@ -141,7 +146,7 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     delete parentTree.entries[path.leafName];
-    this._modified = true;
+    this._isModified = true;
   }
 
   async createDirectory(path: Path): Promise<void> {
@@ -155,7 +160,7 @@ export class GitTreeFS implements ISimpleFS {
       type: 'tree',
       entries: {},
     };
-    this._modified = true;
+    this._isModified = true;
   }
 
   async deleteDirectory(path: Path): Promise<void> {
@@ -168,7 +173,7 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     delete parentTree.entries[path.leafName];
-    this._modified = true;
+    this._isModified = true;
   }
 
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
@@ -223,7 +228,7 @@ export class GitTreeFS implements ISimpleFS {
           entries: {},
         };
         folder.entries[childName] = newItem;
-        this._modified = true;
+        this._isModified = true;
         return newItem;
       } else {
         throw new FSError(Errno.ENOENT, path.value);
@@ -238,6 +243,7 @@ export class GitTreeFS implements ISimpleFS {
         treeObject = await loadTreeObject(this._repo, item.hash);
       } catch (error) {
         if (error instanceof MissingObjectError) {
+          this._isMissingObjects = true;
           throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
         }
 

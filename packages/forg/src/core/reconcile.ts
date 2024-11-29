@@ -112,7 +112,18 @@ async function reconcileCommits(repo: IRepo, commitIdA: Hash, commitIdB: Hash, a
   const treeB = await getWorkingTree(repo, commitIdB);
   const baseTree = await tryGetBaseWorkingTree(repo, commitIdA, commitIdB, assumeConsistentRepo);
 
-  const newTree = await merge(treeA, treeB, baseTree);
+  let newTree: GitTreeFS;
+  try {
+    newTree = await merge(treeA, treeB, baseTree);
+  }
+  catch (error) {
+    // TODO: Handle situations where objecs are missing and try different commits, either from the commit history or from the reflog
+    if (treeA.isMissingObjects) { /* ... */ }
+    if (treeB.isMissingObjects) { /* ... */ }
+
+    throw error;
+  }
+
   return await createCommit(
     repo,
     newTree.root,
@@ -130,7 +141,6 @@ async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<GitTreeFS> {
 
 async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: string, assumeConsistentRepo: boolean): Promise<GitTreeFS | undefined> {
   const { bestAncestorCommitIds } = await mergeBase(repo, [commitIdA, commitIdB]);
-  let baseTree: GitTreeFS | undefined = undefined;
   if (bestAncestorCommitIds.length > 0) {
     // If there is more than one, pick one arbitrarily...
     const baseCommitId = bestAncestorCommitIds[0];
@@ -140,15 +150,15 @@ async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: 
       if (assumeConsistentRepo || await isTreeFullyReachable(repo, baseCommit.body.tree)) {
         // TODO: Avoid reloading the same objects so many times, we already loaded the tree above
         const tree = await loadTreeObject(repo, baseCommit.body.tree);
-        baseTree = GitTreeFS.fromTree(repo, tree);
+        return GitTreeFS.fromTree(repo, tree);
       }
       else {
-        // Try to keep going, if merge func can work without a base, let it try its thing...
+        // Continue through...
       }
     }
     catch (error) {
       if (error instanceof MissingObjectError) {
-        // Try to keep going, if merge func can work without a base, let it try its thing...
+        // Continue through...
       }
       else {
         throw error;
@@ -156,7 +166,9 @@ async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: 
     }
   }
 
-  return baseTree;
+  // Try to keep going, if merge func can work without a base, let it try its thing...
+  // TODO: We should probably not even attempt to merge if we cannot resolve a base commit. If histories diverged and there is no obvious shared past, it might be futile to try to reconcile those...
+  return undefined;
 }
 
 function commitSorter(a: CommitToReconcile, b: CommitToReconcile): number {
