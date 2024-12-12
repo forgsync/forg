@@ -1,23 +1,24 @@
 import { IRepo, Hash, loadCommitObject, CommitObject, MissingObjectError } from '../../git';
-import { isTreeFullyReachable } from './isTreeFullyReachable';
 
 export interface HeadInfo {
   hash: string;
   commit: CommitObject;
 }
 
-export async function tryFindAvailableHead(repo: IRepo, ref: string): Promise<HeadInfo | undefined> {
+type CommitPredicate = (repo: IRepo, commit: CommitObject, commitId: Hash) => Promise<boolean>;
+
+export async function findCommit(repo: IRepo, ref: string, predicate: CommitPredicate): Promise<HeadInfo | undefined> {
   const commitId = await repo.getRef(ref);
   if (commitId !== undefined) {
     // Option 1: Use the actual ref and its git history
-    const result = await tryFindAvailableCommitFromHead(repo, commitId);
+    const result = await findCommitFromRef(repo, commitId, predicate);
     if (result !== undefined) {
       return result;
     }
   }
 
   // Option 2: Try the reflog
-  const commitFromReflog = await tryFindAvailableCommitFromReflog(repo, ref);
+  const commitFromReflog = await findCommitFromReflog(repo, ref, predicate);
   if (commitFromReflog !== undefined) {
     return commitFromReflog;
   }
@@ -30,7 +31,7 @@ export async function tryFindAvailableHead(repo: IRepo, ref: string): Promise<He
  * If any objects are missing in a given commit, try the parent commit instead.
  * Keep going until we find one commit for which we have the entire tree, otherwise return null.
  */
-async function tryFindAvailableCommitFromHead(repo: IRepo, commitId: Hash): Promise<HeadInfo | undefined> {
+async function findCommitFromRef(repo: IRepo, commitId: Hash, predicate: CommitPredicate): Promise<HeadInfo | undefined> {
   let nextCommitIdToTry: string | undefined = commitId;
   while (nextCommitIdToTry !== undefined) {
     let commit: CommitObject;
@@ -44,7 +45,7 @@ async function tryFindAvailableCommitFromHead(repo: IRepo, commitId: Hash): Prom
       throw error;
     }
 
-    if (await isTreeFullyReachable(repo, commit.body.tree)) {
+    if (await predicate(repo, commit, nextCommitIdToTry)) {
       return { hash: nextCommitIdToTry, commit: commit };
     }
 
@@ -57,7 +58,7 @@ async function tryFindAvailableCommitFromHead(repo: IRepo, commitId: Hash): Prom
 /**
  * Strategy: use the reflog backwards, and find the most recent entry for which we have a complete commit.
  */
-async function tryFindAvailableCommitFromReflog(repo: IRepo, ref: string): Promise<HeadInfo | undefined> {
+async function findCommitFromReflog(repo: IRepo, ref: string, predicate: CommitPredicate): Promise<HeadInfo | undefined> {
   const reflog = await repo.getReflog(ref);
   for (let i = reflog.length - 1; i >= 0; i--) {
     const entry = reflog[i];
@@ -72,7 +73,7 @@ async function tryFindAvailableCommitFromReflog(repo: IRepo, ref: string): Promi
       throw error;
     }
 
-    if (await isTreeFullyReachable(repo, commit.body.tree)) {
+    if (await predicate(repo, commit, entry.newCommit)) {
       return { hash: entry.newCommit, commit: commit };
     }
   }
