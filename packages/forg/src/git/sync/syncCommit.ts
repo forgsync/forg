@@ -3,7 +3,7 @@ import { decodeCommitObject } from '../db/objects';
 
 export enum SyncConsistency {
   /**
-   * Skips copying entirely. This can be used to achieve something analogous to a git shallow clone when applied to `CloneConsistencyOptions.parentCommits`.
+   * Skips copying entirely. This can be used to achieve something analogous to a git shallow clone when applied to `SyncOptions.otherCommitsConsistency`.
    */
   Skip = 0,
 
