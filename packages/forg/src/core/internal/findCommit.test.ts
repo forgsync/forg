@@ -1,10 +1,11 @@
-import { InitMode, Repo, createCommit, updateRef } from '../../git';
-import { dummyPerson } from '../../__testHelpers__/dummyPerson';
-import { tryFindAvailableHead } from './tryFindAvailableHead';
 import { InMemoryFS } from '@forgsync/simplefs';
 
-const encoder = new TextEncoder();
+import { InitMode, Repo, createCommit, updateRef } from '../../git';
+import { dummyPerson } from '../../__testHelpers__/dummyPerson';
+import { findCommit } from './findCommit';
+import { isTreeFullyReachable } from './isTreeFullyReachable';
 
+const encoder = new TextEncoder();
 describe('tryFindAvailableHead', () => {
   let repo: Repo;
   beforeEach(async () => {
@@ -14,7 +15,7 @@ describe('tryFindAvailableHead', () => {
   });
 
   test('If ref does not exist', async () => {
-    const result = await tryFindAvailableHead(repo, 'refs/remotes/client1/main');
+    const result = await findCommit(repo, 'refs/remotes/client1/main', (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
     expect(result).toBe(undefined);
   });
 
@@ -40,7 +41,7 @@ describe('tryFindAvailableHead', () => {
       'commit (initial): Commit 1',
     );
 
-    const result = await tryFindAvailableHead(repo, 'refs/remotes/client1/main');
+    const result = await findCommit(repo, 'refs/remotes/client1/main', (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
     expect(result?.hash).toBe(commitId);
     expect(result?.commit.body.message).toBe('Commit 1');
   });
@@ -85,7 +86,7 @@ describe('tryFindAvailableHead', () => {
 
     await repo.setRef('refs/remotes/client1/main', commit3);
 
-    const result = await tryFindAvailableHead(repo, 'refs/remotes/client1/main');
+    const result = await findCommit(repo, 'refs/remotes/client1/main', (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
     expect(result?.hash).toBe(commit1);
     expect(result?.commit.body.message).toBe('Commit 1');
   });
@@ -141,7 +142,7 @@ describe('tryFindAvailableHead', () => {
 
     await repo.setRef('refs/remotes/client1/main', '000000000000000000000000000000000000000f'); // Set the ref to some unknown commit id -- simulates that perhaps the ref was just updated but the corresponding commit object hasn't been uploaded yet.
 
-    const result = await tryFindAvailableHead(repo, 'refs/remotes/client1/main');
+    const result = await findCommit(repo, 'refs/remotes/client1/main', (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
     expect(result?.hash).toBe(commit2);
     expect(result?.commit.body.message).toBe('Commit 2');
   });
