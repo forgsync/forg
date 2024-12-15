@@ -22,12 +22,8 @@ export const FetchStrategy = {
 } as const satisfies Record<string, FetchStrategy>;
 
 /**
- * @returns the commit hash that was successfully synced.
- * This method will attempt to sync commits in the following order:
- * 1. If the ref points to a valid and complete (*) commit in the src repo, then that commit;
- * 2. If not, then it iterates backwards over the reflog in the src repo, and uses the first valid and complete (*) commit.
- *
- * (*) a commit is determined to be valid and complete when it can be fully synced from the source to the destination according to the specified sync strategy.
+ * Fetches the specified ref from the remote to the local repo.
+ * The local ref will be overwritten to match the remote ref and local changes could be lost.
  */
 export async function forceFetchRef(local: IRepo, remote: IReadOnlyRepo, ref: string, strategy: FetchStrategy = FetchStrategy.DefaultForFetch): Promise<Hash> {
   //console.log(`Fetching ref '${ref}'`);

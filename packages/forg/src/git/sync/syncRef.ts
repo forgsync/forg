@@ -148,6 +148,20 @@ export interface SyncRefOptions {
   strategy: SyncStrategy;
 }
 
+export enum SyncRefErrorCode {
+  RefNotFound,
+  UnableToResolveRef,
+}
+
+export class SyncRefError extends Error {
+  code: SyncRefErrorCode;
+
+  constructor(ref: string, code: SyncRefErrorCode) {
+    super(`Error syncing ref '${ref}': ${SyncRefErrorCode[code]}`);
+    this.code = code;
+  }
+}
+
 /**
  * @returns the commit hash that was successfully synced.
  * This method will attempt to sync commits in the following order:
@@ -160,7 +174,7 @@ export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, optio
   //console.log(`Syncing ref '${ref}'`);
   const srcRefCommitHash = await src.getRef(ref);
   if (srcRefCommitHash === undefined) {
-    throw new Error(`Ref '${ref}' does not exist in the src repo`);
+    throw new SyncRefError(ref, SyncRefErrorCode.RefNotFound);
   }
 
   let syncedCommitHash: Hash | undefined = undefined;
@@ -202,7 +216,7 @@ export async function syncRef(src: IReadOnlyRepo, dst: IRepo, ref: string, optio
   }
 
   if (syncedCommitHash === undefined) {
-    throw new Error(`Unable to sync, couldn't find a suitable commit for ref '${ref}' in the source repo`);
+    throw new SyncRefError(ref, SyncRefErrorCode.UnableToResolveRef);
   }
 
   if (syncedCommitHash !== oldDstRefCommitHash) {
