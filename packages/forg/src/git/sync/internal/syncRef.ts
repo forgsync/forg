@@ -1,4 +1,4 @@
-import { Hash, IReadOnlyRepo, IRepo, loadCommitObject, MissingObjectError, updateRef } from '../db';
+import { Hash, IReadOnlyRepo, IRepo, loadCommitObject, MissingObjectError, updateRef } from '../../db';
 import { syncCommit, SyncConsistency, SyncOptions } from './syncCommit';
 
 export enum SyncStrategy {

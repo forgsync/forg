@@ -1,5 +1,5 @@
 import { Hash, IReadOnlyRepo, IRepo } from '../db';
-import { syncRef, SyncRefOptions, SyncStrategy } from './syncRef';
+import { syncRef, SyncRefOptions, SyncStrategy } from './internal/syncRef';
 
 // Subset of sync strategies that make sense for push:
 export type PushStrategy =

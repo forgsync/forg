@@ -8,8 +8,10 @@ import { ForgClientInfo } from './model';
 
 export interface ReconcileOptions {
   /**
-   * Whether to assume that the repo is well formed, in which case we can speed things up by skipping connectivity checks
+   * Whether to assume that the repo is well formed.
+   * Generally this should be set to true when you are operating on a local repo whose integrity is guaranteed, in which case we can speed things up by skipping connectivity checks
    * (i.e. we can assume that commits pointed to by refs are available in the repo, and that all of their dependencies (trees, blobs, parent commits) are as well.
+   * If you are using forg against a remote repo directly that the current client doesn't fully control, then it is safer to set this to false (default).
    */
   assumeConsistentRepo?: boolean;
 }

@@ -1,5 +1,5 @@
-import { Hash, IReadOnlyRepo, IRepo, loadTreeObject, MissingObjectError, Mode } from '../db';
-import { decodeCommitObject } from '../db/objects';
+import { Hash, IReadOnlyRepo, IRepo, loadTreeObject, MissingObjectError, Mode } from '../../db';
+import { decodeCommitObject } from '../../db/objects';
 
 export enum SyncConsistency {
   /**
