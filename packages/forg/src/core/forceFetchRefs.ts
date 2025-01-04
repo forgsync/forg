@@ -4,35 +4,21 @@ import {
   SyncRefError, SyncRefErrorCode,
 } from '../git';
 import { ForgClientInfo } from './model';
-import { tryParseForgRemoteRef } from './internal/tryParseForgRef';
+import { tryParseForgRef } from './internal/tryParseForgRef';
 
 /**
- * Fetches refs from the provided `remote` to the `local` repo.
- * This method will force-fetch all remotes managed by other forg clients, as well as all heads.
+ * Force-fetches refs from the provided `remote` to the `local` repo.
+ * This method will force-fetch all remotes managed by other forg clients.
  * Optionally, if `branchName` is specified, only that branch (but still from every other client) will be fetched.
  */
-export async function fetchRefs(local: IRepo, remote: IReadOnlyRepo, client: ForgClientInfo, strategy: FetchStrategy = FetchStrategy.DefaultForFetch, branchName?: string): Promise<void> {
+export async function forceFetchRefs(local: IRepo, remote: IReadOnlyRepo, client: ForgClientInfo, strategy: FetchStrategy = FetchStrategy.DefaultForFetch, branchName?: string): Promise<void> {
   const remoteRefs = await remote.listRefs('refs/remotes');
-  // Fetch all remote refs except for ours. Nobody else should touch our remote branch anyway in the remote repo (see The Rules of Forg)
+  // Fetch all remote refs except for ours. Nobody else should touch our remote branch in the remote repo (see The Rules of Forg)
   for (const ref of remoteRefs) {
-    const refInfo = tryParseForgRemoteRef(ref);
+    const refInfo = tryParseForgRef(ref);
     if (refInfo !== undefined &&
       refInfo.client.uuid !== client.uuid && // Only fetch remotes from other clients
       (branchName === undefined || refInfo.branchName === branchName)) {
-      await tryForceFetchRef(local, remote, ref, strategy);
-    }
-  }
-
-  // Fetch all head refs
-  if (branchName !== undefined) {
-    const ref = `refs/heads/${branchName}`;
-    // NOTE: This ref might not exist. In that case, we simply swallow that error like all others.
-    // TODO: If the remote head can be fast forwarded to the local ref, then we probably shouldn't touch the local ref (?)
-    await tryForceFetchRef(local, remote, ref, strategy);
-  }
-  else {
-    const headRefs = await remote.listRefs('refs/heads');
-    for (const ref of headRefs) {
       await tryForceFetchRef(local, remote, ref, strategy);
     }
   }

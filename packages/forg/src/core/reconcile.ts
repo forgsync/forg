@@ -17,7 +17,7 @@ export interface ReconcileOptions {
 }
 
 interface CommitToReconcile {
-  clientUuid: string | undefined;
+  author: string;
   commitId: string;
   commit: CommitObject;
 }
@@ -43,7 +43,7 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
         myRef,
         commitsToReconcile[0].commitId,
         commiter,
-        `reconcile (${kind}): ${commitsToReconcile[0].clientUuid}`,
+        `reconcile (${kind}): ${commitsToReconcile[0].author}`,
       );
     }
 
@@ -55,7 +55,7 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
 
   let prev: Hash = commitsToReconcile[0].commitId;
   for (let i = 1; i < commitsToReconcile.length; i++) {
-    const commitMessage = `Reconcile forg clients ${commitsToReconcile.slice(0, i + 1).map((h) => h.clientUuid).join(', ')}`;
+    const commitMessage = `Reconcile forg clients ${commitsToReconcile.slice(0, i + 1).map((h) => h.author).join(', ')}`;
     prev = await reconcileCommits(
       repo,
       prev,
@@ -70,7 +70,7 @@ export async function reconcile(repo: IRepo, forgClient: ForgClientInfo, branchN
     myRef,
     prev,
     commiter,
-    `reconcile: ${commitsToReconcile.map((h) => h.clientUuid).join(', ')}`,
+    `reconcile: ${commitsToReconcile.map((h) => h.author).join(', ')}`,
   );
 
   return prev;
@@ -85,23 +85,9 @@ async function getCommitsToReconcile(repo: IRepo, branchName: string, assumeCons
   const commitsToReconcile: CommitToReconcile[] = [];
   for (const leafCommitId of leafCommitIds) {
     const commit = await loadCommitObject(repo, leafCommitId);
-
-    // Try to pick the correct head, not just the first one that matches the commit id
-    // (a remote's commit could appear in another's after that remote did reconciliation).
-    // We try to extract clientUuid from the author name, but that has not been standardized yet,
-    // so we still fallback to first match by commit id if we don't get a perfect match.
-    // In any case, this only matters for the resulting reconciliation commit message, and not for correctness.
-    let head = heads.find((h) => h.commitId === leafCommitId && h.clientUuid === commit.body.author.name);
-    if (head === undefined) {
-      head = heads.find((h) => h.commitId === leafCommitId);
-      if (head === undefined) {
-        throw new Error(); // coding defect
-      }
-    }
-
     commitsToReconcile.push({
-      clientUuid: head.clientUuid,
-      commitId: head.commitId,
+      author: commit.body.author.name,
+      commitId: leafCommitId,
       commit: commit,
     });
   }

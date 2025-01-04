@@ -1,12 +1,12 @@
 import { Hash, InitMode, Repo, createCommit, updateRef } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
-import { fetchRefs } from './fetchRefs';
+import { forceFetchRefs } from './forceFetchRefs';
 import { InMemoryFS } from '@forgsync/simplefs';
 
 const MY_CLIENT_UUID = 'client1';
 const OTHER_CLIENT_UUID = 'clientOther';
 const TEST_REF = `refs/remotes/${MY_CLIENT_UUID}/main`;
-describe('fetchRefs', () => {
+describe('forceFetchRefs', () => {
   let origin: Repo;
   let commits: { [key: string]: Hash };
   beforeEach(async () => {
@@ -39,7 +39,7 @@ describe('fetchRefs', () => {
     const local = new Repo(fs);
     await local.init(InitMode.CreateIfNotExists);
 
-    await fetchRefs(local, origin, { uuid: OTHER_CLIENT_UUID });
+    await forceFetchRefs(local, origin, { uuid: OTHER_CLIENT_UUID });
     expect(await local.getRef(TEST_REF)).toBe(commits.E);
     expect(await local.hasObject(commits.E)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(true);
@@ -53,7 +53,7 @@ describe('fetchRefs', () => {
     const local = new Repo(fs);
     await local.init(InitMode.CreateIfNotExists);
 
-    await fetchRefs(local, origin, { uuid: MY_CLIENT_UUID });
+    await forceFetchRefs(local, origin, { uuid: MY_CLIENT_UUID });
     expect(await local.getRef(TEST_REF)).toBeUndefined();
   });
 
@@ -64,7 +64,7 @@ describe('fetchRefs', () => {
 
     await origin.deleteObject(commits.E); // ref still points here, but we delete the object (e.g. simulate that this wasn't uploaded yet to the remote)
 
-    await fetchRefs(local, origin, { uuid: OTHER_CLIENT_UUID }); // would attempt to sync commit E, which would fail, and then falls back to reflog -- the next entry would be commit D
+    await forceFetchRefs(local, origin, { uuid: OTHER_CLIENT_UUID }); // would attempt to sync commit E, which would fail, and then falls back to reflog -- the next entry would be commit D
     expect(await local.getRef(TEST_REF)).toBe(commits.D);
     expect(await local.hasObject(commits.D)).toBe(true);
     expect(await local.hasObject(commits.C)).toBe(true);

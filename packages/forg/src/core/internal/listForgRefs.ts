@@ -1,10 +1,10 @@
 import { Hash, IRepo } from '../../git';
 import { findCommit } from './findCommit';
-import { tryParseForgRemoteRef } from './tryParseForgRef';
+import { tryParseForgRef } from './tryParseForgRef';
 import { isTreeFullyReachable } from './isTreeFullyReachable';
 
 export interface ForgRef {
-  clientUuid: string | undefined;
+  clientUuid: string;
   commitId: string;
 }
 
@@ -15,20 +15,12 @@ export async function listForgRefs(repo: IRepo, branchName: string, assumeConsis
   const results: ForgRef[] = [];
 
   for (const ref of await repo.listRefs('refs/remotes')) {
-    const refInfo = tryParseForgRemoteRef(ref);
+    const refInfo = tryParseForgRef(ref);
     if (refInfo && refInfo.branchName === branchName) {
       const commitId = await resolveRef(repo, ref, assumeConsistentRepo);
-      if (commitId) {
+      if (commitId !== undefined) {
         results.push({ clientUuid: refInfo.client.uuid, commitId });
       }
-    }
-  }
-
-  {
-    const headRef = `refs/heads/${branchName}`;
-    const commitId = await resolveRef(repo, headRef, assumeConsistentRepo);
-    if (commitId) {
-      results.push({ clientUuid: undefined, commitId });
     }
   }
 
