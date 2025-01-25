@@ -3,7 +3,7 @@ import encodeObject from './encoding/encodeObject';
 import sha1 from './sha1';
 import { Hash, ModeHash, Person, Type } from './model';
 import { IReadOnlyRepo, IRepo } from './Repo';
-import { ObjectTypeMismatchError } from './errors';
+import { createObjectTypeMismatchError, GitDbErrno, GitDbError } from './errors';
 
 export async function saveObject(repo: IRepo, object: GitObject): Promise<Hash> {
   const raw = encodeObject(object);
@@ -12,24 +12,19 @@ export async function saveObject(repo: IRepo, object: GitObject): Promise<Hash> 
   return hash;
 }
 
-async function loadObject(repo: IReadOnlyRepo, hash: Hash): Promise<GitObject> {
-  const raw = await repo.loadRawObject(hash);
-  return decodeObject(raw);
-}
-
 export async function loadCommitObject(repo: IReadOnlyRepo, hash: Hash): Promise<CommitObject> {
   const object = await loadObject(repo, hash);
   if (object.type !== 'commit') {
-    throw new ObjectTypeMismatchError(hash, Type.commit, object.type);
+    throw createObjectTypeMismatchError(hash, Type.commit, object.type);
   }
 
   return object;
 }
 
-export function decodeCommitObject(raw: Uint8Array): CommitObject {
-  const object = decodeObject(raw);
+export function decodeCommitObject(raw: Uint8Array, hash: Hash): CommitObject {
+  const object = decodeObjectAndWrapErrors(raw, hash);
   if (object.type !== 'commit') {
-    throw new ObjectTypeMismatchError(sha1(raw), Type.commit, object.type);
+    throw createObjectTypeMismatchError(hash, Type.commit, object.type);
   }
 
   return object;
@@ -38,7 +33,7 @@ export function decodeCommitObject(raw: Uint8Array): CommitObject {
 export async function loadTreeObject(repo: IReadOnlyRepo, hash: Hash): Promise<TreeObject> {
   const object = await loadObject(repo, hash);
   if (object.type !== 'tree') {
-    throw new ObjectTypeMismatchError(hash, Type.tree, object.type);
+    throw createObjectTypeMismatchError(hash, Type.tree, object.type);
   }
 
   return object;
@@ -47,7 +42,7 @@ export async function loadTreeObject(repo: IReadOnlyRepo, hash: Hash): Promise<T
 export async function loadBlobObject(repo: IReadOnlyRepo, hash: Hash): Promise<BlobObject> {
   const object = await loadObject(repo, hash);
   if (object.type !== 'blob') {
-    throw new ObjectTypeMismatchError(hash, Type.blob, object.type);
+    throw createObjectTypeMismatchError(hash, Type.blob, object.type);
   }
 
   return object;
@@ -55,11 +50,26 @@ export async function loadBlobObject(repo: IReadOnlyRepo, hash: Hash): Promise<B
 
 export async function loadTagObject(repo: IReadOnlyRepo, hash: Hash): Promise<TagObject | undefined> {
   const object = await loadObject(repo, hash);
-  if (object !== undefined && object.type !== 'tag') {
-    throw new ObjectTypeMismatchError(hash, Type.tag, object.type);
+  if (object.type !== 'tag') {
+    throw createObjectTypeMismatchError(hash, Type.tag, object.type);
   }
 
   return object;
+}
+
+async function loadObject(repo: IReadOnlyRepo, hash: Hash): Promise<GitObject> {
+  const raw = await repo.loadRawObject(hash);
+  return decodeObjectAndWrapErrors(raw, hash);
+}
+
+function decodeObjectAndWrapErrors(raw: Uint8Array, hash: Hash): GitObject {
+  try {
+    return decodeObject(raw);
+  }
+  catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new GitDbError(GitDbErrno.InvalidData, `: ${message}`).withObjectId(hash);
+  }
 }
 
 export type BlobObject = {

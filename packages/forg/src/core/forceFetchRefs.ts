@@ -28,15 +28,11 @@ async function tryForceFetchRef(local: IRepo, remote: IReadOnlyRepo, ref: string
   try {
     await forceFetchRef(local, remote, ref, strategy);
   } catch (error) {
-    if (error instanceof SyncRefError && (error.code === SyncRefErrorCode.RefNotFound || error.code === SyncRefErrorCode.UnableToResolveRef)) {
-      if (error.code === SyncRefErrorCode.RefNotFound) {
-        // This is benign (e.g. the ref was just deleted in the remote or we attempted to sync a ref that doesn't exist)
-        return;
-      }
-      if (error.code === SyncRefErrorCode.UnableToResolveRef) {
-        // This is benign (e.g. another client is uploading out of order and hasn't uploaded all necessary objects yet)
-        return;
-      }
+    if (error instanceof SyncRefError && (
+      error.code === SyncRefErrorCode.RefNotFound ||     // This is benign (e.g. the ref was just deleted in the remote or we attempted to sync a ref that doesn't exist)
+      error.code === SyncRefErrorCode.UnableToResolveRef // This is benign (e.g. another client is uploading out of order and hasn't uploaded all necessary objects yet)
+    )) {
+      return;
     }
 
     throw error;

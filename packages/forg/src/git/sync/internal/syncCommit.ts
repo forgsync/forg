@@ -171,7 +171,7 @@ async function syncOneCommitTree(src: IReadOnlyRepo, dst: IRepo, commitId: Hash,
   // NOTE: From this point on, any MissingObjectError would indicate an incomplete commit on the source.
   // Such commits can be safely ignored when we aren't syncing the top commit and we allow shallow syncs
   const rawSrcCommit = await src.loadRawObject(commitId);
-  const srcCommit = decodeCommitObject(rawSrcCommit);
+  const srcCommit = decodeCommitObject(rawSrcCommit, commitId);
 
   // Only sync the commit and its tree if we have to. For example, when using consistency mode `AssumeCommitTreeConnectivity`, we can often skip this.
   let res: Uint8Array | undefined;

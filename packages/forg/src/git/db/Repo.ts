@@ -4,7 +4,7 @@ import { Errno, FSError, ISimpleFS, Path } from '@forgsync/simplefs';
 import { Hash, ReflogEntry } from './model';
 import { decode, encode, validateHash } from './encoding/util';
 import { decodeReflog, encodeReflog } from './encoding/reflog';
-import { MissingObjectError } from './errors';
+import { GitDbErrno, GitDbError, MissingObjectError } from './errors';
 import { loadConfig } from './config';
 import { decodeConfig, GitConfig } from './encoding/decodeConfig';
 
@@ -56,10 +56,10 @@ export class Repo implements IRepo {
     if (hasHeadFile && hasObjectsDir && hasRefsDir) {
       const forgVersion = config.getString('forg.version');
       if (forgVersion === undefined) {
-        throw new Error("Repo is not a valid forg repo. Missing config variable 'forg.version'");
+        throw new GitDbError(GitDbErrno.BadRepo, "Repo is not a valid forg repo. Missing config variable 'forg.version'");
       }
       if (forgVersion !== '1') {
-        throw new Error(`Repo is not a valid forg repo. Expected config variable 'forg.version' == 1, found '${forgVersion}'`);
+        throw new GitDbError(GitDbErrno.BadRepo, `Repo is not a valid forg repo. Expected config variable 'forg.version' == 1, found '${forgVersion}'`);
       }
 
       // All good!
@@ -69,7 +69,7 @@ export class Repo implements IRepo {
     }
 
     if (mode !== InitMode.CreateIfNotExists) {
-      throw new Error('Repo is not initialized. Call init with mode CreateIfNotExists to create.');
+      throw new GitDbError(GitDbErrno.BadRepo, 'Repo is not initialized. Call init with mode CreateIfNotExists to create.');
     }
 
     const hasConfig = await this._fs.fileExists(new Path('config'));
@@ -85,7 +85,7 @@ export class Repo implements IRepo {
       return 'init';
     } else {
       // TODO: Make repo init idempotent in case a previous attempt failed halfway through and no other changes were made since.
-      throw new Error('Repo is partially initialized. Delete first and try again or fix manually');
+      throw new GitDbError(GitDbErrno.BadRepo, 'Repo is partially initialized. Delete first and try again or fix manually');
     }
   }
 
@@ -130,7 +130,7 @@ export class Repo implements IRepo {
 
     const content = decode(rawContent).trim();
     if (!validateHash(content)) {
-      throw new Error(`Ref ${ref} invalid hash '${content}'`);
+      throw new GitDbError(GitDbErrno.InvalidData, `Ref ${ref} invalid hash '${content}'`).withRef(ref);
     }
 
     return content;
@@ -169,7 +169,12 @@ export class Repo implements IRepo {
       throw error;
     }
 
-    return decodeReflog(rawContent);
+    try {
+      return decodeReflog(rawContent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new GitDbError(GitDbErrno.InvalidData, `Error decoding reflog: ${message}`).withRef(ref).withPath(logPath);
+    }
   }
 
   async setReflog(ref: string, reflog: ReflogEntry[]): Promise<void> {

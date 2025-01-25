@@ -1,3 +1,5 @@
+import { GitDbErrno, GitDbError } from "../errors";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -56,7 +58,7 @@ export function fromOct(buffer: Uint8Array, start: number, end: number) {
 
 export function packHash(hex: string) {
   if (!validateHash(hex)) {
-    throw new Error(`Invalid hash '${hex}'`);
+    throw new GitDbError(GitDbErrno.InvalidData, `Invalid hash '${hex}'`);
   }
 
   var raw = new Uint8Array(hex.length / 2);

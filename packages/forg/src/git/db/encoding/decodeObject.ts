@@ -40,7 +40,7 @@ function decodeTree(body: Uint8Array): TreeObject {
   while (i < length) {
     let start = i;
     i = body.indexOf(0x20, start);
-    if (i < 0) throw new SyntaxError('Missing space');
+    if (i < 0) throw new Error('Missing space');
     const mode = fromOct(body, start, i++);
     start = i;
     i = body.indexOf(0x00, start);
@@ -73,11 +73,11 @@ function decodeCommit(body: Uint8Array): CommitObject {
   while (body[i] !== 0x0a) {
     let start = i;
     i = body.indexOf(0x20, start);
-    if (i < 0) throw new SyntaxError('Missing space');
+    if (i < 0) throw new Error('Missing space');
     const key = decode(body, start, i++);
     start = i;
     i = body.indexOf(0x0a, start);
-    if (i < 0) throw new SyntaxError('Missing linefeed');
+    if (i < 0) throw new Error('Missing linefeed');
     let value = decode(body, start, i++);
     if (key === 'parent') {
       parents.push(value);
@@ -108,11 +108,11 @@ function decodeTag(body: Uint8Array): TagObject {
   while (body[i] !== 0x0a) {
     let start = i;
     i = body.indexOf(0x20, start);
-    if (i < 0) throw new SyntaxError('Missing space');
+    if (i < 0) throw new Error('Missing space');
     const key = decode(body, start, i++);
     start = i;
     i = body.indexOf(0x0a, start);
-    if (i < 0) throw new SyntaxError('Missing linefeed');
+    if (i < 0) throw new Error('Missing linefeed');
     let value = decode(body, start, i++);
     if (key === 'tagger') {
       const tagger = decodePerson(value);
