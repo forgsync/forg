@@ -16,8 +16,8 @@ export interface MergeBaseResult {
   bestAncestorCommitIds: Hash[];
 
   /**
-   * The distinct leaves. This is a subset of the provide commit id's, and omits commits
-   * that are ancestors of other commits already listed.
+   * The distinct leaves. This is a subset of the provided commit id's,
+   * and omits commits that are ancestors of other commits already listed.
    */
   leafCommitIds: Hash[];
 }

@@ -9,7 +9,7 @@ export interface ForgRef {
 }
 
 /**
- * Lists all refs (remotes and heads) for the specified forg branch.
+ * Lists remote refs for the specified branch.
  */
 export async function listForgRefs(repo: IRepo, branchName: string, assumeConsistentRepo: boolean): Promise<ForgRef[]> {
   const results: ForgRef[] = [];
