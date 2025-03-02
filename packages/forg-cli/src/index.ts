@@ -8,11 +8,13 @@ import { CheckoutCommand } from './commands/checkout';
 import { FetchCommand } from './commands/fetch';
 import { LogCommand } from './commands/log';
 import { ShowRefCommand } from './commands/show-ref';
+import * as pkg from '../package.json';
 
 //console.log(chalk.green('forg-cli'));
 
 const parser = yargs(hideBin(process.argv))
   .scriptName('forg')
+  .version(pkg.version)
   .showHelpOnFail(true)
   .demandCommand()
   .recommendCommands()
