@@ -1,4 +1,4 @@
-import { CommitObject, createCommit, GitTreeFS, Hash, IRepo, loadCommitObject, loadTreeObject, MissingObjectError, Person, updateRef } from '../git';
+import { CommitObject, createCommit, GitDbErrno, GitDbError, GitTreeFS, Hash, IRepo, loadCommitObject, loadTreeObject, Person, updateRef } from '../git';
 import createCommitterInfo from './createCommitterInfo';
 import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
 import { listForgRefs } from './internal/listForgRefs';
@@ -144,7 +144,7 @@ async function tryGetBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: 
       }
     }
     catch (error) {
-      if (error instanceof MissingObjectError) {
+      if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
         // Continue through...
       }
       else {

@@ -1,4 +1,4 @@
-import { Hash, IReadOnlyRepo, IRepo, loadTreeObject, MissingObjectError, Mode } from '../../db';
+import { GitDbErrno, GitDbError, Hash, IReadOnlyRepo, IRepo, loadTreeObject, Mode } from '../../db';
 import { decodeCommitObject } from '../../db/objects';
 
 export enum SyncConsistency {
@@ -57,7 +57,7 @@ export interface SyncOptions {
 
   /**
    * Whether an incomplete commit history in the src repo is acceptable. If set to true, sync will succeed even if one of the traversed commits in the source repo is incomplete (but the head commit must always exist).
-   * If false, the corresponding git error may bubble out (i.e. `MissingObjectError`).
+   * If false, the corresponding git error may bubble out (i.e. `GitDbError` with `GitDbErrno.MissingObject`).
    */
   allowShallow: boolean;
 }
@@ -130,7 +130,7 @@ async function syncTrees(src: IReadOnlyRepo, dst: IRepo, commitId: string, optio
       try {
         rawCommitObjectToSync = await syncOneCommitTree(src, dst, head, nextHeads, consistency);
       } catch (error) {
-        if (skipOnError && error instanceof MissingObjectError) {
+        if (skipOnError && error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
           rawCommitObjectToSync = undefined;
         } else {
           throw error;
@@ -168,7 +168,7 @@ async function syncOneCommitTree(src: IReadOnlyRepo, dst: IRepo, commitId: Hash,
     }
   }
 
-  // NOTE: From this point on, any MissingObjectError would indicate an incomplete commit on the source.
+  // NOTE: From this point on, any GitDbErrno.MissingObject would indicate an incomplete commit on the source.
   // Such commits can be safely ignored when we aren't syncing the top commit and we allow shallow syncs
   const rawSrcCommit = await src.loadRawObject(commitId);
   const srcCommit = decodeCommitObject(rawSrcCommit, commitId);

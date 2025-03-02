@@ -1,5 +1,3 @@
-import { GitDbErrno, GitDbError } from "../errors";
-
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -57,9 +55,7 @@ export function fromOct(buffer: Uint8Array, start: number, end: number) {
 }
 
 export function packHash(hex: string) {
-  if (!validateHash(hex)) {
-    throw new GitDbError(GitDbErrno.InvalidData, `Invalid hash '${hex}'`);
-  }
+  validateHash(hex);
 
   var raw = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length;) {
@@ -94,6 +90,13 @@ export function sanitizeString(string: string) {
 }
 
 const commitHashRegex = /^[0-9a-f]{40}$/;
-export function validateHash(hash: string) {
+export function isValidHash(hash: string) {
   return hash.match(commitHashRegex) !== null;
+}
+
+export function validateHash(hash: string, detail?: string) {
+  if (!isValidHash(hash)) {
+    const detailString = detail === undefined ? '' : ` (${detail})`;
+    throw new Error(`Invalid hash '${hash}'${detailString}`);
+  }
 }

@@ -55,9 +55,7 @@ export function encodeTree(body: TreeBody) {
 }
 
 export function encodeTag(body: TagBody) {
-  if (!validateHash(body.object)) {
-    throw new Error(`Invalid tag object ${body.object}`);
-  }
+  validateHash(body.object, 'tag');
 
   return joinWithNewline(
     `object ${body.object}`,
@@ -70,14 +68,10 @@ export function encodeTag(body: TagBody) {
 }
 
 export function encodeCommit(body: CommitBody) {
-  if (!validateHash(body.tree)) {
-    throw new Error(`Invalid tree hash ${body.tree}`);
-  }
+  validateHash(body.tree, 'tree');
 
   for (const parent of body.parents) {
-    if (!validateHash(parent)) {
-      throw new Error(`Invalid parent hash ${parent}`);
-    }
+    validateHash(parent, 'parent commit');
   }
 
   return joinWithNewline(

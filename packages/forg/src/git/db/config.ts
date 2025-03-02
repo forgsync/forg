@@ -2,10 +2,10 @@ import { IReadOnlyRepo } from './Repo';
 import { decodeConfig, GitConfig } from './encoding/decodeConfig';
 import { GitDbErrno, GitDbError } from './errors';
 
-export async function loadConfig(repo: IReadOnlyRepo): Promise<GitConfig> {
+export async function loadConfig(repo: IReadOnlyRepo): Promise<GitConfig | undefined> {
   const binary = await repo.loadMetadata('config');
   if (binary === undefined) {
-    return new GitConfig(undefined);
+    return undefined;
   }
 
   try {

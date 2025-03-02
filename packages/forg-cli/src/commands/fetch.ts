@@ -3,7 +3,6 @@ import { Argv, Options, ArgumentsCamelCase } from 'yargs';
 import { NodeFS } from '@forgsync/simplefs';
 import { Repo } from '@forgsync/forg/dist/git';
 import { forceFetchRefs } from '@forgsync/forg/dist/core';
-import { SyncStrategy } from '@forgsync/forg/dist/git/sync/syncRef';
 
 import { CommandBase } from './util/CommandBase';
 
@@ -39,6 +38,6 @@ export class FetchCommand extends CommandBase<FetchOptions> {
       throw new Error(`Failed to open remote repo: ${error}`);
     }
 
-    await forceFetchRefs(local, remote, { uuid: args.clientId }, SyncStrategy.DefaultForFetch);
+    await forceFetchRefs(local, remote, { uuid: args.clientId });
   }
 }

@@ -1,20 +1,19 @@
 import { ReflogEntry } from '../model';
 import { decodePerson, encodePerson } from './person';
-import { decode, validateHash } from './util';
+import { decode, encode, validateHash } from './util';
 
-export function encodeReflog(reflog: ReflogEntry[]) {
-  return reflog.map((entry) => encodeReflogEntry(entry)).join('');
+export function encodeReflog(reflog: ReflogEntry[]): Uint8Array {
+  const content = reflog.map((entry) => encodeReflogEntry(entry)).join('');
+  return encode(content);
 }
 
 const NULL_COMMIT_ID = '0'.repeat(40);
-function encodeReflogEntry(entry: ReflogEntry) {
-  if (entry.previousCommit !== undefined && !validateHash(entry.previousCommit)) {
-    throw new Error(`Invalid $.previousCommit ${entry.previousCommit}`);
+function encodeReflogEntry(entry: ReflogEntry): string {
+  if (entry.previousCommit !== undefined) {
+    validateHash(entry.previousCommit, '$.previousCommit');
   }
 
-  if (!validateHash(entry.newCommit)) {
-    throw new Error(`Invalid $.newCommit ${entry.newCommit}`);
-  }
+  validateHash(entry.newCommit, '$.newCommit');
 
   const descriptionLineBreak = entry.description.indexOf('\n');
   const firstLine = descriptionLineBreak >= 0 ? entry.description.substring(0, descriptionLineBreak) : entry.description;
@@ -35,9 +34,7 @@ export function decodeReflog(binary: Uint8Array): ReflogEntry[] {
       throw new Error(`Expected space after position ${i}`);
     }
     const previousCommit = decode(binary, i, nextDelimiter);
-    if (!validateHash(previousCommit)) {
-      throw new Error(`Invalid previous commit hash in reflog: ${previousCommit}`);
-    }
+    validateHash(previousCommit, 'reflog previous commit');
 
     i = nextDelimiter + 1;
     nextDelimiter = binary.indexOf(0x20, i); // SP
@@ -45,9 +42,7 @@ export function decodeReflog(binary: Uint8Array): ReflogEntry[] {
       throw new Error(`Expected space after position ${i}`);
     }
     const newCommit = decode(binary, i, nextDelimiter);
-    if (!validateHash(newCommit)) {
-      throw new Error(`Invalid new commit hash in reflog: ${newCommit}`);
-    }
+    validateHash(newCommit, 'reflog new commit');
 
     i = nextDelimiter + 1;
     nextDelimiter = binary.indexOf(0x09, i); // TAB

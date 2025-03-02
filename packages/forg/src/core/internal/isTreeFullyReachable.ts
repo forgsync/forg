@@ -1,4 +1,4 @@
-import { IRepo, Hash, walkTree, MissingObjectError } from '../../git';
+import { IRepo, Hash, walkTree, GitDbError, GitDbErrno } from '../../git';
 
 export async function isTreeFullyReachable(repo: IRepo, treeHash: Hash): Promise<boolean> {
   try {
@@ -8,7 +8,7 @@ export async function isTreeFullyReachable(repo: IRepo, treeHash: Hash): Promise
       }
     }
   } catch (error) {
-    if (error instanceof MissingObjectError) {
+    if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
       return false;
     }
 

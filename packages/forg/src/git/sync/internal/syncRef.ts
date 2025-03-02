@@ -1,4 +1,4 @@
-import { Hash, IReadOnlyRepo, IRepo, loadCommitObject, MissingObjectError, updateRef } from '../../db';
+import { GitDbErrno, GitDbError, Hash, IReadOnlyRepo, IRepo, loadCommitObject, updateRef } from '../../db';
 import { syncCommit, SyncConsistency, SyncOptions } from './syncCommit';
 
 export enum SyncStrategy {
@@ -232,7 +232,7 @@ async function trySyncCommit(src: IReadOnlyRepo, dst: IRepo, commitId: Hash, opt
     await syncCommit(src, dst, commitId, options);
     return true;
   } catch (error) {
-    if (error instanceof MissingObjectError) {
+    if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
       return false;
     } else {
       throw error;

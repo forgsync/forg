@@ -30,7 +30,7 @@ export type Person = {
 
 export type ModeHash = {
   readonly mode: Mode;
-  readonly hash: string;
+  readonly hash: Hash;
 };
 
 export interface ReflogEntry {

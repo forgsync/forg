@@ -36,4 +36,4 @@ export type {
 export { walkCommits, walkTree, listFiles } from './walkers';
 export type { HashAndCommitBody, HashModePath } from './walkers';
 
-export { MissingObjectError, ObjectTypeMismatchError } from './errors';
+export { GitDbError, GitDbErrno } from './errors';

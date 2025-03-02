@@ -11,7 +11,7 @@ import { tryParseForgRef } from './internal/tryParseForgRef';
  * This method will force-fetch all remotes managed by other forg clients.
  * Optionally, if `branchName` is specified, only that branch (but still from every other client) will be fetched.
  */
-export async function forceFetchRefs(local: IRepo, remote: IReadOnlyRepo, client: ForgClientInfo, strategy: FetchStrategy = FetchStrategy.DefaultForFetch, branchName?: string): Promise<void> {
+export async function forceFetchRefs(local: IRepo, remote: IReadOnlyRepo, client: ForgClientInfo, branchName?: string, strategy: FetchStrategy = FetchStrategy.DefaultForFetch): Promise<void> {
   const remoteRefs = await remote.listRefs('refs/remotes');
   // Fetch all remote refs except for ours. Nobody else should touch our remote branch in the remote repo (see The Rules of Forg)
   for (const ref of remoteRefs) {

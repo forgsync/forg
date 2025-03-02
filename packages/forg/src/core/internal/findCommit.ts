@@ -1,7 +1,7 @@
-import { IRepo, Hash, loadCommitObject, CommitObject, MissingObjectError } from '../../git';
+import { IRepo, Hash, loadCommitObject, CommitObject, GitDbError, GitDbErrno } from '../../git';
 
 export interface HeadInfo {
-  hash: string;
+  hash: Hash;
   commit: CommitObject;
 }
 
@@ -38,7 +38,7 @@ async function findCommitFromRef(repo: IRepo, commitId: Hash, predicate: CommitP
     try {
       commit = await loadCommitObject(repo, nextCommitIdToTry);
     } catch (error) {
-      if (error instanceof MissingObjectError) {
+      if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
         return undefined;
       }
 
@@ -66,7 +66,7 @@ async function findCommitFromReflog(repo: IRepo, ref: string, predicate: CommitP
     try {
       commit = await loadCommitObject(repo, entry.newCommit);
     } catch (error) {
-      if (error instanceof MissingObjectError) {
+      if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
         continue;
       }
 

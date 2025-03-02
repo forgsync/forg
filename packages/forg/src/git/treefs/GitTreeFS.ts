@@ -1,6 +1,5 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from '@forgsync/simplefs';
-import { Hash, IRepo, loadBlobObject, loadTreeObject, MissingObjectError, saveObject, TreeObject, Type } from '..';
-import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from '..';
+import { ExpandedTree, GitDbErrno, GitDbError, Hash, IRepo, loadBlobObject, loadTreeObject, saveObject, TreeObject, treeToWorkingTree, Type, WorkingTreeFile, WorkingTreeFolder } from '../db';
 
 export class GitTreeFS implements ISimpleFS {
   private _isModified = false;
@@ -78,7 +77,7 @@ export class GitTreeFS implements ISimpleFS {
         const result = await loadBlobObject(this._repo, entry.hash);
         return result.body;
       } catch (error) {
-        if (error instanceof MissingObjectError) {
+        if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
           this._isMissingObjects = true;
           throw new FSError(Errno.EIO, path.value, `Unable to find blob object '${entry.hash}' corresponding to working tree path '${path.value}'`);
         }
@@ -242,7 +241,7 @@ export class GitTreeFS implements ISimpleFS {
       try {
         treeObject = await loadTreeObject(this._repo, item.hash);
       } catch (error) {
-        if (error instanceof MissingObjectError) {
+        if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
           this._isMissingObjects = true;
           throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
         }

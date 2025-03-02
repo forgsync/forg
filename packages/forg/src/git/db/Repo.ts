@@ -2,11 +2,12 @@ import * as fflate from 'fflate';
 import { Errno, FSError, ISimpleFS, Path } from '@forgsync/simplefs';
 
 import { Hash, ReflogEntry } from './model';
-import { decode, encode, validateHash } from './encoding/util';
-import { decodeReflog, encodeReflog } from './encoding/reflog';
-import { GitDbErrno, GitDbError, MissingObjectError } from './errors';
-import { loadConfig } from './config';
+import { encode, validateHash } from './encoding/util';
 import { decodeConfig, GitConfig } from './encoding/decodeConfig';
+import { decodeReflog, encodeReflog } from './encoding/reflog';
+import { decodeRef, encodeRef } from './encoding/ref';
+import { GitDbErrno, GitDbError } from './errors';
+import { loadConfig } from './config';
 
 export interface IReadOnlyRepo {
   listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
@@ -53,7 +54,7 @@ export class Repo implements IRepo {
     const hasRefsDir = await this._fs.directoryExists(new Path('refs'));
     const config = await loadConfig(this);
 
-    if (hasHeadFile && hasObjectsDir && hasRefsDir) {
+    if (hasHeadFile && hasObjectsDir && hasRefsDir && config !== undefined) {
       const forgVersion = config.getString('forg.version');
       if (forgVersion === undefined) {
         throw new GitDbError(GitDbErrno.BadRepo, "Repo is not a valid forg repo. Missing config variable 'forg.version'");
@@ -72,8 +73,7 @@ export class Repo implements IRepo {
       throw new GitDbError(GitDbErrno.BadRepo, 'Repo is not initialized. Call init with mode CreateIfNotExists to create.');
     }
 
-    const hasConfig = await this._fs.fileExists(new Path('config'));
-    if (!hasHeadFile && !hasObjectsDir && !hasRefsDir && !hasConfig) {
+    if (!hasHeadFile && !hasObjectsDir && !hasRefsDir && config === undefined) {
       await this._fs.write(new Path('HEAD'), encode('ref: refs/heads/main')); // NOTE: This is mostly useless in a bare repo, but git still requires it. See: https://stackoverflow.com/a/29296584
       await this._fs.createDirectory(new Path('objects'));
       await this._fs.createDirectory(new Path('refs'));
@@ -107,7 +107,6 @@ export class Repo implements IRepo {
       throw error;
     }
 
-    //console.log(`Found refs: ${JSON.stringify(refs)}`);
     return refs;
   }
 
@@ -128,24 +127,21 @@ export class Repo implements IRepo {
       throw error;
     }
 
-    const content = decode(rawContent).trim();
-    if (!validateHash(content)) {
-      throw new GitDbError(GitDbErrno.InvalidData, `Ref ${ref} invalid hash '${content}'`).withRef(ref);
+    try {
+      return decodeRef(rawContent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new GitDbError(GitDbErrno.InvalidData, `Error decoding ref: ${message}`).withRef(ref);
     }
-
-    return content;
   }
 
-  async setRef(ref: string, hash: string | undefined): Promise<void> {
+  async setRef(ref: string, hash: Hash | undefined): Promise<void> {
     this._ensureInitialized();
-    if (hash !== undefined && !validateHash(hash)) {
-      throw new Error(`Invalid hash '${hash}'`);
-    }
 
     const path = getRefPath(ref);
     if (hash !== undefined) {
-      const rawContent = `${hash}\n`;
-      const content = encode(rawContent);
+      validateHash(hash);
+      const content = encodeRef(hash);
       await this._fs.write(path, content);
     } else {
       await this._fs.deleteFile(path);
@@ -182,25 +178,21 @@ export class Repo implements IRepo {
 
     const logPath = Path.join(new Path('logs'), getRefPath(ref));
     const rawContent = encodeReflog(reflog);
-    await this._fs.write(logPath, encode(rawContent));
+    await this._fs.write(logPath, rawContent);
   }
 
-  async saveRawObject(hash: string, raw: Uint8Array): Promise<void> {
+  async saveRawObject(hash: Hash, raw: Uint8Array): Promise<void> {
     this._ensureInitialized();
-    if (!validateHash(hash)) {
-      throw new Error(`Invalid hash '${hash}'`);
-    }
+    validateHash(hash);
 
     const compressed = fflate.zlibSync(raw);
     const path = computeObjectPath(hash);
     await this._fs.write(path, compressed);
   }
 
-  async deleteObject(hash: string): Promise<void> {
+  async deleteObject(hash: Hash): Promise<void> {
     this._ensureInitialized();
-    if (!validateHash(hash)) {
-      throw new Error(`Invalid hash '${hash}'`);
-    }
+    validateHash(hash);
 
     const path = computeObjectPath(hash);
     try {
@@ -216,11 +208,9 @@ export class Repo implements IRepo {
     }
   }
 
-  async loadRawObject(hash: string): Promise<Uint8Array> {
+  async loadRawObject(hash: Hash): Promise<Uint8Array> {
     this._ensureInitialized();
-    if (!validateHash(hash)) {
-      throw new Error(`Invalid hash '${hash}'`);
-    }
+    validateHash(hash);
 
     const path = computeObjectPath(hash);
     let rawContent: Uint8Array;
@@ -229,7 +219,7 @@ export class Repo implements IRepo {
     } catch (error) {
       if (error instanceof FSError) {
         if (error.errno === Errno.ENOENT) {
-          throw new MissingObjectError(hash);
+          throw new GitDbError(GitDbErrno.MissingObject).withObjectId(hash);
         }
       }
 
@@ -239,11 +229,9 @@ export class Repo implements IRepo {
     return fflate.unzlibSync(rawContent);
   }
 
-  async hasObject(hash: string): Promise<boolean> {
+  async hasObject(hash: Hash): Promise<boolean> {
     this._ensureInitialized();
-    if (!validateHash(hash)) {
-      throw new Error(`Invalid hash '${hash}'`);
-    }
+    validateHash(hash);
 
     return await this._fs.fileExists(computeObjectPath(hash));
   }
