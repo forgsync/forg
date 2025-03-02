@@ -1,8 +1,7 @@
 import { Argv, Options, ArgumentsCamelCase } from 'yargs';
 
 import { NodeFS, Path } from '@forgsync/simplefs';
-import { loadCommitObject, loadTreeObject, Repo } from '@forgsync/forg/dist/git';
-import { GitTreeFS } from '@forgsync/forg/dist/treefs';
+import { GitTreeFS, loadCommitObject, loadTreeObject, Repo } from '@forgsync/forg/dist/git';
 
 import { CommandBase } from './util/CommandBase';
 import { recursiveCopy } from './util/cp';

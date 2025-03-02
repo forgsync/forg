@@ -1,9 +1,8 @@
-import { Hash, InitMode, Repo, createCommit, loadCommitObject } from '../git';
+import { GitTreeFS, Hash, InitMode, Repo, createCommit, loadCommitObject } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
 import { reconcile } from './reconcile';
 import { InMemoryFS } from '@forgsync/simplefs';
 import { ForgClientInfo } from './model';
-import { GitTreeFS } from '../treefs';
 
 describe('reconcile', () => {
   let repo: Repo;

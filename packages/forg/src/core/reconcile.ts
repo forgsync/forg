@@ -1,5 +1,4 @@
-import { CommitObject, createCommit, Hash, IRepo, loadCommitObject, loadTreeObject, MissingObjectError, Person, updateRef } from '../git';
-import { GitTreeFS } from '../treefs';
+import { CommitObject, createCommit, GitTreeFS, Hash, IRepo, loadCommitObject, loadTreeObject, MissingObjectError, Person, updateRef } from '../git';
 import createCommitterInfo from './createCommitterInfo';
 import { isTreeFullyReachable } from './internal/isTreeFullyReachable';
 import { listForgRefs } from './internal/listForgRefs';

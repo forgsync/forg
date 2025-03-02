@@ -1,5 +1,5 @@
 import { InMemoryFS, Path } from '@forgsync/simplefs';
-import { createCommit, updateRef, CommitBody, Mode, ReflogEntry, Repo, TreeBody, loadCommitObject, loadTreeObject, loadBlobObject, InitMode } from '../';
+import { CommitBody, createCommit, InitMode, loadBlobObject, loadCommitObject, loadTreeObject, Mode, ReflogEntry, Repo, TreeBody, updateRef } from '.';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 
 const encoder = new TextEncoder();
