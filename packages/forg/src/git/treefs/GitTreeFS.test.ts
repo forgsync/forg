@@ -1,7 +1,6 @@
 import { InMemoryFS, ListEntry, Path } from '@forgsync/simplefs';
-import { InitMode, Repo } from '../../git';
 import { GitTreeFS } from './GitTreeFS';
-import { ExpandedTree, saveWorkingTree } from '../../git';
+import { ExpandedTree, InitMode, Repo, saveWorkingTree } from '../db';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

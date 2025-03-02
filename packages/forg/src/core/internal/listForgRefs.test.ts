@@ -6,7 +6,7 @@ import { ForgRef, listForgRefs } from './listForgRefs';
 
 const encoder = new TextEncoder();
 
-describe('listForgHeads', () => {
+describe('listForgRefs', () => {
   let repo: Repo;
   beforeEach(async () => {
     const fs = new InMemoryFS();

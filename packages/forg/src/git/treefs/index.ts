@@ -1,1 +1,1 @@
-export { GitTreeFS } from './internal/GitTreeFS';
+export { GitTreeFS } from './GitTreeFS';
