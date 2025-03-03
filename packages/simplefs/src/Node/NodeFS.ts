@@ -6,6 +6,9 @@ import { ISimpleFS, ListEntry, ListOptions } from '../model/ISimpleFS';
 import { Path } from '../model/Path';
 
 export class NodeFS implements ISimpleFS {
+  /**
+   * Always ends with a '/'.
+   */
   private readonly _basePath: string;
 
   get physicalRoot(): string {
@@ -127,6 +130,10 @@ export class NodeFS implements ISimpleFS {
     } catch (error) {
       throw wrapFsError(error, physicalPath);
     }
+  }
+
+  chroot(path: Path): Promise<ISimpleFS> {
+    return Promise.resolve(new NodeFS(this._basePath + '/' + path.value));
   }
 }
 

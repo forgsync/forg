@@ -172,4 +172,12 @@ describe('NodeFS', () => {
       { path: new Path('dir/nested/a.txt'), kind: 'file' },
     ]);
   });
+
+  test('chroot', async () => {
+    await sut.write(new Path('a/b/c.txt'), new Uint8Array());
+    const nested = await sut.chroot(new Path('a/b'));
+    expect(await nested.fileExists(new Path('c.txt'))).toBe(true);
+    await nested.deleteFile(new Path('c.txt'));
+    expect(await sut.fileExists(new Path('a/b/c.txt'))).toBe(false);
+  });
 });

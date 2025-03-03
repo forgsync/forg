@@ -174,6 +174,11 @@ export class GitTreeFS implements ISimpleFS {
     this._isModified = true;
   }
 
+  async chroot(path: Path): Promise<GitTreeFS> {
+    const folder = await this._findTree(path, false);
+    return GitTreeFS.fromWorkingTree(this._repo, folder);
+  }
+
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
     const tree = await this._findParentFolder(path, false);
     const entry = tree.entries[path.leafName];

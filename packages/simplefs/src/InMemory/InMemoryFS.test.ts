@@ -67,4 +67,13 @@ describe('InMemoryFS', () => {
       { kind: 'file', path: new Path('a/d') },
     ]);
   });
+
+  test('chroot', async () => {
+    const fs = new InMemoryFS();
+    await fs.write(new Path('a/b/c.txt'), new Uint8Array());
+    const nested = await fs.chroot(new Path('a/b'));
+    expect(await nested.fileExists(new Path('c.txt'))).toBe(true);
+    await nested.deleteFile(new Path('c.txt'));
+    expect(await fs.fileExists(new Path('a/b/c.txt'))).toBe(false);
+  });
 });

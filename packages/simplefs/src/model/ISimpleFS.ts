@@ -10,6 +10,11 @@ export interface ISimpleFS {
   list(path: Path, options?: ListOptions): Promise<ListEntry[]>;
   createDirectory(path: Path): Promise<void>;
   deleteDirectory(path: Path): Promise<void>;
+
+  /**
+   * Returns a new ISimpleFS that has the provided path as its root.
+   */
+  chroot(path: Path): Promise<ISimpleFS>;
 }
 
 export interface ListOptions {

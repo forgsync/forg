@@ -196,4 +196,31 @@ describe('GitTreeFS', () => {
   test("deleteFile where some parent tree is missing throws EIO", async () => {
     await expect(() => fs.deleteFile(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
   });
+
+  test('chroot', async () => {
+    await fs.write(new Path('a/b/c.txt'), new Uint8Array());
+    const nested = await fs.chroot(new Path('a/b'));
+    expect(await nested.fileExists(new Path('c.txt'))).toBe(true);
+    await nested.deleteFile(new Path('c.txt'));
+    expect(await fs.fileExists(new Path('a/b/c.txt'))).toBe(false);
+  });
+
+  test('chroot 1 nested', async () => {
+    const inner = await fs.chroot(new Path('b'));
+    expect(await inner.fileExists(new Path('e/f.txt'))).toBe(true);
+    expect(await inner.fileExists(new Path('a.txt'))).toBe(false);
+  });
+
+  test('chroot 2 nested', async () => {
+    const inner = await fs.chroot(new Path('b/e'));
+    expect(await inner.fileExists(new Path('f.txt'))).toBe(true);
+    expect(await inner.fileExists(new Path('a.txt'))).toBe(false);
+  });
+
+  test('chroot same root', async () => {
+    const inner = await fs.chroot(new Path(''));
+    expect(await inner.fileExists(new Path('b/e/f.txt'))).toBe(true);
+    expect(await inner.fileExists(new Path('a.txt'))).toBe(true);
+    expect(inner.root).toBe(fs.root);
+  });
 });

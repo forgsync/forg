@@ -129,6 +129,10 @@ export class InMemoryFS implements ISimpleFS {
     return results;
   }
 
+  async chroot(path: Path): Promise<ISimpleFS> {
+    return Promise.resolve(new ChrootFS(this, path));
+  }
+
   private ensureParentExists(path: Path) {
     const segments = path.segments;
     for (let i = 0; i < segments.length - 1; i++) {
@@ -143,5 +147,40 @@ export class InMemoryFS implements ISimpleFS {
         throw new FSError(Errno.ENOTDIR, segmentPath);
       }
     }
+  }
+}
+
+class ChrootFS implements ISimpleFS {
+  constructor(
+    private readonly innerFS: ISimpleFS,
+    private readonly path: Path
+  ) {
+  }
+  fileExists(path: Path): Promise<boolean> {
+    return this.innerFS.fileExists(Path.join(this.path, path));
+  }
+  read(path: Path): Promise<Uint8Array> {
+    return this.innerFS.read(Path.join(this.path, path));
+  }
+  write(path: Path, data: Uint8Array): Promise<void> {
+    return this.innerFS.write(Path.join(this.path, path), data);
+  }
+  deleteFile(path: Path): Promise<void> {
+    return this.innerFS.deleteFile(Path.join(this.path, path));
+  }
+  directoryExists(path: Path): Promise<boolean> {
+    return this.innerFS.directoryExists(Path.join(this.path, path));
+  }
+  list(path: Path, options?: ListOptions): Promise<ListEntry[]> {
+    return this.innerFS.list(Path.join(this.path, path), options);
+  }
+  createDirectory(path: Path): Promise<void> {
+    return this.innerFS.createDirectory(Path.join(this.path, path));
+  }
+  deleteDirectory(path: Path): Promise<void> {
+    return this.innerFS.deleteDirectory(Path.join(this.path, path));
+  }
+  chroot(path: Path): Promise<ISimpleFS> {
+    return Promise.resolve(new ChrootFS(this.innerFS, Path.join(this.path, path)));
   }
 }
