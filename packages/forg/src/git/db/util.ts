@@ -20,3 +20,7 @@ export function toType(mode: number) {
   if ((mode & Mask.blob) === Mask.mask) return Type.blob;
   return Type.unknown;
 }
+
+export function errorToString(error: any): string {
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+}

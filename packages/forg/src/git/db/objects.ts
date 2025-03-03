@@ -4,6 +4,7 @@ import sha1 from './sha1';
 import { Hash, ModeHash, Person, Type } from './model';
 import { IReadOnlyRepo, IRepo } from './Repo';
 import { createObjectTypeMismatchError, GitDbErrno, GitDbError } from './errors';
+import { errorToString } from './util';
 
 export async function saveObject(repo: IRepo, object: GitObject): Promise<Hash> {
   const raw = encodeObject(object);
@@ -67,8 +68,7 @@ function decodeObjectAndWrapErrors(raw: Uint8Array, hash: Hash): GitObject {
     return decodeObject(raw);
   }
   catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new GitDbError(GitDbErrno.InvalidData, `: ${message}`).withObjectId(hash);
+    throw new GitDbError(GitDbErrno.InvalidData, `: ${errorToString(error)}`).withObjectId(hash);
   }
 }
 

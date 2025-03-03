@@ -8,6 +8,7 @@ import { decodeReflog, encodeReflog } from './encoding/reflog';
 import { decodeRef, encodeRef } from './encoding/ref';
 import { GitDbErrno, GitDbError } from './errors';
 import { loadConfig } from './config';
+import { errorToString } from './util';
 
 export interface IReadOnlyRepo {
   listRefs(what: 'refs/heads' | 'refs/remotes'): Promise<string[]>;
@@ -130,8 +131,7 @@ export class Repo implements IRepo {
     try {
       return decodeRef(rawContent);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new GitDbError(GitDbErrno.InvalidData, `Error decoding ref: ${message}`).withRef(ref);
+      throw new GitDbError(GitDbErrno.InvalidData, `Error decoding ref: ${errorToString(error)}`).withRef(ref);
     }
   }
 
@@ -168,8 +168,7 @@ export class Repo implements IRepo {
     try {
       return decodeReflog(rawContent);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new GitDbError(GitDbErrno.InvalidData, `Error decoding reflog: ${message}`).withRef(ref).withPath(logPath);
+      throw new GitDbError(GitDbErrno.InvalidData, `Error decoding reflog: ${errorToString(error)}`).withRef(ref).withPath(logPath);
     }
   }
 

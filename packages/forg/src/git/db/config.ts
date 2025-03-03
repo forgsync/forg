@@ -1,6 +1,7 @@
 import { IReadOnlyRepo } from './Repo';
 import { decodeConfig, GitConfig } from './encoding/decodeConfig';
 import { GitDbErrno, GitDbError } from './errors';
+import { errorToString } from './util';
 
 export async function loadConfig(repo: IReadOnlyRepo): Promise<GitConfig | undefined> {
   const binary = await repo.loadMetadata('config');
@@ -12,7 +13,6 @@ export async function loadConfig(repo: IReadOnlyRepo): Promise<GitConfig | undef
     return decodeConfig(binary);
   }
   catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new GitDbError(GitDbErrno.InvalidData, `Invalid config: ${message}`);
+    throw new GitDbError(GitDbErrno.InvalidData, `Invalid config: ${errorToString(error)}`);
   }
 }

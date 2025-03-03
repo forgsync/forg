@@ -1,5 +1,6 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from '@forgsync/simplefs';
 import { ExpandedTree, GitDbErrno, GitDbError, Hash, IRepo, loadBlobObject, loadTreeObject, saveObject, TreeObject, treeToWorkingTree, Type, WorkingTreeFile, WorkingTreeFolder } from '../db';
+import { errorToString } from '../db/util';
 
 export class GitTreeFS implements ISimpleFS {
   private _isModified = false;
@@ -82,8 +83,7 @@ export class GitTreeFS implements ISimpleFS {
           throw new FSError(Errno.EIO, path.value, `Unable to find blob object '${entry.hash}' corresponding to working tree path '${path.value}'`);
         }
 
-        const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        throw new FSError(Errno.EIO, path.value, `Error while reading blob object '${entry.hash}' corresponding to working tree path '${path.value}': ${innerError}`);
+        throw new FSError(Errno.EIO, path.value, `Error while reading blob object '${entry.hash}' corresponding to working tree path '${path.value}': ${errorToString(error)}`);
       }
     } else {
       return entry.body;
@@ -124,8 +124,7 @@ export class GitTreeFS implements ISimpleFS {
         body: data,
       });
     } catch (error) {
-      const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      throw new FSError(Errno.EIO, path.value, `Error while saving blob object corresponding to working tree path '${path.value}': ${innerError}`);
+      throw new FSError(Errno.EIO, path.value, `Error while saving blob object corresponding to working tree path '${path.value}': ${errorToString(error)}`);
     }
 
     parentTree.entries[path.leafName] = {
@@ -246,8 +245,7 @@ export class GitTreeFS implements ISimpleFS {
           throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
         }
 
-        const innerError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${innerError}`);
+        throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${errorToString(error)}`);
       }
       const expandedFolder = treeToWorkingTree(treeObject.body);
       folder.entries[childName] = expandedFolder;
