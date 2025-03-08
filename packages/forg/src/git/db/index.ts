@@ -37,3 +37,4 @@ export { walkCommits, walkTree, listFiles } from './walkers';
 export type { HashAndCommitBody, HashModePath } from './walkers';
 
 export { GitDbError, GitDbErrno } from './errors';
+export { GitTreeFS } from './GitTreeFS';

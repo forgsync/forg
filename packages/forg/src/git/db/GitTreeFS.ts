@@ -1,7 +1,14 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from '@forgsync/simplefs';
-import { ExpandedTree, GitDbErrno, GitDbError, Hash, IRepo, loadBlobObject, loadTreeObject, saveObject, TreeObject, treeToWorkingTree, Type, WorkingTreeFile, WorkingTreeFolder } from '../db';
-import { errorToString } from '../db/util';
+import { IRepo } from './Repo';
+import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from './workingTree';
+import { loadBlobObject, loadTreeObject, saveObject, TreeObject } from './objects';
+import { GitDbErrno, GitDbError } from './errors';
+import { Hash, Type } from './model';
+import { errorToString } from './util';
 
+/**
+ * An implementation of ISimpleFS with a git tree as the backend.
+ */
 export class GitTreeFS implements ISimpleFS {
   private _isModified = false;
   private _isMissingObjects = false;
