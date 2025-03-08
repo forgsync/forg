@@ -1,13 +1,13 @@
 import { Errno, FSError, ISimpleFS, Path } from "@forgsync/simplefs";
-import { ForgContainerBase } from "./ForgContainerBase";
+import { ForgContainer } from "./ForgContainer";
 import { ForgFileSystemContainer } from "./filesystem/ForgFileSystemContainer";
 import { ForgContainerConfigJsonDto } from './ForgContainerConfigJsonDto';
-import { errorToString } from "../../git/db/util";
-import { decode } from "../../git/db/encoding/util";
+import { errorToString } from "../../../git/db/util";
+import { decode } from "../../../git/db/encoding/util";
 
 export interface ForgContainerResolver {
   predicate: (config: ForgContainerConfigJsonDto) => boolean;
-  factory: (root: ISimpleFS, config: ForgContainerConfigJsonDto) => ForgContainerBase;
+  resolve: (containerRoot: ISimpleFS, config: ForgContainerConfigJsonDto) => ForgContainer;
 }
 
 export class ForgContainerFactory {
@@ -17,23 +17,23 @@ export class ForgContainerFactory {
     this.resolvers.push(resolver);
   }
 
-  async resolve(root: ISimpleFS): Promise<ForgContainerBase> {
-    const config = await this._readConfig(root);
+  async resolve(containerRoot: ISimpleFS): Promise<ForgContainer> {
+    const config = await this._readConfig(containerRoot);
 
     for (const resolver of this.resolvers) {
       if (resolver.predicate(config)) {
-        return await resolver.factory(root, config);
+        return await resolver.resolve(containerRoot, config);
       }
     }
 
     throw new Error(`No resolver for container with config ${JSON.stringify(config)}`);
   }
 
-  private async _readConfig(root: ISimpleFS) {
+  private async _readConfig(containerRoot: ISimpleFS) {
     const configPath = new Path('.forgcontainer.json');
     let binary: Uint8Array;
     try {
-      binary = await root.read(configPath);
+      binary = await containerRoot.read(configPath);
     }
     catch (error) {
       if (error instanceof FSError && error.errno === Errno.ENOENT) {
@@ -64,7 +64,7 @@ export function defaultForgContainerFactory(): ForgContainerFactory {
   const factory = new ForgContainerFactory();
   factory.addResolver({
     predicate: config => config.type === ForgFileSystemContainer.TYPE && config.typeVersion === ForgFileSystemContainer.TYPE_VERSION,
-    factory: (root, config) => new ForgFileSystemContainer(root, config),
+    resolve: (containerRoot, config) => new ForgFileSystemContainer(containerRoot, config),
   });
 
   return factory;

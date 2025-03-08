@@ -6,6 +6,7 @@ import { isTreeFullyReachable } from './isTreeFullyReachable';
 export interface ResolvedForgRef {
   ref: string;
   clientUuid: string;
+  branchName: string;
   commitId: string;
 }
 
@@ -20,7 +21,7 @@ export async function listForgRefs(repo: IRepo, branchName: string, assumeConsis
     if (refInfo && refInfo.branchName === branchName) {
       const commitId = await resolveRef(repo, ref, assumeConsistentRepo);
       if (commitId !== undefined) {
-        results.push({ ref, clientUuid: refInfo.client.uuid, commitId });
+        results.push({ ref, clientUuid: refInfo.client.uuid, branchName, commitId });
       }
     }
   }

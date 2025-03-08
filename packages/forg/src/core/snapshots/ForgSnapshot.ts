@@ -1,18 +1,18 @@
 import { Path } from '@forgsync/simplefs';
-import { GitTreeFS } from "../git";
+import { GitTreeFS } from "../../git";
 import { ForgContainerFactory } from './containers/ForgContainerFactory';
 
 const containersDir = new Path('containers');
 
 export class ForgSnapshot {
-  private constructor(
-    private readonly root: GitTreeFS,
+  constructor(
+    private readonly commitRoot: GitTreeFS,
     private readonly containerFactory: ForgContainerFactory,
   ) {
   }
 
   async listContainers(): Promise<string[]> {
-    const entries = await this.root.list(containersDir);
+    const entries = await this.commitRoot.list(containersDir);
     return entries.filter(e => e.kind === 'dir').map(e => e.path.leafName);
   }
 
@@ -22,9 +22,8 @@ export class ForgSnapshot {
       throw new Error(`Container name must be a single segment, found ${namePath.numSegments}: '${name}'`);
     }
 
-    const containerFS = await this.root.chroot(namePath);
+    const containerFS = await this.commitRoot.chroot(namePath);
 
     return await this.containerFactory.resolve(containerFS);
   }
 }
-

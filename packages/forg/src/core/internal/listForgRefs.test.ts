@@ -2,7 +2,7 @@ import { InMemoryFS } from '@forgsync/simplefs';
 
 import { InitMode, Repo, createCommit } from '../../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
-import { ForgRef, listForgRefs } from './listForgRefs';
+import { ResolvedForgRef, listForgRefs } from './listForgRefs';
 
 const encoder = new TextEncoder();
 
@@ -36,15 +36,11 @@ describe('listForgRefs', () => {
 
     const result = await listForgRefs(repo, 'main', false);
     expect(result.length).toBe(1);
-
-    type DeepPartial<T> = T extends object
-      ? {
-        [P in keyof T]?: DeepPartial<T[P]>;
-      }
-      : T;
-    expect(result).toMatchObject<DeepPartial<ForgRef>[]>([
+    expect(result).toMatchObject<ResolvedForgRef[]>([
       {
+        ref: 'refs/remotes/client1/main',
         clientUuid: 'client1',
+        branchName: 'main',
         commitId: commit1,
       },
     ]);

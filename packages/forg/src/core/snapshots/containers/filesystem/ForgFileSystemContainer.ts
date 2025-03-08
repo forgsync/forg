@@ -1,9 +1,9 @@
 import { ISimpleFS } from "@forgsync/simplefs";
-import { ForgContainerBase } from "../ForgContainerBase";
+import { ForgContainer } from "../ForgContainer";
 import { ForgContainerConfigJsonDto } from '../ForgContainerConfigJsonDto';
 
 
-export class ForgFileSystemContainer extends ForgContainerBase {
+export class ForgFileSystemContainer extends ForgContainer {
   static readonly TYPE: string = 'forg.fileSystem';
   static readonly TYPE_VERSION: string = '0.0.1-preview';
 
@@ -18,7 +18,11 @@ export class ForgFileSystemContainer extends ForgContainerBase {
     }
   }
 
-  override reconcile(_other: ForgContainerBase): void {
+  override reconcile(other: ForgContainer): Promise<void> {
+    if (!(other instanceof ForgFileSystemContainer)) {
+      throw new Error("Mismatched container types");
+    }
+
     throw new Error("Method not implemented.");
   }
 }
