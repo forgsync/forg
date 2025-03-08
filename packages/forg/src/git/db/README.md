@@ -1,7 +1,19 @@
 # Git DB
 
-The low-level git database implementation takes inspiration from and leverages
+A git-compatible(-ish) database that supports the following capabilities of git:
+- objects (blobs, trees, commits, tags), including zlib compression
+- refs (remotes and heads)
+- reflogs
+
+Importantly, the following are NOT supported by design:
+- PACK files: they are not suitable under the relaxed filesystem constraints that Forg operates under
+- Indexes: unnecessary as Forg repo's are bare repo's and don't persist the working tree on the filesystem
+
+## Legal
+
+This low-level git database implementation takes inspiration from and leverages
 parts of the open-source project es-git, available at https://github.com/es-git/es-git@5939f07143e0b8aa67d7464e6ec47754bebab347.
+Large portions of the code have been entirely rewritten for Forg.
 
 A copy of the license is preserved below.
 

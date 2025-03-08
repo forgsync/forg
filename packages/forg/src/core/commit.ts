@@ -1,9 +1,10 @@
 import { Hash, IRepo, WorkingTreeFolder, createCommit, updateRef } from '../git';
 import createCommitterInfo from './createCommitterInfo';
+import { formatForgRef } from './internal/formatForgRef';
 import { ForgClientInfo } from './model';
 
 export async function commit(repo: IRepo, client: ForgClientInfo, branchName: string, workingTree: WorkingTreeFolder, message: string): Promise<Hash> {
-  const ref = `refs/remotes/${client.uuid}/${branchName}`;
+  const ref = formatForgRef({ client, branchName });
   const parentCommitId = await repo.getRef(ref);
 
   const committer = createCommitterInfo(client);

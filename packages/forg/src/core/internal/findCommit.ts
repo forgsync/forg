@@ -49,6 +49,7 @@ async function findCommitFromRef(repo: IRepo, commitId: Hash, predicate: CommitP
       return { hash: nextCommitIdToTry, commit: commit };
     }
 
+    // TODO: Is it really appropriate to always follow the left side of a merge?
     nextCommitIdToTry = commit.body.parents.length > 0 ? commit.body.parents[0] : undefined;
   }
 

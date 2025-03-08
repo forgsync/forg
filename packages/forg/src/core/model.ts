@@ -3,6 +3,6 @@ export interface ForgClientInfo {
 }
 
 export interface ForgBranch {
-  branchName: string;
   client: ForgClientInfo;
+  branchName: string;
 }

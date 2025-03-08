@@ -140,7 +140,6 @@ export class Repo implements IRepo {
 
     const path = getRefPath(ref);
     if (hash !== undefined) {
-      validateHash(hash);
       const content = encodeRef(hash);
       await this._fs.write(path, content);
     } else {
@@ -182,16 +181,14 @@ export class Repo implements IRepo {
 
   async saveRawObject(hash: Hash, raw: Uint8Array): Promise<void> {
     this._ensureInitialized();
-    validateHash(hash);
 
-    const compressed = fflate.zlibSync(raw);
     const path = computeObjectPath(hash);
+    const compressed = fflate.zlibSync(raw);
     await this._fs.write(path, compressed);
   }
 
   async deleteObject(hash: Hash): Promise<void> {
     this._ensureInitialized();
-    validateHash(hash);
 
     const path = computeObjectPath(hash);
     try {
@@ -209,7 +206,6 @@ export class Repo implements IRepo {
 
   async loadRawObject(hash: Hash): Promise<Uint8Array> {
     this._ensureInitialized();
-    validateHash(hash);
 
     const path = computeObjectPath(hash);
     let rawContent: Uint8Array;
@@ -230,8 +226,6 @@ export class Repo implements IRepo {
 
   async hasObject(hash: Hash): Promise<boolean> {
     this._ensureInitialized();
-    validateHash(hash);
-
     return await this._fs.fileExists(computeObjectPath(hash));
   }
 
@@ -305,6 +299,7 @@ function getDefaultConfig(): string {
 }
 
 function computeObjectPath(hash: Hash): Path {
+  validateHash(hash);
   return new Path(`objects/${hash.substring(0, 2)}/${hash.substring(2)}`);
 }
 

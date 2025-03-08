@@ -3,7 +3,8 @@ import { findCommit } from './findCommit';
 import { tryParseForgRef } from './tryParseForgRef';
 import { isTreeFullyReachable } from './isTreeFullyReachable';
 
-export interface ForgRef {
+export interface ResolvedForgRef {
+  ref: string;
   clientUuid: string;
   commitId: string;
 }
@@ -11,15 +12,15 @@ export interface ForgRef {
 /**
  * Lists remote refs for the specified branch.
  */
-export async function listForgRefs(repo: IRepo, branchName: string, assumeConsistentRepo: boolean): Promise<ForgRef[]> {
-  const results: ForgRef[] = [];
+export async function listForgRefs(repo: IRepo, branchName: string, assumeConsistentRepo: boolean): Promise<ResolvedForgRef[]> {
+  const results: ResolvedForgRef[] = [];
 
   for (const ref of await repo.listRefs('refs/remotes')) {
     const refInfo = tryParseForgRef(ref);
     if (refInfo && refInfo.branchName === branchName) {
       const commitId = await resolveRef(repo, ref, assumeConsistentRepo);
       if (commitId !== undefined) {
-        results.push({ clientUuid: refInfo.client.uuid, commitId });
+        results.push({ ref, clientUuid: refInfo.client.uuid, commitId });
       }
     }
   }
