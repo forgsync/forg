@@ -10,6 +10,13 @@ import { isFile } from './util';
  */
 export interface ExpandedTree {
   type: 'tree';
+
+  /**
+   * The object id that represented this tree initially. If the tree is subsequently modified, this is not automatically updated, and would continue to reflect the original hash.
+   * If this object was created dynamically (as opposed to being read from an actual repo), then it will be undefined.
+   */
+  originalHash?: Hash;
+
   entries: {
     [key: string]: WorkingTreeEntry;
   };
@@ -65,9 +72,10 @@ async function saveFile(repo: IRepo, file: WorkingTreeFile): Promise<Hash> {
   return await saveObject(repo, { type: Type.blob, body: file.body });
 }
 
-export function treeToWorkingTree(tree: TreeBody): ExpandedTree {
+export function treeToWorkingTree(tree: TreeBody, hash: Hash): ExpandedTree {
   const result: ExpandedTree = {
     type: 'tree',
+    originalHash: hash,
     entries: {},
   };
 

@@ -27,13 +27,16 @@ export class GitTreeFS implements ISimpleFS {
   get root() {
     return this._root;
   }
+  get originalHash(): Hash | undefined {
+    return this._root.originalHash;
+  }
 
   /**
    * Initializes a GitTreeFS from a git Tree object.
    * This is usually used to create a filesystem interface on top of an existing git commit tree.
    */
-  static fromTree(repo: IRepo, tree: TreeObject) {
-    const root = treeToWorkingTree(tree.body);
+  static fromTree(repo: IRepo, tree: TreeObject, hash: Hash) {
+    const root = treeToWorkingTree(tree.body, hash);
     return new GitTreeFS(repo, root);
   }
 
@@ -183,7 +186,9 @@ export class GitTreeFS implements ISimpleFS {
 
   async chroot(path: Path): Promise<GitTreeFS> {
     const folder = await this._findTree(path, false);
-    return GitTreeFS.fromWorkingTree(this._repo, folder);
+    const result = GitTreeFS.fromWorkingTree(this._repo, folder);
+    result._isModified = this._isModified; // We could be a bit smarter and determine if this specific subtree was modified or not, but we don't need to be that precise. Worst case we'll say it's modified when it isn't.
+    return result;
   }
 
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
@@ -259,7 +264,7 @@ export class GitTreeFS implements ISimpleFS {
 
         throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${errorToString(error)}`);
       }
-      const expandedFolder = treeToWorkingTree(treeObject.body);
+      const expandedFolder = treeToWorkingTree(treeObject.body, item.hash);
       folder.entries[childName] = expandedFolder;
       return expandedFolder;
     } else {

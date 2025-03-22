@@ -33,7 +33,7 @@ export class CheckoutCommand extends CommandBase<CheckoutOptions> {
 
     const commit = await loadCommitObject(local, commitId);
     const tree = await loadTreeObject(local, commit.body.tree);
-    const treeFs = GitTreeFS.fromTree(local, tree);
+    const treeFs = GitTreeFS.fromTree(local, tree, commit.body.tree);
 
     const outputFS = new NodeFS(args.workingTreePath);
     await recursiveCopy(treeFs, outputFS, new Path(''));

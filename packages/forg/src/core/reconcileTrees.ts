@@ -128,7 +128,7 @@ async function reconcileCommits(repo: IRepo, commitIdA: Hash, commitIdB: Hash, m
 async function getWorkingTree(repo: IRepo, commitId: Hash): Promise<GitTreeFS> {
   const commit = await loadCommitObject(repo, commitId);
   const tree = await loadTreeObject(repo, commit.body.tree);
-  return GitTreeFS.fromTree(repo, tree);
+  return GitTreeFS.fromTree(repo, tree, commit.body.tree);
 }
 
 async function getBaseWorkingTree(repo: IRepo, commitIdA: string, commitIdB: string): Promise<GitTreeFS> {
