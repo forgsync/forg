@@ -184,6 +184,11 @@ export class GitTreeFS implements ISimpleFS {
     return result;
   }
 
+  async save(): Promise<void> {
+    await saveWorkingTree(this._repo, this._root);
+    // TODO: Should we reset _isModified now? Depends what that is meant to represent...
+  }
+
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
     const tree = await this._findParentFolder(path, false);
     const entry = tree.entries[path.leafName];

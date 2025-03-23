@@ -64,7 +64,9 @@ export async function saveWorkingTree(repo: IRepo, root: WorkingTreeFolder): Pro
     }
   }
 
-  return await saveObject(repo, { type: Type.tree, body: body });
+  const hash = await saveObject(repo, { type: Type.tree, body: body });
+  root.originalHash = hash;
+  return hash;
 }
 
 async function saveFile(repo: IRepo, file: WorkingTreeFile): Promise<Hash> {

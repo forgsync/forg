@@ -231,4 +231,22 @@ describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('
     expect(await inner.fileExists(new Path('a.txt'))).toBe(true);
     expect(inner.root).toBe(fs.root);
   });
+
+  test('save sets originalHash', async () => {
+    await fs.createDirectory(new Path('new dir/a'));
+    const newDirFs = await fs.chroot(new Path('new dir'));
+    const newDirEntry = newDirFs.root;
+    const aEntry = newDirFs.root.entries['a'];
+    if (aEntry.type !== 'tree') { fail(); }
+    if ('hash' in aEntry) {
+      fail();
+    }
+
+    expect(newDirEntry.originalHash).toBeUndefined();
+    expect(aEntry.originalHash).toBeUndefined();
+
+    await fs.save();
+    expect(aEntry.originalHash).toBe('4b825dc642cb6eb9a060e54bf8d69288fbee4904');
+    expect(newDirEntry.originalHash).toBe('0a8a87dd80eda4132d290a67b0676cde6ec1cb29');
+  });
 });

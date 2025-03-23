@@ -39,8 +39,10 @@ describe('ForgContainerFactory', () => {
 });
 
 async function createInMemoryGitTreeFS(): Promise<GitTreeFS> {
-  const fs = new InMemoryFS();
-  const repo = new Repo(fs);
+  const repoFS = new InMemoryFS();
+  const repo = new Repo(repoFS);
   await repo.init(InitMode.CreateIfNotExists);
-  return GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: {} });
+  const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: {} });
+  await fs.save();
+  return fs;
 }
