@@ -1,6 +1,6 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from '@forgsync/simplefs';
 import { IRepo } from './Repo';
-import { ExpandedTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from './workingTree';
+import { ExpandedTree, saveWorkingTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from './workingTree';
 import { loadBlobObject, loadTreeObject, saveObject, TreeObject } from './objects';
 import { GitDbErrno, GitDbError } from './errors';
 import { Hash, Type } from './model';
@@ -18,18 +18,11 @@ export class GitTreeFS implements ISimpleFS {
     private readonly _root: ExpandedTree,
   ) { }
 
-  get isModified() {
-    return this._isModified;
-  }
-  get isMissingObjects() {
-    return this._isMissingObjects;
-  }
-  get root() {
-    return this._root;
-  }
-  get originalHash(): Hash | undefined {
-    return this._root.originalHash;
-  }
+  get repo() { return this._repo; }
+  get isModified() { return this._isModified; }
+  get isMissingObjects() { return this._isMissingObjects; }
+  get root() { return this._root; }
+  get originalHash(): Hash | undefined { return this._root.originalHash; }
 
   /**
    * Initializes a GitTreeFS from a git Tree object.

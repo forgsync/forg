@@ -3,11 +3,12 @@ import { defaultForgContainerFactory } from './ForgContainerFactory';
 import { ForgFileSystemContainer } from './filesystem/ForgFileSystemContainer';
 import { ForgContainerConfigJsonDto } from './ForgContainerConfigJsonDto';
 import { encode } from '../../../git/db/encoding/util';
+import { GitTreeFS, InitMode, Repo } from '../../../git';
 
 describe('ForgContainerFactory', () => {
-  let fs: InMemoryFS;
+  let fs: GitTreeFS;
   beforeEach(async () => {
-    fs = new InMemoryFS();
+    fs = await createInMemoryGitTreeFS();
 
     const goodConfig: ForgContainerConfigJsonDto = {
       type: 'forg.fileSystem',
@@ -27,7 +28,7 @@ describe('ForgContainerFactory', () => {
     const containerFS = await fs.chroot(new Path('containers/good'));
     const container = await factory.resolve(containerFS);
     expect(container).toBeInstanceOf(ForgFileSystemContainer);
-    expect(await container.root.fileExists(new Path('.forgcontainer.json'))).toBe(true);
+    expect(await container.rootFS.fileExists(new Path('.forgcontainer.json'))).toBe(true);
   });
 
   test('resolve fails for unknown type', async () => {
@@ -36,3 +37,10 @@ describe('ForgContainerFactory', () => {
     await expect(() => factory.resolve(containerFS)).rejects.toThrow(/No resolver for container with config/);
   });
 });
+
+async function createInMemoryGitTreeFS(): Promise<GitTreeFS> {
+  const fs = new InMemoryFS();
+  const repo = new Repo(fs);
+  await repo.init(InitMode.CreateIfNotExists);
+  return GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: {} });
+}

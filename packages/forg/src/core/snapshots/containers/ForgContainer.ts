@@ -1,17 +1,16 @@
-import { ISimpleFS } from "@forgsync/simplefs";
 import { GitTreeFS, Hash } from "../../../git";
 
 export abstract class ForgContainer {
   constructor(
-    readonly root: ISimpleFS,
+    readonly rootFS: GitTreeFS,
   ) { }
 
   get hash(): Hash {
-    if (this.root instanceof GitTreeFS) {
-      if (this.root.isModified) {
+    if (this.rootFS instanceof GitTreeFS) {
+      if (this.rootFS.isModified) {
         throw new Error('Expected unmodified root');
       }
-      const hash = this.root.originalHash;
+      const hash = this.rootFS.originalHash;
       if (hash === undefined) {
         throw new Error("Expected originalHash to be defined at the root. Perhaps the underlying GitTreeFS didn't come from a real git tree?");
       }
@@ -23,5 +22,5 @@ export abstract class ForgContainer {
     throw new Error('Not implemented for non-GitTreeFS roots');
   }
 
-  abstract reconcile(other: ForgContainer): void;
+  abstract reconcile(other: ForgContainer): Promise<GitTreeFS>;
 }

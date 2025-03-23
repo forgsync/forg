@@ -1,13 +1,14 @@
-import { Errno, FSError, ISimpleFS, Path } from "@forgsync/simplefs";
+import { Errno, FSError, Path } from "@forgsync/simplefs";
 import { ForgContainer } from "./ForgContainer";
 import { ForgFileSystemContainer } from "./filesystem/ForgFileSystemContainer";
 import { ForgContainerConfigJsonDto } from './ForgContainerConfigJsonDto';
 import { errorToString } from "../../../git/db/util";
 import { decode } from "../../../git/db/encoding/util";
+import { GitTreeFS } from "../../../git";
 
 export interface ForgContainerResolver {
   predicate: (config: ForgContainerConfigJsonDto) => boolean;
-  resolve: (containerRoot: ISimpleFS, config: ForgContainerConfigJsonDto) => ForgContainer;
+  resolve: (containerRoot: GitTreeFS, config: ForgContainerConfigJsonDto) => ForgContainer;
 }
 
 export class ForgContainerFactory {
@@ -17,7 +18,7 @@ export class ForgContainerFactory {
     this.resolvers.push(resolver);
   }
 
-  async resolve(containerRoot: ISimpleFS): Promise<ForgContainer> {
+  async resolve(containerRoot: GitTreeFS): Promise<ForgContainer> {
     const config = await this._readConfig(containerRoot);
 
     for (const resolver of this.resolvers) {
@@ -29,7 +30,7 @@ export class ForgContainerFactory {
     throw new Error(`No resolver for container with config ${JSON.stringify(config)}`);
   }
 
-  private async _readConfig(containerRoot: ISimpleFS) {
+  private async _readConfig(containerRoot: GitTreeFS) {
     const configPath = new Path('.forgcontainer.json');
     let binary: Uint8Array;
     try {

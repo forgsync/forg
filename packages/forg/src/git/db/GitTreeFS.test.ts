@@ -2,11 +2,12 @@ import { InMemoryFS, ListEntry, Path } from '@forgsync/simplefs';
 import { GitTreeFS } from './GitTreeFS';
 import { InitMode, Repo } from './Repo';
 import { ExpandedTree, saveWorkingTree } from './workingTree';
+import { loadTreeObject } from './objects';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-describe('GitTreeFS', () => {
+describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('GitTreeFS %p', (testVariant) => {
   let repo: Repo;
   let workingTree: ExpandedTree;
   let fs: GitTreeFS;
@@ -18,25 +19,31 @@ describe('GitTreeFS', () => {
       type: 'tree',
       entries: {
         'a.txt': { type: 'file', body: encoder.encode('a') },
-        'bad.txt': { type: 'file', hash: '0000000000000000000000000000000000000001' },
-        b: {
+        'b': {
           type: 'tree',
           entries: {
             'c.txt': { type: 'file', body: encoder.encode('c') },
             'd.txt': { type: 'file', body: encoder.encode('d') },
-            e: {
+            'e': {
               type: 'tree',
               entries: {
                 'f.txt': { type: 'file', body: encoder.encode('f') },
               },
             },
-            bad: { type: 'tree', hash: '0000000000000000000000000000000000000002' },
+            'bad': { type: 'tree', hash: '0000000000000000000000000000000000000002' },
           },
         },
+        'bad.txt': { type: 'file', hash: '0000000000000000000000000000000000000001' },
       },
     };
-    await saveWorkingTree(repo, workingTree);
-    fs = GitTreeFS.fromWorkingTree(repo, workingTree);
+    if (testVariant === 'fromWorkingTree') {
+      fs = GitTreeFS.fromWorkingTree(repo, workingTree);
+    }
+    else {
+      const hash = await saveWorkingTree(repo, workingTree);
+      const tree = await loadTreeObject(repo, hash);
+      fs = GitTreeFS.fromTree(repo, tree, hash);
+    }
   });
 
   test.each([['a.txt', 'a'], ['b/c.txt', 'c'], ['b/d.txt', 'd'], ['b/e/f.txt', 'f']])(
@@ -103,8 +110,8 @@ describe('GitTreeFS', () => {
     const result = await fs.list(new Path(''));
     expect(result).toEqual<ListEntry[]>([
       { kind: 'file', path: new Path('a.txt') },
-      { kind: 'file', path: new Path('bad.txt') },
       { kind: 'dir', path: new Path('b') },
+      { kind: 'file', path: new Path('bad.txt') },
     ]);
   });
 
