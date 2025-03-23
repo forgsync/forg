@@ -18,11 +18,7 @@ export class ForgFileSystemContainer extends ForgContainer {
     }
   }
 
-  override reconcile(other: ForgContainer): Promise<GitTreeFS> {
-    if (!(other instanceof ForgFileSystemContainer)) {
-      throw new Error("Mismatched container types");
-    }
-
+  protected override reconcileCore(_other: ForgFileSystemContainer): Promise<GitTreeFS> {
     const result = GitTreeFS.fromWorkingTree(this.rootFS.repo, { type: 'tree', entries: {} });
     return Promise.resolve(result);
   }
