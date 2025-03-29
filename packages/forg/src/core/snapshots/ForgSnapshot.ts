@@ -1,15 +1,23 @@
 import { Errno, FSError, Path } from '@forgsync/simplefs';
-import { GitTreeFS } from "../../git";
+import { GitTreeFS, IRepo, loadTreeObject } from "../../git";
 import { ForgContainerFactory } from './containers/ForgContainerFactory';
 import { ForgContainer } from './containers/ForgContainer';
+import { HeadInfo } from '../model';
 
 const containersDir = new Path('containers');
 
 export class ForgSnapshot {
-  constructor(
+  private constructor(
+    readonly head: HeadInfo,
     private readonly commitRoot: GitTreeFS,
     private readonly containerFactory: ForgContainerFactory,
   ) {
+  }
+
+  static async create(repo: IRepo, head: HeadInfo, containerFactory: ForgContainerFactory) {
+    const tree = await loadTreeObject(repo, head.commit.body.tree);
+    const treeFS = GitTreeFS.fromTree(repo, tree, head.commit.body.tree);
+    return new ForgSnapshot(head, treeFS, containerFactory);
   }
 
   async listContainers(): Promise<string[]> {
@@ -44,7 +52,7 @@ export class ForgSnapshot {
       throw error;
     }
 
-    return await this.containerFactory.resolve(containerFS);
+    return await this.containerFactory.resolve(this.head, containerFS);
   }
 
   async getContainersRoot(): Promise<GitTreeFS> {

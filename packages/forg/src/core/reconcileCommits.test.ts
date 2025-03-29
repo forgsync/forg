@@ -1,10 +1,10 @@
-import { GitTreeFS, Hash, InitMode, Repo, createCommit, loadCommitObject } from '../git';
+import { GitTreeFS, Hash, IRepo, InitMode, Repo, createCommit, loadCommitObject, loadTreeObject } from '../git';
 import { dummyPerson } from '../__testHelpers__/dummyPerson';
-import { reconcileTrees } from './reconcileTrees';
+import { reconcileCommits } from './reconcileCommits';
 import { InMemoryFS } from '@forgsync/simplefs';
-import { ForgClientInfo } from './model';
+import { ForgClientInfo, HeadInfo } from './model';
 
-describe('reconcileTrees', () => {
+describe('reconcileCommits', () => {
   let repo: Repo;
   let commits: { [key: string]: Hash };
   let commitsReverseMap: Map<Hash, string>;
@@ -66,7 +66,7 @@ describe('reconcileTrees', () => {
     await repo.setRef('refs/remotes/client2/main', commits.B);
     await repo.setRef('refs/remotes/client3/main', commits.C);
 
-    const newCommitHash = await reconcileTrees(repo, me, 'main', dummyMergeFunc);
+    const newCommitHash = await reconcileCommits(repo, me, 'main', dummyMergeFunc);
 
     expect(toCommitNames(await repo.getRef('refs/remotes/client1/main'))).toEqual(['A']); // unchanged
     expect(toCommitNames(await repo.getRef('refs/remotes/client3/main'))).toEqual(['C']); // unchanged
@@ -81,7 +81,7 @@ describe('reconcileTrees', () => {
     await repo.setRef('refs/remotes/client2/main', commits.D);
     await repo.setRef('refs/remotes/client3/main', commits.E);
 
-    const newCommitHash = await reconcileTrees(repo, me, 'main', dummyMergeFunc);
+    const newCommitHash = await reconcileCommits(repo, me, 'main', dummyMergeFunc);
 
     expect(await repo.getRef('refs/remotes/client1/main')).toBe(newCommitHash);
     expect(await repo.getRef('refs/remotes/client2/main')).toBe(commits.D); // unchanged
@@ -114,7 +114,7 @@ describe('reconcileTrees', () => {
     //        \----------- I
     //                 (client3)
 
-    const newCommitHash = await reconcileTrees(repo, me, 'main', dummyMergeFunc);
+    const newCommitHash = await reconcileCommits(repo, me, 'main', dummyMergeFunc);
 
     expect(await repo.getRef('refs/remotes/client1/main')).toBe(newCommitHash);
     expect(await repo.getRef('refs/remotes/client2/main')).toBe(commits.E); // unchanged
@@ -131,7 +131,8 @@ describe('reconcileTrees', () => {
   });
 });
 
-async function dummyMergeFunc(a: GitTreeFS, _b: GitTreeFS): Promise<GitTreeFS> {
-  // Just return the left side always
-  return a;
+async function dummyMergeFunc(repo: IRepo, a: HeadInfo, _b: HeadInfo): Promise<GitTreeFS> {
+  const treeA = await loadTreeObject(repo, a.commit.body.tree);
+  const fs = GitTreeFS.fromTree(repo, treeA, a.commit.body.tree);
+  return fs;
 }

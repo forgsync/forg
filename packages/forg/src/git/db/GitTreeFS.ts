@@ -19,10 +19,25 @@ export class GitTreeFS implements ISimpleFS {
   ) { }
 
   get repo() { return this._repo; }
+
+  /**
+   * Whether the tree has been modified since this object was created or last saved.
+   * This is reset to false each time the tree is saved by calling `save`.
+   */
   get isModified() { return this._isModified; }
   get isMissingObjects() { return this._isMissingObjects; }
   get root() { return this._root; }
-  get originalHash(): Hash | undefined { return this._root.originalHash; }
+  get hash(): Hash {
+    if (this._isModified) {
+      throw new Error('Hash has not been computed after the tree was modified, call save first');
+    }
+
+    if (this._root.originalHash === undefined) {
+      throw new Error('Root hash had not been computed yet, use a real git tree root or call save first');
+    }
+
+    return this._root.originalHash;
+  }
 
   /**
    * Initializes a GitTreeFS from a git Tree object.
@@ -186,7 +201,7 @@ export class GitTreeFS implements ISimpleFS {
 
   async save(): Promise<void> {
     await saveWorkingTree(this._repo, this._root);
-    // TODO: Should we reset _isModified now? Depends what that is meant to represent...
+    this._isModified = false;
   }
 
   private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {

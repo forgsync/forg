@@ -5,10 +5,11 @@ import { ForgContainerConfigJsonDto } from './ForgContainerConfigJsonDto';
 import { errorToString } from "../../../git/db/util";
 import { decode } from "../../../git/db/encoding/util";
 import { GitTreeFS } from "../../../git";
+import { HeadInfo } from "../../model";
 
 export interface ForgContainerResolver {
   predicate: (config: ForgContainerConfigJsonDto) => boolean;
-  resolve: (containerRoot: GitTreeFS, config: ForgContainerConfigJsonDto) => ForgContainer;
+  resolve: (head: HeadInfo, containerRoot: GitTreeFS, config: ForgContainerConfigJsonDto) => ForgContainer;
 }
 
 export class ForgContainerFactory {
@@ -18,12 +19,12 @@ export class ForgContainerFactory {
     this.resolvers.push(resolver);
   }
 
-  async resolve(containerRoot: GitTreeFS): Promise<ForgContainer> {
+  async resolve(head: HeadInfo, containerRoot: GitTreeFS): Promise<ForgContainer> {
     const config = await this._readConfig(containerRoot);
 
     for (const resolver of this.resolvers) {
       if (resolver.predicate(config)) {
-        return await resolver.resolve(containerRoot, config);
+        return await resolver.resolve(head, containerRoot, config);
       }
     }
 
@@ -65,7 +66,7 @@ export function defaultForgContainerFactory(): ForgContainerFactory {
   const factory = new ForgContainerFactory();
   factory.addResolver({
     predicate: config => config.type === ForgFileSystemContainer.TYPE && config.typeVersion === ForgFileSystemContainer.TYPE_VERSION,
-    resolve: (containerRoot, config) => new ForgFileSystemContainer(containerRoot, config),
+    resolve: (head, containerRoot, config) => new ForgFileSystemContainer(head, containerRoot, config),
   });
 
   return factory;

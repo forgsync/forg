@@ -1,35 +1,37 @@
 import { InMemoryFS } from '@forgsync/simplefs';
 import { GitTreeFS, InitMode, Repo } from '../../../git';
 import { ForgContainer } from './ForgContainer';
+import { HeadInfo } from '../../model';
 
 describe('ForgContainer', () => {
+  const dummyHead = {} as HeadInfo;
   test('reconcile works', async () => {
     const fs = await createInMemoryGitTreeFS();
-    const a = new A(fs);
-    const b = new A(fs);
+    const a = new A(dummyHead, fs);
+    const b = new A(dummyHead, fs);
 
     expect(await a.reconcile(b)).toBe(a.rootFS);
   });
 
   test('reconcile detects mismatched types', async () => {
     const fs = await createInMemoryGitTreeFS();
-    const a = new A(fs);
-    const b = new B(fs);
+    const a = new A(dummyHead, fs);
+    const b = new B(dummyHead, fs);
 
     expect(() => a.reconcile(b)).toThrow('Mismatched container types');
   });
 
   test('reconcile detects mismatched filesystems', async () => {
-    const a = new A(await createInMemoryGitTreeFS());
-    const b = new A(await createInMemoryGitTreeFS());
+    const a = new A(dummyHead, await createInMemoryGitTreeFS());
+    const b = new A(dummyHead, await createInMemoryGitTreeFS());
 
     expect(() => a.reconcile(b)).toThrow("Mismatched repo's");
   });
 });
 
 class A extends ForgContainer {
-  constructor(rootFS: GitTreeFS) {
-    super(rootFS);
+  constructor(head: HeadInfo, rootFS: GitTreeFS) {
+    super(head, rootFS);
   }
 
   protected reconcileCore(_other: A): Promise<GitTreeFS> {
@@ -38,8 +40,8 @@ class A extends ForgContainer {
 }
 
 class B extends ForgContainer {
-  constructor(rootFS: GitTreeFS) {
-    super(rootFS);
+  constructor(head: HeadInfo, rootFS: GitTreeFS) {
+    super(head, rootFS);
   }
 
   protected reconcileCore(_other: B): Promise<GitTreeFS> {

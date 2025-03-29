@@ -1,9 +1,5 @@
 import { IRepo, Hash, loadCommitObject, CommitObject, GitDbError, GitDbErrno } from '../../git';
-
-export interface HeadInfo {
-  hash: Hash;
-  commit: CommitObject;
-}
+import { HeadInfo } from '../model';
 
 type CommitPredicate = (repo: IRepo, commit: CommitObject, commitId: Hash) => Promise<boolean>;
 

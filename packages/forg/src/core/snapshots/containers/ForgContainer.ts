@@ -1,20 +1,14 @@
 import { GitTreeFS, Hash } from "../../../git";
+import { HeadInfo } from "../../model";
 
 export abstract class ForgContainer {
   constructor(
+    readonly head: HeadInfo,
     readonly rootFS: GitTreeFS,
   ) { }
 
-  get hash(): Hash {
-    if (this.rootFS.isModified) {
-      throw new Error('Expected unmodified root');
-    }
-    const hash = this.rootFS.originalHash;
-    if (hash === undefined) {
-      throw new Error("Expected originalHash to be defined at the root. Perhaps the underlying GitTreeFS didn't come from a real git tree?");
-    }
-
-    return hash;
+  get treeHash(): Hash {
+    return this.rootFS.hash;
   }
 
   reconcile(other: ForgContainer): Promise<GitTreeFS> {
