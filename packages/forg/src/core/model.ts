@@ -10,6 +10,6 @@ export interface ForgBranch {
 }
 
 export interface HeadInfo {
-  hash: Hash;
+  commitId: Hash;
   commit: CommitObject;
 }

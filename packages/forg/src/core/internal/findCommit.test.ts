@@ -42,7 +42,7 @@ describe('tryFindAvailableHead', () => {
     );
 
     const result = await findCommit(repo, 'refs/remotes/client1/main', (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
-    expect(result?.hash).toBe(commitId);
+    expect(result?.commitId).toBe(commitId);
     expect(result?.commit.body.message).toBe('Commit 1');
   });
 
@@ -87,7 +87,7 @@ describe('tryFindAvailableHead', () => {
     await repo.setRef('refs/remotes/client1/main', commit3);
 
     const result = await findCommit(repo, 'refs/remotes/client1/main', (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
-    expect(result?.hash).toBe(commit1);
+    expect(result?.commitId).toBe(commit1);
     expect(result?.commit.body.message).toBe('Commit 1');
   });
 
@@ -143,7 +143,7 @@ describe('tryFindAvailableHead', () => {
     await repo.setRef('refs/remotes/client1/main', '000000000000000000000000000000000000000f'); // Set the ref to some unknown commit id -- simulates that perhaps the ref was just updated but the corresponding commit object hasn't been uploaded yet.
 
     const result = await findCommit(repo, 'refs/remotes/client1/main', (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
-    expect(result?.hash).toBe(commit2);
+    expect(result?.commitId).toBe(commit2);
     expect(result?.commit.body.message).toBe('Commit 2');
   });
 });

@@ -50,7 +50,7 @@ export async function reconcileCommits(repo: IRepo, client: ForgClientInfo, bran
   } else if (commitsToReconcile.length === 1) {
     // Trivial case -- nothing to merge, we found a specific commit that is itself the reconciled state
 
-    if (myResolvedRef !== undefined && myResolvedRef.commitId === commitsToReconcile[0].hash) {
+    if (myResolvedRef !== undefined && myResolvedRef.commitId === commitsToReconcile[0].commitId) {
       // All good, our ref is already there!
     }
     else {
@@ -59,25 +59,25 @@ export async function reconcileCommits(repo: IRepo, client: ForgClientInfo, bran
       await updateRef(
         repo,
         myRef,
-        commitsToReconcile[0].hash,
+        commitsToReconcile[0].commitId,
         commiter,
         `reconcile (${kind}): ${commitsToReconcile[0].commit.body.author}`,
       );
     }
 
-    return commitsToReconcile[0].hash;
+    return commitsToReconcile[0].commitId;
   }
 
   // Reconcile older commits first
   commitsToReconcile.sort(commitSorter);
 
-  let prev: Hash = commitsToReconcile[0].hash;
+  let prev: Hash = commitsToReconcile[0].commitId;
   for (let i = 1; i < commitsToReconcile.length; i++) {
     const commitMessage = `Reconcile forg clients ${commitsToReconcile.slice(0, i + 1).map((h) => h.commit.body.author).join(', ')}`;
     prev = await mergeCommits(
       repo,
       prev,
-      commitsToReconcile[i].hash,
+      commitsToReconcile[i].commitId,
       mergeFunc,
       commiter, commitMessage);
   }
@@ -103,7 +103,7 @@ async function getCommitsToMerge(repo: IRepo, branchName: string, assumeConsiste
   for (const leafCommitId of leafCommitIds) {
     const commit = await loadCommitObject(repo, leafCommitId);
     commitsToReconcile.push({
-      hash: leafCommitId,
+      commitId: leafCommitId,
       commit: commit,
     });
   }
@@ -142,7 +142,7 @@ async function mergeCommits(repo: IRepo, commitIdA: Hash, commitIdB: Hash, merge
 
 async function getHeadInfo(repo: IRepo, commitId: Hash): Promise<HeadInfo> {
   const commit = await loadCommitObject(repo, commitId);
-  return { hash: commitId, commit };
+  return { commitId, commit };
 }
 
 async function getBaseHeadInfo(repo: IRepo, commitIdA: string, commitIdB: string): Promise<HeadInfo> {
@@ -162,9 +162,9 @@ function commitSorter(a: HeadInfo, b: HeadInfo): number {
     return v;
   }
 
-  if (a.hash < b.hash) {
+  if (a.commitId < b.commitId) {
     return -1;
-  } else if (a.hash > b.hash) {
+  } else if (a.commitId > b.commitId) {
     return 1;
   }
 

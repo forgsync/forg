@@ -42,7 +42,7 @@ async function findCommitFromRef(repo: IRepo, commitId: Hash, predicate: CommitP
     }
 
     if (await predicate(repo, commit, nextCommitIdToTry)) {
-      return { hash: nextCommitIdToTry, commit: commit };
+      return { commitId: nextCommitIdToTry, commit: commit };
     }
 
     // TODO: Is it really appropriate to always follow the left side of a merge?
@@ -71,7 +71,7 @@ async function findCommitFromReflog(repo: IRepo, ref: string, predicate: CommitP
     }
 
     if (await predicate(repo, commit, entry.newCommit)) {
-      return { hash: entry.newCommit, commit: commit };
+      return { commitId: entry.newCommit, commit: commit };
     }
   }
 

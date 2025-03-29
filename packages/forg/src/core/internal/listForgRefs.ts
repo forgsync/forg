@@ -41,7 +41,7 @@ async function resolveRef(repo: IRepo, ref: string, assumeConsistentRepo: boolea
   else {
     const head = await findCommit(repo, ref, (repo, commit) => isTreeFullyReachable(repo, commit.body.tree));
     if (head !== undefined) {
-      return head.hash;
+      return head.commitId;
     }
   }
 
