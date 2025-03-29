@@ -1,7 +1,7 @@
-import { IRepo, Hash, loadCommitObject, CommitObject, GitDbError, GitDbErrno } from '../../git';
+import { IRepo, Hash, loadCommitObject, GitDbError, GitDbErrno } from '../../git';
 import { HeadInfo } from '../model';
 
-type CommitPredicate = (repo: IRepo, commit: CommitObject, commitId: Hash) => Promise<boolean>;
+type CommitPredicate = (repo: IRepo, head: HeadInfo) => Promise<boolean>;
 
 export async function findCommit(repo: IRepo, ref: string, predicate: CommitPredicate): Promise<HeadInfo | undefined> {
   const commitId = await repo.getRef(ref);
@@ -30,9 +30,10 @@ export async function findCommit(repo: IRepo, ref: string, predicate: CommitPred
 async function findCommitFromRef(repo: IRepo, commitId: Hash, predicate: CommitPredicate): Promise<HeadInfo | undefined> {
   let nextCommitIdToTry: string | undefined = commitId;
   while (nextCommitIdToTry !== undefined) {
-    let commit: CommitObject;
+    let head: HeadInfo;
     try {
-      commit = await loadCommitObject(repo, nextCommitIdToTry);
+      const commit = await loadCommitObject(repo, nextCommitIdToTry);
+      head = { commitId: nextCommitIdToTry, commit };
     } catch (error) {
       if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
         return undefined;
@@ -41,12 +42,12 @@ async function findCommitFromRef(repo: IRepo, commitId: Hash, predicate: CommitP
       throw error;
     }
 
-    if (await predicate(repo, commit, nextCommitIdToTry)) {
-      return { commitId: nextCommitIdToTry, commit: commit };
+    if (await predicate(repo, head)) {
+      return head;
     }
 
     // TODO: Is it really appropriate to always follow the left side of a merge?
-    nextCommitIdToTry = commit.body.parents.length > 0 ? commit.body.parents[0] : undefined;
+    nextCommitIdToTry = head.commit.body.parents.length > 0 ? head.commit.body.parents[0] : undefined;
   }
 
   return undefined;
@@ -59,9 +60,10 @@ async function findCommitFromReflog(repo: IRepo, ref: string, predicate: CommitP
   const reflog = await repo.getReflog(ref);
   for (let i = reflog.length - 1; i >= 0; i--) {
     const entry = reflog[i];
-    let commit: CommitObject;
+    let head: HeadInfo;
     try {
-      commit = await loadCommitObject(repo, entry.newCommit);
+      const commit = await loadCommitObject(repo, entry.newCommit);
+      head = { commitId: entry.newCommit, commit };
     } catch (error) {
       if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
         continue;
@@ -70,8 +72,8 @@ async function findCommitFromReflog(repo: IRepo, ref: string, predicate: CommitP
       throw error;
     }
 
-    if (await predicate(repo, commit, entry.newCommit)) {
-      return { commitId: entry.newCommit, commit: commit };
+    if (await predicate(repo, head)) {
+      return head;
     }
   }
 
