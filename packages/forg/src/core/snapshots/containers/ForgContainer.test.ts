@@ -1,59 +1,55 @@
-import { InMemoryFS } from '@forgsync/simplefs';
+import { InMemoryFS, Path } from '@forgsync/simplefs';
 import { GitTreeFS, InitMode, Repo } from '../../../git';
 import { ForgContainer } from './ForgContainer';
 import { HeadInfo } from '../../model';
+import { ForgContainerConfigJsonDto } from './ForgContainerConfigJsonDto';
+import { encode } from '../../../git/db/encoding/util';
 
+const dummyHead = {} as HeadInfo;
 describe('ForgContainer', () => {
-  const dummyHead = {} as HeadInfo;
-  test('reconcile works', async () => {
+  test('create works', async () => {
     const fs = await createInMemoryGitTreeFS();
-    const a = new A(dummyHead, fs);
-    const b = new A(dummyHead, fs);
-
-    expect(await a.reconcile(b)).toBe(a.rootFS);
+    const containerRoot = await fs.chroot(new Path('containers/good'));
+    const container = await ForgContainer.create(dummyHead, containerRoot);
+    expect(container.config).toEqual<ForgContainerConfigJsonDto>({
+      type: 'forg.fileSystem',
+      typeVersion: '0.0.1-preview',
+    });
   });
 
-  test('reconcile detects mismatched types', async () => {
+  test('create fails when config is missing', async () => {
     const fs = await createInMemoryGitTreeFS();
-    const a = new A(dummyHead, fs);
-    const b = new B(dummyHead, fs);
-
-    expect(() => a.reconcile(b)).toThrow('Mismatched container types');
+    const containerRoot = await fs.chroot(new Path('containers/empty'));
+    await expect(() => ForgContainer.create(dummyHead, containerRoot)).rejects.toThrow(/Missing container config file/);
   });
 
-  test('reconcile detects mismatched filesystems', async () => {
-    const a = new A(dummyHead, await createInMemoryGitTreeFS());
-    const b = new A(dummyHead, await createInMemoryGitTreeFS());
-
-    expect(() => a.reconcile(b)).toThrow("Mismatched repo's");
+  test('create fails when config is missing required fields', async () => {
+    const fs = await createInMemoryGitTreeFS();
+    const containerRoot = await fs.chroot(new Path('containers/missingFields'));
+    await expect(() => ForgContainer.create(dummyHead, containerRoot)).rejects.toThrow(/missing required fields/);
   });
 });
-
-class A extends ForgContainer {
-  constructor(head: HeadInfo, rootFS: GitTreeFS) {
-    super(head, rootFS);
-  }
-
-  protected reconcileCore(_other: A): Promise<GitTreeFS> {
-    return Promise.resolve(this.rootFS);
-  }
-}
-
-class B extends ForgContainer {
-  constructor(head: HeadInfo, rootFS: GitTreeFS) {
-    super(head, rootFS);
-  }
-
-  protected reconcileCore(_other: B): Promise<GitTreeFS> {
-    return Promise.resolve(this.rootFS);
-  }
-}
 
 async function createInMemoryGitTreeFS(): Promise<GitTreeFS> {
   const repoFS = new InMemoryFS();
   const repo = new Repo(repoFS);
   await repo.init(InitMode.CreateIfNotExists);
   const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: {} });
+
+  const goodConfig: ForgContainerConfigJsonDto = {
+    type: 'forg.fileSystem',
+    typeVersion: '0.0.1-preview',
+  };
+  await fs.write(new Path('containers/good/.forgcontainer.json'), encode(JSON.stringify(goodConfig)));
+
+  await fs.createDirectory(new Path('containers/empty'));
+
+  const missingFieldsConfig: ForgContainerConfigJsonDto = {
+    type: 'forg.fileSystem',
+    typeVersion: '',
+  };
+  await fs.write(new Path('containers/missingFields/.forgcontainer.json'), encode(JSON.stringify(missingFieldsConfig)));
+
   await fs.save();
   return fs;
 }

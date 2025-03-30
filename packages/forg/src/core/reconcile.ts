@@ -2,18 +2,18 @@ import { ExpandedTree, GitTreeFS, Hash, IRepo } from '../git';
 import { ForgClientInfo, HeadInfo } from './model';
 import { ReconcileOptions, reconcileCommits } from './reconcileCommits';
 import { ForgContainer } from './snapshots/containers/ForgContainer';
-import { ForgContainerFactory } from './snapshots/containers/ForgContainerFactory';
+import { ForgContainerMerger } from './snapshots/containers/ForgContainerMerger';
 import { ForgSnapshot } from './snapshots/ForgSnapshot';
 
 
-export async function reconcile(repo: IRepo, client: ForgClientInfo, branchName: string, containerFactory: ForgContainerFactory, options?: ReconcileOptions): Promise<Hash> {
+export async function reconcile(repo: IRepo, client: ForgClientInfo, branchName: string, containerFactory: ForgContainerMerger, options?: ReconcileOptions): Promise<Hash> {
   return await reconcileCommits(repo, client, branchName, (repo, a, b, base) => mergeImpl(repo, a, b, base, containerFactory), options);
 }
 
-async function mergeImpl(repo: IRepo, a: HeadInfo, b: HeadInfo, base: HeadInfo, containerFactory: ForgContainerFactory): Promise<GitTreeFS> {
-  const snapshotA = await ForgSnapshot.create(repo, a, containerFactory)
-  const snapshotB = await ForgSnapshot.create(repo, b, containerFactory)
-  const snapshotBase = await ForgSnapshot.create(repo, base, containerFactory)
+async function mergeImpl(repo: IRepo, a: HeadInfo, b: HeadInfo, base: HeadInfo, containerMerger: ForgContainerMerger): Promise<GitTreeFS> {
+  const snapshotA = await ForgSnapshot.create(repo, a)
+  const snapshotB = await ForgSnapshot.create(repo, b)
+  const snapshotBase = await ForgSnapshot.create(repo, base)
 
   const containersTree: ExpandedTree = { type: 'tree', entries: {} };
   const resultTree: ExpandedTree = { type: 'tree', entries: { 'containers': containersTree } };
@@ -27,7 +27,7 @@ async function mergeImpl(repo: IRepo, a: HeadInfo, b: HeadInfo, base: HeadInfo, 
     const containerB = await snapshotB.getContainerIfExists(containerName);
     const containerBase = await snapshotBase.getContainerIfExists(containerName);
 
-    await reconcileContainer(containerName, containerA, containerB, containerBase, containersTree);
+    await reconcileContainer(containerName, containerA, containerB, containerBase, containersTree, containerMerger);
   }
 
   for (const containerName of await snapshotB.listContainers()) {
@@ -39,13 +39,13 @@ async function mergeImpl(repo: IRepo, a: HeadInfo, b: HeadInfo, base: HeadInfo, 
     const containerB = await snapshotB.getContainer(containerName);
     const containerBase = await snapshotBase.getContainerIfExists(containerName);
 
-    await reconcileContainer(containerName, containerB, undefined, containerBase, containersTree);
+    await reconcileContainer(containerName, containerB, undefined, containerBase, containersTree, containerMerger);
   }
 
   return result;
 }
 
-async function reconcileContainer(name: string, a: ForgContainer, b: ForgContainer | undefined, base: ForgContainer | undefined, resultContainersTree: ExpandedTree): Promise<void> {
+async function reconcileContainer(name: string, a: ForgContainer, b: ForgContainer | undefined, base: ForgContainer | undefined, resultContainersTree: ExpandedTree, containerMerger: ForgContainerMerger): Promise<void> {
   if (b !== undefined) {
     // Container exists on both sides
     if (a.treeHash === b.treeHash) {
@@ -55,8 +55,8 @@ async function reconcileContainer(name: string, a: ForgContainer, b: ForgContain
     else {
       if (base !== undefined) {
         // Resolve conflicts (aka merge)
-        const reconciledFS = await a.reconcile(b);
-        resultContainersTree.entries[name] = reconciledFS.root;
+        const reconciled = await containerMerger.merge(a, b, base);
+        resultContainersTree.entries[name] = reconciled.rootFS.root;
       }
       else {
         // Container was created independently on each side. Resolve by taking the one that was created earlier
