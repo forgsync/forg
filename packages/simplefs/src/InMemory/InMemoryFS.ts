@@ -125,7 +125,7 @@ export class InMemoryFS implements ISimpleFS {
       }
     }
 
-    results.sort((a, b) => a.path.value.localeCompare(b.path.value));
+    results.sort((a, b) => a.path.value.localeCompare(b.path.value)); // TODO: Do not use localeCompare, should do a more predictable compare
     return results;
   }
 

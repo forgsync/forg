@@ -205,6 +205,14 @@ describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('
     await expect(() => fs.deleteFile(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
   });
 
+  test('tryFindEntry', async() =>{
+    expect((await fs.tryFindEntry(new Path('a.txt')))?.type).toBe("file")
+    expect((await fs.tryFindEntry(new Path('b/c.txt')))?.type).toBe("file")
+    expect((await fs.tryFindEntry(new Path('b/e')))?.type).toBe("tree")
+    expect((await fs.tryFindEntry(new Path('nonExistent.txt')))).toBeUndefined();
+    expect((await fs.tryFindEntry(new Path('b/nonExistent')))).toBeUndefined();
+  });
+
   test('chroot', async () => {
     await fs.write(new Path('a/b/c.txt'), new Uint8Array());
     const nested = await fs.chroot(new Path('a/b'));

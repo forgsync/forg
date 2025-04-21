@@ -1,3 +1,4 @@
+import { ListEntry } from '@forgsync/simplefs';
 import { Mode, Type } from './model';
 
 enum Mask {
@@ -23,4 +24,17 @@ export function toType(mode: number) {
 
 export function errorToString(error: any): string {
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+}
+
+/**
+ * Can be used to sort strings for use in git trees.
+ * Ideally we would sort byte-wise like memcmp, but this is close
+ * (and any discrepancies shouldn't be catastrophic anyway, as long as the client makes no assumptions about existing tree sorting).
+ */
+export function gitStringComparer(a: string, b: string): number {
+  return (a > b) ? 1 : (a < b) ? -1 : 0
+}
+
+export function gitFileEntryComparer(a: ListEntry, b: ListEntry): number {
+  return gitStringComparer(a.path.value, b.path.value);
 }

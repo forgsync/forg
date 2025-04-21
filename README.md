@@ -57,3 +57,5 @@ Forg takes inspiration from several other projects. This list is not comprehensi
 
 - [git](https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain):
   a Forg repo is read-compatible with git (i.e. git tooling can read and use a Forg Repository, but the converse is not necessarily true)
+- [es-git](https://github.com/es-git/es-git)
+- [isomorphic-git](https://github.com/isomorphic-git/isomorphic-git)

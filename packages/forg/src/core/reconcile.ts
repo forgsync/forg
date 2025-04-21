@@ -6,8 +6,8 @@ import { ForgContainerMerger } from './snapshots/containers/ForgContainerMerger'
 import { ForgSnapshot } from './snapshots/ForgSnapshot';
 
 
-export async function reconcile(repo: IRepo, client: ForgClientInfo, branchName: string, containerFactory: ForgContainerMerger, options?: ReconcileOptions): Promise<Hash> {
-  return await reconcileCommits(repo, client, branchName, (repo, a, b, base) => mergeImpl(repo, a, b, base, containerFactory), options);
+export async function reconcile(repo: IRepo, client: ForgClientInfo, branchName: string, containerMerger: ForgContainerMerger, options?: ReconcileOptions): Promise<Hash> {
+  return await reconcileCommits(repo, client, branchName, (repo, a, b, base) => mergeImpl(repo, a, b, base, containerMerger), options);
 }
 
 async function mergeImpl(repo: IRepo, a: HeadInfo, b: HeadInfo, base: HeadInfo, containerMerger: ForgContainerMerger): Promise<GitTreeFS> {

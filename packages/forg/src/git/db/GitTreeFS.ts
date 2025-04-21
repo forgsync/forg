@@ -1,6 +1,6 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from '@forgsync/simplefs';
 import { IRepo } from './Repo';
-import { ExpandedTree, saveWorkingTree, treeToWorkingTree, WorkingTreeFile, WorkingTreeFolder } from './workingTree';
+import { ExpandedTree, saveWorkingTree, treeToWorkingTree, WorkingTreeEntry, WorkingTreeFile, WorkingTreeFolder } from './workingTree';
 import { loadBlobObject, loadTreeObject, saveObject, TreeObject } from './objects';
 import { GitDbErrno, GitDbError } from './errors';
 import { Hash, Type } from './model';
@@ -204,9 +204,18 @@ export class GitTreeFS implements ISimpleFS {
     this._isModified = false;
   }
 
-  private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
+  async tryFindEntry(path: Path): Promise<WorkingTreeEntry | undefined> {
+    if (path.isRoot) {
+      return this._root;
+    }
+
     const tree = await this._findParentFolder(path, false);
     const entry = tree.entries[path.leafName];
+    return entry;
+  }
+
+  private async _findFileEntry(path: Path): Promise<WorkingTreeFile> {
+    const entry = await this.tryFindEntry(path);
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
     } else if (entry.type !== 'file') {
@@ -217,8 +226,7 @@ export class GitTreeFS implements ISimpleFS {
   }
 
   private async _findFolderEntry(path: Path): Promise<WorkingTreeFolder> {
-    const tree = await this._findParentFolder(path, false);
-    const entry = tree.entries[path.leafName];
+    const entry = await this.tryFindEntry(path);
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
     } else if (entry.type !== 'tree') {
