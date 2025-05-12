@@ -2,7 +2,7 @@ import { InMemoryFS, ListEntry, Path } from '@forgsync/simplefs';
 import parallelTraverse from './parallelTraverse';
 
 describe('parallelTraverse', () => {
-  test('a', async () => {
+  test('basics', async () => {
     const fs1 = new InMemoryFS();
     await fs1.createDirectory(new Path('emptyFolder'));
     await fs1.write(new Path('a/b/c'), new Uint8Array());
