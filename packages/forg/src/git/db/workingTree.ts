@@ -18,9 +18,7 @@ export interface ExpandedTree {
    */
   originalHash?: Hash;
 
-  entries: {
-    [key: string]: WorkingTreeEntry;
-  };
+  entries: Map<string, WorkingTreeEntry>;
 }
 /**
  * Describes an existing tree in git, indicated by its hash.
@@ -54,8 +52,7 @@ export async function saveWorkingTree(repo: IRepo, root: WorkingTreeFolder): Pro
   if ('hash' in root) return root.hash;
 
   const body: TreeBody = {};
-  for (const name of Object.keys(root.entries)) {
-    const entry = root.entries[name];
+  for (const [name, entry] of root.entries) {
     if (entry.type === 'tree') {
       const hash = await saveWorkingTree(repo, entry);
       body[name] = { hash, mode: Mode.tree };
@@ -79,30 +76,23 @@ export function treeToWorkingTree(tree: TreeBody, hash: Hash): ExpandedTree {
   const result: ExpandedTree = {
     type: 'tree',
     originalHash: hash,
-    entries: {},
+    entries: new Map(),
   };
 
   for (const name in tree) {
     const item = tree[name];
-    if (isFile(item.mode)) {
-      result.entries[name] = {
-        type: 'file',
-        isExecutable: item.mode === Mode.exec,
-        hash: item.hash,
-      };
-    } else {
-      result.entries[name] = {
-        type: 'tree',
-        hash: item.hash,
-      };
-    }
+    let entry: ExistingFile | ExistingTree =
+      isFile(item.mode)
+        ? { type: 'file', hash: item.hash, isExecutable: item.mode === Mode.exec, }
+        : { type: 'tree', hash: item.hash, };
+    result.entries.set(name, entry);
   }
 
   return result;
 }
 
 export async function expandSubTree(repo: IRepo, tree: ExpandedTree, childName: string): Promise<ExpandedTree> {
-  const item = tree.entries[childName];
+  const item = tree.entries.get(childName);
   if (item === undefined) {
     throw new Error(`No entry '${childName}' in tree ${tree.originalHash}`);
   }
@@ -123,7 +113,7 @@ export async function expandSubTree(repo: IRepo, tree: ExpandedTree, childName: 
       throw new Error(`Error while loading tree object '${item.hash}'`);
     }
     const expandedFolder = treeToWorkingTree(treeObject.body, item.hash);
-    tree.entries[childName] = expandedFolder;
+    tree.entries.set(childName, expandedFolder);
     return expandedFolder;
   } else {
     return item;

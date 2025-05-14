@@ -3,6 +3,7 @@ import { InMemoryFS } from '@forgsync/simplefs';
 import { InitMode, Repo, createCommit } from '../../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { ResolvedForgRef, listForgRefs } from './listForgRefs';
+import { WorkingTreeEntry } from '../../git/db/workingTree';
 
 const encoder = new TextEncoder();
 
@@ -24,9 +25,9 @@ describe('listForgRefs', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', body: encoder.encode('a') },
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', body: encoder.encode('a') }],
+        ]),
       },
       [],
       'Commit 1',

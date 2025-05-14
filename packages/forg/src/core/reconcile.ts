@@ -1,4 +1,5 @@
 import { ExpandedTree, GitTreeFS, Hash, IRepo } from '../git';
+import { WorkingTreeEntry } from '../git/db/workingTree'; // TODO: Remove reference to internal details of other package
 import { ForgClientInfo, HeadInfo } from './model';
 import { ReconcileOptions, reconcileCommits } from './reconcileCommits';
 import { ForgContainer } from './snapshots/containers/ForgContainer';
@@ -15,8 +16,8 @@ async function mergeImpl(repo: IRepo, a: HeadInfo, b: HeadInfo, base: HeadInfo, 
   const snapshotB = await ForgSnapshot.create(repo, b)
   const snapshotBase = await ForgSnapshot.create(repo, base)
 
-  const containersTree: ExpandedTree = { type: 'tree', entries: {} };
-  const resultTree: ExpandedTree = { type: 'tree', entries: { 'containers': containersTree } };
+  const containersTree: ExpandedTree = { type: 'tree', entries: new Map() };
+  const resultTree: ExpandedTree = { type: 'tree', entries: new Map<string, WorkingTreeEntry>([['containers', containersTree]]) };
   const result = GitTreeFS.fromWorkingTree(repo, resultTree);
 
   const processedContainers = new Set<string>();
@@ -50,18 +51,18 @@ async function reconcileContainer(name: string, a: ForgContainer, b: ForgContain
     // Container exists on both sides
     if (a.treeHash === b.treeHash) {
       // They are the same, trivial case. Just take it as-is from either side
-      resultContainersTree.entries[name] = a.rootFS.root;
+      resultContainersTree.entries.set(name, a.rootFS.root);
     }
     else {
       if (base !== undefined) {
         // Resolve conflicts (aka merge)
         const reconciled = await containerMerger.merge(a, b, base);
-        resultContainersTree.entries[name] = reconciled.rootFS.root;
+        resultContainersTree.entries.set(name, reconciled.rootFS.root);
       }
       else {
         // Container was created independently on each side. Resolve by taking the one that was created earlier
         const older = a.head.commit.body.author.date <= b.head.commit.body.author.date ? a : b;
-        resultContainersTree.entries[name] = older.rootFS.root;
+        resultContainersTree.entries.set(name, older.rootFS.root);
       }
     }
   }
@@ -80,7 +81,7 @@ async function reconcileContainer(name: string, a: ForgContainer, b: ForgContain
   }
   else {
     // Container was simply added in a, so keep it.
-    resultContainersTree.entries[name] = a.rootFS.root;
+    resultContainersTree.entries.set(name, a.rootFS.root);
   }
 
   return Promise.resolve();

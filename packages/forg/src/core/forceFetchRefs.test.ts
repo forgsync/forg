@@ -15,7 +15,7 @@ describe('forceFetchRefs', () => {
     await origin.init(InitMode.CreateIfNotExists);
 
     async function trackCommit(name: string, parents: Hash[]) {
-      const hash = await createCommit(origin, { type: 'tree', entries: {} }, parents, name, dummyPerson());
+      const hash = await createCommit(origin, { type: 'tree', entries: new Map() }, parents, name, dummyPerson());
       commits[name] = hash;
       await updateRef(origin, TEST_REF, hash, dummyPerson(), `commit: ${name}`);
     }

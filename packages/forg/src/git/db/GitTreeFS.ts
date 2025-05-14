@@ -116,8 +116,7 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     const result: ListEntry[] = [];
-    for (const name in tree.entries) {
-      const entry = tree.entries[name];
+    for (const [name, entry] of tree.entries) {
       result.push({
         kind: entry.type === 'tree' ? 'dir' : 'file',
         path: Path.join(path, new Path(name)),
@@ -129,7 +128,7 @@ export class GitTreeFS implements ISimpleFS {
 
   async write(path: Path, data: Uint8Array): Promise<void> {
     const parentTree = await this._findParentFolder(path, true);
-    const entry = parentTree.entries[path.leafName];
+    const entry = parentTree.entries.get(path.leafName);
     if (entry !== undefined && entry.type !== 'file') {
       throw new FSError(Errno.EISDIR, path.value);
     }
@@ -145,50 +144,50 @@ export class GitTreeFS implements ISimpleFS {
       throw new FSError(Errno.EIO, path.value, `Error while saving blob object corresponding to working tree path '${path.value}': ${errorToString(error)}`);
     }
 
-    parentTree.entries[path.leafName] = {
+    parentTree.entries.set(path.leafName, {
       type: 'file',
       hash: fileHash,
-    };
+    });
     this._isModified = true;
   }
 
   async deleteFile(path: Path): Promise<void> {
     const parentTree = await this._findParentFolder(path, false);
-    const entry = parentTree.entries[path.leafName];
+    const entry = parentTree.entries.get(path.leafName);
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
     } else if (entry.type !== 'file') {
       throw new FSError(Errno.EISDIR, path.value);
     }
 
-    delete parentTree.entries[path.leafName];
+    parentTree.entries.delete(path.leafName);
     this._isModified = true;
   }
 
   async createDirectory(path: Path): Promise<void> {
     const parent = await this._findTree(path.getParent(), true);
-    const entry = parent.entries[path.leafName];
+    const entry = parent.entries.get(path.leafName);
     if (entry !== undefined) {
       throw new FSError(Errno.EEXIST, path.value);
     }
 
-    parent.entries[path.leafName] = {
+    parent.entries.set(path.leafName, {
       type: 'tree',
-      entries: {},
-    };
+      entries: new Map(),
+    });
     this._isModified = true;
   }
 
   async deleteDirectory(path: Path): Promise<void> {
     const parentTree = await this._findParentFolder(path, false);
-    const entry = parentTree.entries[path.leafName];
+    const entry = parentTree.entries.get(path.leafName);
     if (entry === undefined) {
       throw new FSError(Errno.ENOENT, path.value);
     } else if (entry.type !== 'tree') {
       throw new FSError(Errno.ENOTDIR, path.value);
     }
 
-    delete parentTree.entries[path.leafName];
+    parentTree.entries.delete(path.leafName);
     this._isModified = true;
   }
 
@@ -210,7 +209,7 @@ export class GitTreeFS implements ISimpleFS {
     }
 
     const tree = await this._findParentFolder(path, false);
-    const entry = tree.entries[path.leafName];
+    const entry = tree.entries.get(path.leafName);
     return entry;
   }
 
@@ -256,14 +255,14 @@ export class GitTreeFS implements ISimpleFS {
 
   private async _expandChildFolder(folder: ExpandedTree, path: Path, segmentIndex: number, createIfNotExists: boolean): Promise<ExpandedTree> {
     const childName = path.segmentAt(segmentIndex);
-    const item = folder.entries[childName];
+    const item = folder.entries.get(childName);
     if (item === undefined) {
       if (createIfNotExists) {
         const newItem: ExpandedTree = {
           type: 'tree',
-          entries: {},
+          entries: new Map(),
         };
-        folder.entries[childName] = newItem;
+        folder.entries.set(childName, newItem);
         this._isModified = true;
         return newItem;
       } else {
@@ -286,7 +285,7 @@ export class GitTreeFS implements ISimpleFS {
         throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${errorToString(error)}`);
       }
       const expandedFolder = treeToWorkingTree(treeObject.body, item.hash);
-      folder.entries[childName] = expandedFolder;
+      folder.entries.set(childName, expandedFolder);
       return expandedFolder;
     } else {
       return item;

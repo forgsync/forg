@@ -11,31 +11,33 @@ describe('AppendOnlyContainer', () => {
       await sut.append(new Uint8Array());
     }
 
-    const item_00 = fs.root.entries['00'] as ExpandedTree;
+    //console.log(JSON.stringify(fs.root, (_k, v) => v instanceof Map ? Array.from(v.entries()) : v, 2));
+
+    const item_00 = fs.root.entries.get('00') as ExpandedTree;
     expect(item_00).toBeDefined();
 
-    const item_00_00 = item_00.entries['00'] as ExpandedTree;
+    const item_00_00 = item_00.entries.get('00') as ExpandedTree;
     expect(item_00_00).toBeDefined();
-    expect(item_00_00.entries['00']).toBeDefined();
-    expect(item_00_00.entries['ff']).toBeDefined();
+    expect(item_00_00.entries.get('00')).toBeDefined();
+    expect(item_00_00.entries.get('ff')).toBeDefined();
 
-    const item_00_ff = item_00.entries['ff'] as ExpandedTree;
+    const item_00_ff = item_00.entries.get('ff') as ExpandedTree;
     expect(item_00_ff).toBeDefined();
-    expect(item_00_ff.entries['00']).toBeDefined();
-    expect(item_00_ff.entries['ff']).toBeDefined();
+    expect(item_00_ff.entries.get('00')).toBeDefined();
+    expect(item_00_ff.entries.get('ff')).toBeDefined();
 
-    const item_01 = fs.root.entries['01'] as ExpandedTree;
+    const item_01 = fs.root.entries.get('01') as ExpandedTree;
     expect(item_01).toBeDefined();
 
-    const item_01_00 = item_01.entries['00'] as ExpandedTree;
+    const item_01_00 = item_01.entries.get('00') as ExpandedTree;
     expect(item_01_00).toBeDefined();
-    expect(item_01_00.entries['00']).toBeDefined();
-    expect(item_01_00.entries['01']).toBeUndefined();
+    expect(item_01_00.entries.get('00')).toBeDefined();
+    expect(item_01_00.entries.get('01')).toBeUndefined();
 
-    const item_01_01 = item_01.entries['01'] as ExpandedTree;
+    const item_01_01 = item_01.entries.get('01') as ExpandedTree;
     expect(item_01_01).toBeUndefined();
 
-    const item_02 = fs.root.entries['02'] as ExpandedTree;
+    const item_02 = fs.root.entries.get('02') as ExpandedTree;
     expect(item_02).toBeUndefined();
   });
 });
@@ -44,7 +46,7 @@ async function createInMemoryGitTreeFS(): Promise<GitTreeFS> {
   const repoFS = new InMemoryFS();
   const repo = new Repo(repoFS);
   await repo.init(InitMode.CreateIfNotExists);
-  const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: {} });
+  const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: new Map() });
   await fs.save();
   return fs;
 }

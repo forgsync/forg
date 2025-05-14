@@ -2,6 +2,7 @@ import { Hash, InitMode, Repo, createCommit, loadCommitObject, loadTreeObject } 
 import { dummyPerson } from '../../../__testHelpers__/dummyPerson';
 import { syncCommit, SyncConsistency } from './syncCommit';
 import { InMemoryFS } from '@forgsync/simplefs';
+import { WorkingTreeEntry } from '../../db/workingTree';
 
 const encoder = new TextEncoder();
 describe('syncCommit', () => {
@@ -15,9 +16,9 @@ describe('syncCommit', () => {
     async function trackCommit(name: string, parents: Hash[]) {
       const hash = await createCommit(origin, {
         type: 'tree',
-        entries: {
-          'someFile.txt': { type: 'file', body: encoder.encode(`This is in commit ${name}`) },
-        }
+        entries: new Map<string, WorkingTreeEntry>([
+          ['someFile.txt', { type: 'file', body: encoder.encode(`This is in commit ${name}`) }],
+        ]),
       }, parents, name, dummyPerson());
       commits[name] = hash;
     }

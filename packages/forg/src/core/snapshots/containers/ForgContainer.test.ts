@@ -34,7 +34,7 @@ async function createInMemoryGitTreeFS(): Promise<GitTreeFS> {
   const repoFS = new InMemoryFS();
   const repo = new Repo(repoFS);
   await repo.init(InitMode.CreateIfNotExists);
-  const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: {} });
+  const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: new Map() });
 
   const goodConfig: ForgContainerConfigJsonDto = {
     type: 'forg.fileSystem',

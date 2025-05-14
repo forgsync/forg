@@ -4,6 +4,7 @@ import { InitMode, Repo, createCommit, updateRef } from '../../git';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { findCommit } from './findCommit';
 import { isTreeFullyReachable } from './isTreeFullyReachable';
+import { WorkingTreeEntry } from '../../git/db/workingTree';
 
 const encoder = new TextEncoder();
 describe('tryFindAvailableHead', () => {
@@ -24,9 +25,9 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', body: encoder.encode('a') },
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', body: encoder.encode('a') }],
+        ]),
       },
       [],
       'Commit 1',
@@ -51,9 +52,9 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', body: encoder.encode('a') },
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', body: encoder.encode('a') }],
+        ]),
       },
       [],
       'Commit 1',
@@ -63,9 +64,9 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', hash: '0000000000000000000000000000000000000001' }, // Not viable, this hash doesn't exist in the repo
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', hash: '0000000000000000000000000000000000000001' }], // Not viable, this hash doesn't exist in the repo
+        ]),
       },
       [commit1],
       'Commit 2',
@@ -75,9 +76,9 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', hash: '0000000000000000000000000000000000000002' }, // Not viable, this hash doesn't exist in the repo
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', hash: '0000000000000000000000000000000000000002' }], // Not viable, this hash doesn't exist in the repo
+        ]),
       },
       [commit2],
       'Commit 3',
@@ -96,9 +97,9 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', hash: '0000000000000000000000000000000000000001' },
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', hash: '0000000000000000000000000000000000000001' }],
+        ]),
       },
       [],
       'Commit 1',
@@ -116,9 +117,9 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', body: encoder.encode('a') },
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', body: encoder.encode('a') }],
+        ]),
       },
       [commit1],
       'Commit 2',
@@ -130,9 +131,9 @@ describe('tryFindAvailableHead', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          a: { type: 'file', hash: '0000000000000000000000000000000000000001' }, // Not viable, this hash doesn't exist in the repo
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a', { type: 'file', hash: '0000000000000000000000000000000000000001' }], // Not viable, this hash doesn't exist in the repo
+        ]),
       },
       [commit2],
       'Commit 3',

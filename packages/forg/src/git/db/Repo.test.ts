@@ -1,6 +1,7 @@
 import { InMemoryFS, Path } from '@forgsync/simplefs';
 import { CommitBody, createCommit, InitMode, loadBlobObject, loadCommitObject, loadTreeObject, Mode, ReflogEntry, Repo, TreeBody, updateRef } from '.';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
+import { WorkingTreeEntry } from './workingTree';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -16,7 +17,7 @@ describe('Repo basics', () => {
   test('just init', () => { });
 
   test('trivial commit', async () => {
-    const hash = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
+    const hash = await createCommit(repo, { type: 'tree', entries: new Map() }, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     await updateRef(repo, 'refs/main', hash, dummyPerson(), 'commit (initial): Initial commit');
@@ -47,15 +48,15 @@ describe('Repo basics', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          'a.txt': { type: 'file', body: encoder.encode('aa') },
-          b: {
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a.txt', { type: 'file', body: encoder.encode('aa') }],
+          ['b', {
             type: 'tree',
-            entries: {
-              'c.txt': { type: 'file', body: encoder.encode('cc') },
-            },
-          },
-        },
+            entries: new Map<string, WorkingTreeEntry>([
+              ['c.txt', { type: 'file', body: encoder.encode('cc') }],
+            ]),
+          }],
+        ]),
       },
       [],
       'Initial commit',
@@ -83,16 +84,16 @@ describe('Repo basics', () => {
   });
 
   test('two commits', async () => {
-    const hash1 = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
+    const hash1 = await createCommit(repo, { type: 'tree', entries: new Map() }, [], 'Initial commit', dummyPerson());
     expect(hash1).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const hash2 = await createCommit(
       repo,
       {
         type: 'tree',
-        entries: {
-          'a.txt': { type: 'file', body: encoder.encode('a') },
-        },
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a.txt', { type: 'file', body: encoder.encode('a') }],
+        ]),
       },
       [hash1],
       'Added a.txt',

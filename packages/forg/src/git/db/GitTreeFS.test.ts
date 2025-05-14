@@ -1,7 +1,7 @@
 import { InMemoryFS, ListEntry, Path } from '@forgsync/simplefs';
 import { GitTreeFS } from './GitTreeFS';
 import { InitMode, Repo } from './Repo';
-import { ExpandedTree, saveWorkingTree } from './workingTree';
+import { ExpandedTree, saveWorkingTree, WorkingTreeEntry } from './workingTree';
 import { loadTreeObject } from './objects';
 
 const encoder = new TextEncoder();
@@ -17,24 +17,24 @@ describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('
     await repo.init(InitMode.CreateIfNotExists);
     workingTree = {
       type: 'tree',
-      entries: {
-        'a.txt': { type: 'file', body: encoder.encode('a') },
-        'b': {
+      entries: new Map<string, WorkingTreeEntry>([
+        ['a.txt', { type: 'file', body: encoder.encode('a') }],
+        ['b', {
           type: 'tree',
-          entries: {
-            'c.txt': { type: 'file', body: encoder.encode('c') },
-            'd.txt': { type: 'file', body: encoder.encode('d') },
-            'e': {
+          entries: new Map<string, WorkingTreeEntry>([
+            ['c.txt', { type: 'file', body: encoder.encode('c') }],
+            ['d.txt', { type: 'file', body: encoder.encode('d') }],
+            ['e', {
               type: 'tree',
-              entries: {
-                'f.txt': { type: 'file', body: encoder.encode('f') },
-              },
-            },
-            'bad': { type: 'tree', hash: '0000000000000000000000000000000000000002' },
-          },
-        },
-        'bad.txt': { type: 'file', hash: '0000000000000000000000000000000000000001' },
-      },
+              entries: new Map<string, WorkingTreeEntry>([
+                ['f.txt', { type: 'file', body: encoder.encode('f') }],
+              ]),
+            }],
+            ['bad', { type: 'tree', hash: '0000000000000000000000000000000000000002' }],
+          ]),
+        }],
+        ['bad.txt', { type: 'file', hash: '0000000000000000000000000000000000000001' }],
+      ]),
     };
     if (testVariant === 'fromWorkingTree') {
       fs = GitTreeFS.fromWorkingTree(repo, workingTree);
@@ -205,7 +205,7 @@ describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('
     await expect(() => fs.deleteFile(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
   });
 
-  test('tryFindEntry', async() =>{
+  test('tryFindEntry', async () => {
     expect((await fs.tryFindEntry(new Path('a.txt')))?.type).toBe("file")
     expect((await fs.tryFindEntry(new Path('b/c.txt')))?.type).toBe("file")
     expect((await fs.tryFindEntry(new Path('b/e')))?.type).toBe("tree")
@@ -244,8 +244,8 @@ describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('
     await fs.createDirectory(new Path('new dir/a'));
     const newDirFs = await fs.chroot(new Path('new dir'));
     const newDirEntry = newDirFs.root;
-    const aEntry = newDirFs.root.entries['a'];
-    if (aEntry.type !== 'tree') { fail(); }
+    const aEntry = newDirFs.root.entries.get('a');
+    if (aEntry?.type !== 'tree') { fail(); }
     if ('hash' in aEntry) {
       fail();
     }

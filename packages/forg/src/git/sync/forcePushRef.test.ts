@@ -9,7 +9,7 @@ describe('forcePushRef', () => {
   let commits: { [key: string]: Hash };
 
   async function commit(name: string, parents: Hash[], ref?: string) {
-    const hash = await createCommit(local, { type: 'tree', entries: {} }, parents, name, dummyPerson());
+    const hash = await createCommit(local, { type: 'tree', entries: new Map() }, parents, name, dummyPerson());
     commits[name] = hash;
     if (ref !== undefined) {
       await updateRef(local, ref, hash, dummyPerson(), `Committed: ${name}`);

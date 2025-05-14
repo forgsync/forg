@@ -1,6 +1,6 @@
 import { ExpandedTree, GitTreeFS } from "../../../../git";
 import { Mutex } from "./Mutex";
-import { ExpandedFile, expandSubTree } from "../../../../git/db/workingTree";
+import { ExpandedFile, expandSubTree, WorkingTreeEntry } from "../../../../git/db/workingTree";
 
 const MaxEntriesPerTree = 256;
 export class AppendOnlyContainer {
@@ -26,27 +26,27 @@ export class AppendOnlyContainer {
       };
       const pseudoRoot: ExpandedTree = {
         type: "tree",
-        entries: {
-          [formatFileName(0)]: root,
-        }
+        entries: new Map<string, WorkingTreeEntry>([
+          [formatFileName(0), root],
+        ]),
       }
       const result = await this.tryGetActiveSubtree(pseudoRoot, 0);
       if (result.activeSubtree === undefined) {
         throw new Error(); // This should never happen
       }
 
-      result.activeSubtree.tree.entries[formatFileName(result.activeSubtree.nextNum)] = newItem;
+      result.activeSubtree.tree.entries.set(formatFileName(result.activeSubtree.nextNum), newItem);
 
-      if (Object.keys(pseudoRoot.entries).length > 1) {
+      if (pseudoRoot.entries.size > 1) {
         // Added a new level. Must swap root
         const rootClone: ExpandedTree = {
-          ...root,
-          entries: { ...root.entries },
+          type: "tree",
+          originalHash: undefined,
+          entries: new Map<string, WorkingTreeEntry>(root.entries.entries()),
         };
-        this.fs.root.entries = {
-          ...pseudoRoot.entries,
-          [formatFileName(0)]: rootClone,
-        };
+        this.fs.root.entries.clear();
+        this.fs.root.entries.set(formatFileName(0), rootClone);
+        this.fs.root.entries.set(formatFileName(1), Array.from(pseudoRoot.entries.values())[1]); // TODO: Clean this up
       }
 
       // TODO: This is hacky and confusing because we are mixing GitTreeFS with raw manipulation of tree objects
@@ -55,14 +55,13 @@ export class AppendOnlyContainer {
   }
 
   async tryGetActiveSubtree(tree: ExpandedTree, depth: number): Promise<{ depth: number; activeSubtree: { tree: ExpandedTree, nextNum: number } | undefined }> {
-    const { names, type } = validateEntries(tree);
-    if (names.length === 0) {
+    const type = validateEntries(tree);
+    if (tree.entries.size === 0) {
       return { depth, activeSubtree: { tree, nextNum: 0 } };
     }
 
-    const lastName = names[names.length - 1];
+    const lastName = Array.from(tree.entries.keys()).pop()!;
     const num = parseFileName(lastName);
-    const isFull = num >= MaxEntriesPerTree - 1;
 
     let maxDepth = depth;
     if (type === "tree") {
@@ -76,7 +75,7 @@ export class AppendOnlyContainer {
       maxDepth = result.depth;
     }
 
-    if (isFull) {
+    if (num >= MaxEntriesPerTree - 1) {
       // No more room in this subtree
       return { depth: maxDepth, activeSubtree: undefined };
     }
@@ -88,9 +87,9 @@ export class AppendOnlyContainer {
       for (let d = depth; d < maxDepth; d++) {
         const newSubtree: ExpandedTree = {
           type: "tree",
-          entries: {},
+          entries: new Map<string, WorkingTreeEntry>(),
         };
-        current.entries[formatFileName(current === tree ? num + 1 : 0)] = newSubtree;
+        current.entries.set(formatFileName(current === tree ? num + 1 : 0), newSubtree);
         current = newSubtree;
       }
       return { depth: maxDepth, activeSubtree: { tree: current, nextNum: 0 } };
@@ -101,30 +100,32 @@ export class AppendOnlyContainer {
   }
 }
 
-function validateEntries(tree: ExpandedTree): { names: string[], type: 'file' | 'tree' } {
-  const names = Object.keys(tree.entries).sort(); // TODO: Replace with map so that this isn't needed. This is because javascript sorts `01` differently than `10` because `10` is a legit number, and `01` is not; Proper numbers are always shown first :(
-  if (names.length === 0) {
-    return { names, type: 'file' };
+function validateEntries(tree: ExpandedTree): 'file' | 'tree' {
+  if (tree.entries.size > MaxEntriesPerTree) {
+    throw new Error(`Too many entries in subtree, expected up to ${MaxEntriesPerTree}, found ${tree.entries.size}`);
   }
 
-  if (names.length > MaxEntriesPerTree) {
-    throw new Error(`Too many entries in subtree, expected up to ${MaxEntriesPerTree}, found ${names.length}`);
-  }
-
-  const type = tree.entries[names[0]].type;
-  for (let i = 0; i < names.length; i++) {
+  let expectedType: 'file' | 'tree' = 'file';
+  let i = 0;
+  for (const [name, entry] of tree.entries) {
     const expected = formatFileName(i);
-    if (names[i] !== expected) {
-      throw new Error(`Wrong file name. Found '${names[i]}', expected ${expected}`);
+    if (name !== expected) {
+      throw new Error(`Wrong file name. Found '${name}', expected ${expected}`);
     }
 
-    const actualType = tree.entries[expected].type;
-    if (actualType !== type) {
-      throw new Error(`Unexpected ${actualType} entry, expected ${type}`);
+    if (i === 0) {
+      expectedType = entry.type;
     }
+    else {
+      if (entry.type !== expectedType) {
+        throw new Error(`Unexpected ${entry.type} entry, expected ${expectedType}`);
+      }
+    }
+
+    i++;
   }
 
-  return { names, type }
+  return expectedType;
 }
 
 function formatFileName(num: number) {

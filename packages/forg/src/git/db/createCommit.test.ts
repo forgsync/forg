@@ -4,6 +4,7 @@ import { Mode } from './model';
 import { CommitBody, loadBlobObject, loadCommitObject, loadTreeObject, TreeBody } from './objects';
 import { dummyPerson } from '../../__testHelpers__/dummyPerson';
 import { InMemoryFS } from '@forgsync/simplefs';
+import { WorkingTreeEntry } from './workingTree';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -17,7 +18,7 @@ describe('createCommit', () => {
   });
 
   test('initial commit', async () => {
-    const hash = await createCommit(repo, { type: 'tree', entries: {} }, [], 'Initial commit', dummyPerson());
+    const hash = await createCommit(repo, { type: 'tree', entries: new Map() }, [], 'Initial commit', dummyPerson());
     expect(hash).toBe('eaef5b6f452335fad4dd280a113d81e82a3acaca');
 
     const commit = await loadCommitObject(repo, hash);
@@ -35,12 +36,12 @@ describe('createCommit', () => {
       repo,
       {
         type: 'tree',
-        entries: {
-          'a.txt': {
+        entries: new Map<string, WorkingTreeEntry>([
+          ['a.txt', {
             type: 'file',
             body: encoder.encode('a'),
-          },
-        },
+          }],
+        ]),
       },
       ['eaef5b6f452335fad4dd280a113d81e82a3acaca'],
       'Added a.txt',

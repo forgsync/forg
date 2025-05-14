@@ -65,7 +65,7 @@ async function createInMemoryRepo(): Promise<Repo> {
 }
 
 async function createWorkingDir(repo: Repo) {
-  const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: {} });
+  const fs = GitTreeFS.fromWorkingTree(repo, { type: 'tree', entries: new Map() });
 
   const goodConfig: ForgContainerConfigJsonDto = {
     type: 'forg.fileSystem',
