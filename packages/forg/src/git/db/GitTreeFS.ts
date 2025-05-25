@@ -255,29 +255,31 @@ export class GitTreeFS implements ISimpleFS {
 
   private async _expandChildFolder(folder: ExpandedTree, path: Path, segmentIndex: number, createIfNotExists: boolean): Promise<ExpandedTree> {
     const childName = path.segmentAt(segmentIndex);
-    const item = folder.entries.get(childName);
-    if (item === undefined) {
-      if (createIfNotExists) {
-        const newItem: ExpandedTree = {
-          type: 'tree',
-          entries: new Map(),
-        };
-        folder.entries.set(childName, newItem);
-        this._isModified = true;
-        return newItem;
-      } else {
-        throw new FSError(Errno.ENOENT, path.value);
-      }
-    } else if (item.type !== 'tree') {
-      throw new FSError(Errno.ENOTDIR, path.value);
-    }
 
     try {
       return await expandSubTree(this.repo, folder, childName);
     } catch (error) {
-      if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
-        this._isMissingObjects = true;
-        throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${error.objectId}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
+      if (error instanceof GitDbError) {
+        if (error.errno === GitDbErrno.TreeEntryNotFound) {
+          if (createIfNotExists) {
+            const newItem: ExpandedTree = {
+              type: 'tree',
+              entries: new Map(),
+            };
+            folder.entries.set(childName, newItem);
+            this._isModified = true;
+            return newItem;
+          } else {
+            throw new FSError(Errno.ENOENT, path.value);
+          }
+        }
+        else if (error.errno === GitDbErrno.ChildIsNotATree) {
+          throw new FSError(Errno.ENOTDIR, path.value);
+        }
+        else if (error.errno === GitDbErrno.MissingObject) {
+          this._isMissingObjects = true;
+          throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${error.objectId}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
+        }
       }
 
       throw new FSError(Errno.EIO, path.value, `Error loading tree object corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${errorToString(error)}`);

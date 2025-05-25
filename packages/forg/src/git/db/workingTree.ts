@@ -1,3 +1,5 @@
+import { Path } from '@forgsync/simplefs';
+import { GitDbErrno, GitDbError } from './errors';
 import { Hash, Mode, Type } from './model';
 import { loadTreeObject, saveObject, TreeBody } from './objects';
 import { IRepo } from './Repo';
@@ -93,11 +95,11 @@ export function treeToWorkingTree(tree: TreeBody, hash: Hash): ExpandedTree {
 export async function expandSubTree(repo: IRepo, tree: ExpandedTree, childName: string): Promise<ExpandedTree> {
   const item = tree.entries.get(childName);
   if (item === undefined) {
-    throw new Error(`No entry '${childName}' in tree ${tree.originalHash}`);
+    throw new GitDbError(GitDbErrno.TreeEntryNotFound, 'No such entry in tree').withObjectId(tree.originalHash).withPath(new Path(childName));
   }
 
   if (item.type !== 'tree') {
-    throw new Error(`Child '${childName}'${'hash' in item ? ` ('${item.hash}')` : ''} is not a tree`);
+    throw new GitDbError(GitDbErrno.ChildIsNotATree, 'Cannot expand a child entry that is not a tree').withObjectId('hash' in item ? item.hash : undefined).withPath(new Path(childName));
   }
 
 

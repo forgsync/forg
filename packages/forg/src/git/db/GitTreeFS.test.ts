@@ -98,7 +98,7 @@ describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('
     });
 
   test.each(['a.txt', 'b/c.txt'])(
-    "directoryExists '%p' throw cases", async (path: string) => {
+    "directoryExists '%p' throw ENOTDIR cases", async (path: string) => {
       await expect(() => fs.directoryExists(new Path(path))).rejects.toThrow(/ENOTDIR/);
     });
 
@@ -123,12 +123,17 @@ describe.each<'fromWorkingTree' | 'fromTree'>(['fromWorkingTree', 'fromTree'])('
   });
 
   test("list where tree is missing throws EIO", async () => {
-    await expect(() => fs.directoryExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+    await expect(() => fs.list(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
   });
 
   test("list where some parent tree is missing throws EIO", async () => {
-    await expect(() => fs.directoryExists(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
+    await expect(() => fs.list(new Path('b/bad/whatever'))).rejects.toThrow(/EIO/);
   });
+
+  test.each(['a.txt', 'b/c.txt'])(
+    "list on blob '%p' throws ENOTDIR", async (path: string) => {
+      await expect(() => fs.list(new Path(path))).rejects.toThrow(/ENOTDIR/);
+    });
 
   test.each(['new.txt', 'b/new.txt', 'b/e/new.txt', 'new/new.txt', 'b/new/new.txt'])
     ("write creates new file '%p'", async (path: string) => {

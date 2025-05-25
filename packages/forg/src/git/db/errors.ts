@@ -6,6 +6,10 @@ export enum GitDbErrno {
   MissingObject,
   ObjectTypeMismatch,
   InvalidData,
+
+  // Used when managing git tree's as `ExpandedTree`'s, see `expandSubTree`
+  TreeEntryNotFound,
+  ChildIsNotATree,
 }
 
 export class GitDbError extends Error {
@@ -23,7 +27,7 @@ export class GitDbError extends Error {
     this._errno = errno;
   }
 
-  withObjectId(objectId: Hash): GitDbError {
+  withObjectId(objectId: Hash | undefined): GitDbError {
     if (this._objectId === undefined) {
       this._objectId = objectId;
     }
@@ -31,7 +35,7 @@ export class GitDbError extends Error {
     return this;
   }
 
-  withRef(ref: string): GitDbError {
+  withRef(ref: string | undefined): GitDbError {
     if (this._ref === undefined) {
       this._ref = ref;
     }
@@ -39,7 +43,7 @@ export class GitDbError extends Error {
     return this;
   }
 
-  withPath(path: Path): GitDbError {
+  withPath(path: Path | undefined): GitDbError {
     if (this._path === undefined) {
       this._path = path;
     }
