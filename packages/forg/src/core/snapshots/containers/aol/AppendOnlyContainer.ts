@@ -1,14 +1,16 @@
-import { ExpandedTree, GitTreeFS } from "../../../../git";
+import { ExpandedTree, IRepo } from "../../../../git";
 import { Mutex } from "./Mutex";
 import { ExpandedFile, expandSubTree, WorkingTreeEntry } from "../../../../git/db/workingTree";
 
 const MaxEntriesPerTree = 256;
 export class AppendOnlyContainer {
-  private readonly fs: GitTreeFS;
+  private readonly repo: IRepo;
+  private readonly root: ExpandedTree;
   private readonly mutex = new Mutex();
 
-  constructor(fs: GitTreeFS) {
-    this.fs = fs;
+  constructor(repo: IRepo, root: ExpandedTree) {
+    this.repo = repo;
+    this.root = root;
   }
 
   async count(): Promise<void> {
@@ -18,8 +20,6 @@ export class AppendOnlyContainer {
 
   async append(data: Uint8Array): Promise<void> {
     return await this.mutex.run(async () => {
-      const root = this.fs.root;
-
       const newItem: ExpandedFile = {
         type: "file",
         body: data,
@@ -27,7 +27,7 @@ export class AppendOnlyContainer {
       const pseudoRoot: ExpandedTree = {
         type: "tree",
         entries: new Map<string, WorkingTreeEntry>([
-          [formatFileName(0), root],
+          [formatFileName(0), this.root],
         ]),
       }
       const result = await this.tryGetActiveSubtree(pseudoRoot, 0);
@@ -42,15 +42,15 @@ export class AppendOnlyContainer {
         const rootClone: ExpandedTree = {
           type: "tree",
           originalHash: undefined,
-          entries: new Map<string, WorkingTreeEntry>(root.entries.entries()),
+          entries: new Map<string, WorkingTreeEntry>(this.root.entries.entries()),
         };
-        this.fs.root.entries.clear();
-        this.fs.root.entries.set(formatFileName(0), rootClone);
-        this.fs.root.entries.set(formatFileName(1), Array.from(pseudoRoot.entries.values())[1]); // TODO: Clean this up
+        this.root.entries.clear();
+        this.root.entries.set(formatFileName(0), rootClone);
+        this.root.entries.set(formatFileName(1), Array.from(pseudoRoot.entries.values())[1]); // TODO: Clean this up
       }
 
       // TODO: This is hacky and confusing because we are mixing GitTreeFS with raw manipulation of tree objects
-      this.fs.root.originalHash = undefined;
+      this.root.originalHash = undefined;
     });
   }
 
@@ -65,7 +65,7 @@ export class AppendOnlyContainer {
 
     let maxDepth = depth;
     if (type === "tree") {
-      const subtree = await expandSubTree(this.fs.repo, tree, lastName);
+      const subtree = await expandSubTree(this.repo, tree, lastName);
       const result = await this.tryGetActiveSubtree(subtree, depth + 1);
       if (result.activeSubtree !== undefined) {
         // Found a subtree with room for another entry
