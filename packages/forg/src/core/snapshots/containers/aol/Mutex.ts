@@ -1,13 +1,13 @@
 export class Mutex {
   private busy: boolean = false;
 
-  async run(func: () => Promise<void>) {
+  async run<T>(func: () => Promise<T>) {
     if (this.busy) {
       throw new Error('Mutex cannot be entered concurrently');
     }
     this.busy = true;
     try {
-      await func();
+      return await func();
     }
     finally {
       this.busy = false;

@@ -15,28 +15,34 @@ export class AppendOnlyContainer {
     this._root = root;
   }
 
-  async count(): Promise<void> {
+  async count(): Promise<number> {
     return await this.mutex.run(async () => {
+      const result = await this._tryGetActiveSubtree(this._root, 0, 0);
+      if (result.num === 0 && result.activeSubtree !== undefined && result.activeSubtree.nextNum === 0) {
+        return 0;
+      }
+
+      return result.num + 1;
     });
   }
 
   async append(data: Uint8Array): Promise<void> {
     return await this.mutex.run(async () => {
-      const newItem: ExpandedFile = {
-        type: "file",
-        body: data,
-      };
       const pseudoRoot: ExpandedTree = {
         type: "tree",
         entries: new Map<string, WorkingTreeEntry>([
           [formatFileName(0), this._root],
         ]),
       }
-      const result = await this.tryGetActiveSubtree(pseudoRoot, 0);
+      const result = await this._tryGetActiveSubtree(pseudoRoot, 0, 0);
       if (result.activeSubtree === undefined) {
         throw new Error(); // This should never happen
       }
 
+      const newItem: ExpandedFile = {
+        type: "file",
+        body: data,
+      };
       result.activeSubtree.tree.entries.set(formatFileName(result.activeSubtree.nextNum), newItem);
 
       if (pseudoRoot.entries.size > 1) {
@@ -44,35 +50,36 @@ export class AppendOnlyContainer {
         this._root = pseudoRoot;
       }
 
-      // TODO: This is hacky and confusing because we are mixing GitTreeFS with raw manipulation of tree objects
       this._root.originalHash = undefined;
     });
   }
 
-  async tryGetActiveSubtree(tree: ExpandedTree, depth: number): Promise<{ depth: number; activeSubtree: { tree: ExpandedTree, nextNum: number } | undefined }> {
+  private async _tryGetActiveSubtree(tree: ExpandedTree, depth: number, baseNum: number): Promise<{ depth: number; num: number; activeSubtree: { tree: ExpandedTree, nextNum: number } | undefined }> {
     const type = validateEntries(tree);
     if (tree.entries.size === 0) {
-      return { depth, activeSubtree: { tree, nextNum: 0 } };
+      return { depth, num: baseNum, activeSubtree: { tree, nextNum: 0 } };
     }
 
     const lastName = Array.from(tree.entries.keys()).pop()!;
     const num = parseFileName(lastName);
 
     let maxDepth = depth;
+    let maxNum = baseNum + num;
     if (type === "tree") {
       const subtree = await expandSubTree(this.repo, tree, lastName);
-      const result = await this.tryGetActiveSubtree(subtree, depth + 1);
+      const result = await this._tryGetActiveSubtree(subtree, depth + 1, maxNum * MaxEntriesPerTree);
       if (result.activeSubtree !== undefined) {
         // Found a subtree with room for another entry
         return result;
       }
 
       maxDepth = result.depth;
+      maxNum = result.num;
     }
 
-    if (num >= MaxEntriesPerTree - 1) {
+    if (num === MaxEntriesPerTree - 1) {
       // No more room in this subtree
-      return { depth: maxDepth, activeSubtree: undefined };
+      return { depth: maxDepth, num: maxNum, activeSubtree: undefined };
     }
 
     if (type === "tree") {
@@ -87,10 +94,10 @@ export class AppendOnlyContainer {
         current.entries.set(formatFileName(current === tree ? num + 1 : 0), newSubtree);
         current = newSubtree;
       }
-      return { depth: maxDepth, activeSubtree: { tree: current, nextNum: 0 } };
+      return { depth: maxDepth, num: maxNum, activeSubtree: { tree: current, nextNum: 0 } };
     }
     else {
-      return { depth, activeSubtree: { tree, nextNum: num + 1 } };
+      return { depth, num: maxNum, activeSubtree: { tree, nextNum: num + 1 } };
     }
   }
 }

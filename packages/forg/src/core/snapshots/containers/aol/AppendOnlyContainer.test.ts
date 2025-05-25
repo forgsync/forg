@@ -3,13 +3,15 @@ import { AppendOnlyContainer } from './AppendOnlyContainer';
 import { Repo, InitMode, ExpandedTree } from '../../../../git';
 
 describe('AppendOnlyContainer', () => {
-  test('append works from 0 to 65537', async () => {
+  test('append and count works from 0 to 65537', async () => {
     const repo = await createInMemoryRepo();
     let root: ExpandedTree = { type: 'tree', entries: new Map() };
     const sut = new AppendOnlyContainer(repo, root);
 
+    expect(await sut.count()).toBe(0);
     for (let i = 0; i < 256 * 256 + 1; i++) {
       await sut.append(new Uint8Array());
+      expect(await sut.count()).toBe(i + 1);
     }
 
     root = sut.root;
