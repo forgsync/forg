@@ -1,6 +1,5 @@
-import { GitDbErrno, GitDbError } from './errors';
 import { Hash, Mode, Type } from './model';
-import { loadTreeObject, saveObject, TreeBody, TreeObject } from './objects';
+import { loadTreeObject, saveObject, TreeBody } from './objects';
 import { IRepo } from './Repo';
 import { isFile } from './util';
 
@@ -98,20 +97,12 @@ export async function expandSubTree(repo: IRepo, tree: ExpandedTree, childName: 
   }
 
   if (item.type !== 'tree') {
-    throw new Error(`Not a tree${'hash' in item ? ` ('${item.hash}')` : ''}`);
+    throw new Error(`Child '${childName}'${'hash' in item ? ` ('${item.hash}')` : ''} is not a tree`);
   }
 
-  if ('hash' in item) {
-    let treeObject: TreeObject;
-    try {
-      treeObject = await loadTreeObject(repo, item.hash);
-    } catch (error) {
-      if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
-        throw new Error(`Unable to find tree object '${item.hash}'`);
-      }
 
-      throw new Error(`Error while loading tree object '${item.hash}'`);
-    }
+  if ('hash' in item) {
+    const treeObject = await loadTreeObject(repo, item.hash);
     const expandedFolder = treeToWorkingTree(treeObject.body, item.hash);
     tree.entries.set(childName, expandedFolder);
     return expandedFolder;

@@ -4,13 +4,15 @@ import { ExpandedFile, expandSubTree, WorkingTreeEntry } from "../../../../git/d
 
 const MaxEntriesPerTree = 256;
 export class AppendOnlyContainer {
-  private readonly repo: IRepo;
-  private readonly root: ExpandedTree;
   private readonly mutex = new Mutex();
+  private readonly repo: IRepo;
+  private _root: ExpandedTree;
+
+  get root() { return this._root; }
 
   constructor(repo: IRepo, root: ExpandedTree) {
     this.repo = repo;
-    this.root = root;
+    this._root = root;
   }
 
   async count(): Promise<void> {
@@ -27,7 +29,7 @@ export class AppendOnlyContainer {
       const pseudoRoot: ExpandedTree = {
         type: "tree",
         entries: new Map<string, WorkingTreeEntry>([
-          [formatFileName(0), this.root],
+          [formatFileName(0), this._root],
         ]),
       }
       const result = await this.tryGetActiveSubtree(pseudoRoot, 0);
@@ -39,18 +41,11 @@ export class AppendOnlyContainer {
 
       if (pseudoRoot.entries.size > 1) {
         // Added a new level. Must swap root
-        const rootClone: ExpandedTree = {
-          type: "tree",
-          originalHash: undefined,
-          entries: new Map<string, WorkingTreeEntry>(this.root.entries.entries()),
-        };
-        this.root.entries.clear();
-        this.root.entries.set(formatFileName(0), rootClone);
-        this.root.entries.set(formatFileName(1), Array.from(pseudoRoot.entries.values())[1]); // TODO: Clean this up
+        this._root = pseudoRoot;
       }
 
       // TODO: This is hacky and confusing because we are mixing GitTreeFS with raw manipulation of tree objects
-      this.root.originalHash = undefined;
+      this._root.originalHash = undefined;
     });
   }
 

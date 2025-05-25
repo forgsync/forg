@@ -5,13 +5,14 @@ import { Repo, InitMode, ExpandedTree } from '../../../../git';
 describe('AppendOnlyContainer', () => {
   test('append works from 0 to 65537', async () => {
     const repo = await createInMemoryRepo();
-    const root: ExpandedTree = { type: 'tree', entries: new Map() };
+    let root: ExpandedTree = { type: 'tree', entries: new Map() };
     const sut = new AppendOnlyContainer(repo, root);
 
     for (let i = 0; i < 256 * 256 + 1; i++) {
       await sut.append(new Uint8Array());
     }
 
+    root = sut.root;
     //console.log(JSON.stringify(fs.root, (_k, v) => v instanceof Map ? Array.from(v.entries()) : v, 2));
 
     const item_00 = root.entries.get('00') as ExpandedTree;

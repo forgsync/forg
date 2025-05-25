@@ -1,7 +1,7 @@
 import { Errno, FSError, ISimpleFS, ListEntry, ListOptions, Path } from '@forgsync/simplefs';
 import { IRepo } from './Repo';
-import { ExpandedTree, saveWorkingTree, treeToWorkingTree, WorkingTreeEntry, WorkingTreeFile, WorkingTreeFolder } from './workingTree';
-import { loadBlobObject, loadTreeObject, saveObject, TreeObject } from './objects';
+import { ExpandedTree, expandSubTree, saveWorkingTree, treeToWorkingTree, WorkingTreeEntry, WorkingTreeFile, WorkingTreeFolder } from './workingTree';
+import { loadBlobObject, saveObject, TreeObject } from './objects';
 import { GitDbErrno, GitDbError } from './errors';
 import { Hash, Type } from './model';
 import { errorToString } from './util';
@@ -272,23 +272,15 @@ export class GitTreeFS implements ISimpleFS {
       throw new FSError(Errno.ENOTDIR, path.value);
     }
 
-    if ('hash' in item) {
-      let treeObject: TreeObject;
-      try {
-        treeObject = await loadTreeObject(this._repo, item.hash);
-      } catch (error) {
-        if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
-          this._isMissingObjects = true;
-          throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
-        }
-
-        throw new FSError(Errno.EIO, path.value, `Error while loading tree object '${item.hash}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${errorToString(error)}`);
+    try {
+      return await expandSubTree(this.repo, folder, childName);
+    } catch (error) {
+      if (error instanceof GitDbError && error.errno === GitDbErrno.MissingObject) {
+        this._isMissingObjects = true;
+        throw new FSError(Errno.EIO, path.value, `Unable to find tree object '${error.objectId}' corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}'`);
       }
-      const expandedFolder = treeToWorkingTree(treeObject.body, item.hash);
-      folder.entries.set(childName, expandedFolder);
-      return expandedFolder;
-    } else {
-      return item;
+
+      throw new FSError(Errno.EIO, path.value, `Error loading tree object corresponding to working tree path '${path.segments.slice(0, segmentIndex + 1).join('/')}': ${errorToString(error)}`);
     }
   }
 }
